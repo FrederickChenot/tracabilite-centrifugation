@@ -68,3 +68,32 @@ export interface Session {
 export interface HistoriqueSession extends Session {
   tubes: Tube[];
 }
+
+export interface RechercheResult {
+  id: string;
+  session_id: string;
+  num_echant: string;
+  scanned_at: string;
+  remarque: string | null;
+  opened_at: string;
+  closed_at: string | null;
+  statut: string;
+  stockage: 'ambiant' | '+5' | '-20';
+  visa: string;
+  centrifugeuse: string;
+  est_backup: boolean;
+  prog_numero: number;
+  prog_libelle: string;
+  site_nom: string;
+  site_id: number;
+}
+
+export interface FilterState {
+  site_id: number | null;
+  centri_id: number | null;
+  date_debut: string;
+  date_fin: string;
+  visa: string;
+  stockage: '' | 'ambiant' | '+5' | '-20';
+  avec_remarque: boolean;
+}

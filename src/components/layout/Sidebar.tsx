@@ -10,6 +10,7 @@ interface SidebarProps {
 
 const navItems = [
   { href: '/outils/centrifugation', label: 'Centrifugation', icon: '⟳' },
+  { href: '/recherche',              label: 'Recherche',       icon: '⌕' },
 ];
 
 export default function Sidebar({ siteId, onSiteChange }: SidebarProps) {
@@ -48,7 +49,7 @@ export default function Sidebar({ siteId, onSiteChange }: SidebarProps) {
       <div className="px-4 py-4 border-t border-gray-700">
         <p className="text-xs text-gray-500 mb-2">Site</p>
         <div className="flex flex-col gap-1">
-          {[{ id: 1, label: 'Épinal' }, { id: 2, label: 'Remiremont' }].map((site) => (
+          {[{ id: 1, label: 'Épinal' }, { id: 2, label: 'Remiremont' }, { id: 3, label: 'Neufchâteau' }].map((site) => (
             <button
               key={site.id}
               onClick={() => onSiteChange(site.id)}
