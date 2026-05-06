@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --app --src-dir --import-alias \"@/*\" --no-git --yes)",
+      "Read(//c/Dev/**)",
+      "Bash(npx create-next-app@latest tracabilite-centrifugation --typescript --tailwind --app --src-dir --import-alias \"@/*\" --no-git --yes)",
+      "Bash(cat \"tracabilite-centrifugation/.env.local\")",
+      "Bash(rm \"tracabilite-centrifugation/.env.local\")"
+    ]
+  }
+}
