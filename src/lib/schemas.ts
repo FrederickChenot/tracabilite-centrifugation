@@ -19,6 +19,7 @@ export type AddTubeInput = z.infer<typeof AddTubeSchema>;
 export interface Site {
   id: number;
   nom: string;
+  actif: boolean;
 }
 
 export interface Centrifugeuse {
@@ -27,6 +28,7 @@ export interface Centrifugeuse {
   nom: string;
   modele: string;
   est_backup: boolean;
+  actif: boolean;
 }
 
 export interface Programme {

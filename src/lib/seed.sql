@@ -1,4 +1,4 @@
-INSERT INTO sites (id, nom) VALUES (1, 'Épinal'), (2, 'Remiremont')
+INSERT INTO sites (id, nom) VALUES (1, 'Épinal'), (2, 'Remiremont'), (3, 'Neufchâteau')
 ON CONFLICT (id) DO NOTHING;
 
 -- Centrifugeuses Épinal

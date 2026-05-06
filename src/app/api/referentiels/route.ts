@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
            p.id as prog_id, p.numero, p.libelle
     FROM centrifugeuses c
     LEFT JOIN programmes p ON p.centrifugeuse_id = c.id
-    WHERE c.site_id = ${Number(site_id)}
+    WHERE c.site_id = ${Number(site_id)} AND c.actif = true
     ORDER BY c.est_backup ASC, c.nom ASC, p.numero ASC
   `;
 
@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
         nom: row.nom,
         modele: row.modele,
         est_backup: row.est_backup,
+        actif: row.actif,
         programmes: [],
       });
     }
