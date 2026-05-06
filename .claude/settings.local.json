@@ -5,7 +5,13 @@
       "Read(//c/Dev/**)",
       "Bash(npx create-next-app@latest tracabilite-centrifugation --typescript --tailwind --app --src-dir --import-alias \"@/*\" --no-git --yes)",
       "Bash(cat \"tracabilite-centrifugation/.env.local\")",
-      "Bash(rm \"tracabilite-centrifugation/.env.local\")"
+      "Bash(rm \"tracabilite-centrifugation/.env.local\")",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:3001)",
+      "Bash(git remote *)",
+      "Bash(git add *)"
     ]
   }
 }
