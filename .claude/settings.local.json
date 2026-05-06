@@ -13,7 +13,10 @@
       "Bash(git remote *)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Skill(update-config)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }
