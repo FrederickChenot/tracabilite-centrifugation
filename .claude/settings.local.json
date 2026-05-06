@@ -12,11 +12,24 @@
       "Bash(curl -s http://localhost:3001)",
       "Bash(git remote *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)",
-      "Bash(node -e ' *)",
-      "Skill(update-config)",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git status *)",
+      "Bash(git log *)",
+      "Bash(node -e ' *)",
+      "Skill(update-config)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -NonInteractive -Command \"Set-Location 'C:\\Dev\\tracabilite-centrifugation'; git add -A; git push origin master; exit 0\""
+          }
+        ]
+      }
     ]
   }
 }
