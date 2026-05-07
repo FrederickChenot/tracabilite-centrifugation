@@ -97,3 +97,42 @@ export interface FilterState {
   stockage: '' | 'ambiant' | '+5' | '-20';
   avec_remarque: boolean;
 }
+
+export interface LaboratoireDest {
+  id: number;
+  nom: string;
+  email_reception: string | null;
+  actif: boolean;
+}
+
+export type TemperatureTransport = 'ambiant' | '+4' | 'congele';
+
+export interface EnvoiSachet {
+  id: string;
+  envoi_id: string;
+  temperature: TemperatureTransport;
+  code_barre: string;
+  ordre: number;
+  scanned_at: string;
+}
+
+export type StatutEnvoi = 'en_preparation' | 'valide' | 'envoye' | 'receptionne';
+
+export interface EnvoiTransport {
+  id: string;
+  site_id: number;
+  dest_id: number;
+  visa_expediteur: string;
+  statut: StatutEnvoi;
+  created_at: string;
+  valide_at: string | null;
+  envoye_at: string | null;
+  receptionne_at: string | null;
+  nom_transporteur: string | null;
+  visa_transporteur: string | null;
+  nom_receptionnaire: string | null;
+  visa_receptionnaire: string | null;
+  site_nom?: string;
+  dest_nom?: string;
+  sachets?: EnvoiSachet[];
+}

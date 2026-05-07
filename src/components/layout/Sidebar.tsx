@@ -13,7 +13,8 @@ interface SidebarProps {
 
 const navItems = [
   { href: '/outils/centrifugation', label: 'Centrifugation', icon: '⟳' },
-  { href: '/recherche',              label: 'Recherche',       icon: '⌕' },
+  { href: '/outils/transport',      label: 'Transport',       icon: '🚚' },
+  { href: '/recherche',             label: 'Recherche',       icon: '⌕' },
 ];
 
 export default function Sidebar({ siteId, onSiteChange, mobileOpen, onMobileClose }: SidebarProps) {

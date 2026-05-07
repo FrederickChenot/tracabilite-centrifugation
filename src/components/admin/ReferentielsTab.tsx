@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Site, Centrifugeuse, Programme } from '@/lib/schemas';
+import { Site, Centrifugeuse, Programme, LaboratoireDest } from '@/lib/schemas';
 import Toast, { useToast } from './Toast';
+
+type ReferentielsSubTab = 'centrifugation' | 'destinataires';
 
 /* ─── Types locaux ───────────────────────────────────────────── */
 
@@ -68,6 +70,83 @@ function InlineInput({
 
 export default function ReferentielsTab() {
   const { toast, showToast } = useToast();
+
+  /* Sub-tab */
+  const [subTab, setSubTab] = useState<ReferentielsSubTab>('centrifugation');
+
+  /* ── Destinataires ── */
+  const [laboratoires, setLaboratoires] = useState<LaboratoireDest[]>([]);
+  const [loadingLabs, setLoadingLabs] = useState(false);
+  const [showAddLab, setShowAddLab] = useState(false);
+  const [newLabNom, setNewLabNom] = useState('');
+  const [newLabEmail, setNewLabEmail] = useState('');
+  const [editingLabId, setEditingLabId] = useState<number | null>(null);
+  const [editingLabNom, setEditingLabNom] = useState('');
+  const [editingLabEmail, setEditingLabEmail] = useState('');
+
+  const loadLaboratoires = useCallback(async () => {
+    setLoadingLabs(true);
+    try {
+      const res = await fetch('/api/admin/laboratoires');
+      const data = await res.json();
+      setLaboratoires(data.laboratoires ?? []);
+    } finally {
+      setLoadingLabs(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (subTab === 'destinataires') loadLaboratoires();
+  }, [subTab, loadLaboratoires]);
+
+  async function handleAddLab() {
+    if (!newLabNom.trim()) return;
+    const res = await fetch('/api/admin/laboratoires', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nom: newLabNom.trim(), email_reception: newLabEmail.trim() || undefined }),
+    });
+    if (res.ok) {
+      setNewLabNom(''); setNewLabEmail(''); setShowAddLab(false);
+      await loadLaboratoires();
+      showToast('Destinataire ajouté');
+    } else {
+      const err = await res.json();
+      showToast(err.error ?? 'Erreur', 'error');
+    }
+  }
+
+  async function handleSaveLab(id: number) {
+    if (!editingLabNom.trim()) return;
+    const res = await fetch(`/api/admin/laboratoires/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nom: editingLabNom.trim(), email_reception: editingLabEmail.trim() || null }),
+    });
+    if (res.ok) {
+      setEditingLabId(null);
+      await loadLaboratoires();
+      showToast('Destinataire modifié');
+    } else {
+      showToast('Erreur', 'error');
+    }
+  }
+
+  async function handleToggleLab(lab: LaboratoireDest) {
+    const action = lab.actif ? 'désactiver' : 'réactiver';
+    if (lab.actif && !confirm(`Désactiver "${lab.nom}" ?`)) return;
+    const res = await fetch(`/api/admin/laboratoires/${lab.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actif: !lab.actif }),
+    });
+    if (res.ok) {
+      await loadLaboratoires();
+      showToast(`"${lab.nom}" ${action === 'désactiver' ? 'désactivé' : 'réactivé'}`);
+    } else {
+      showToast('Erreur', 'error');
+    }
+  }
 
   /* Sites */
   const [sites, setSites] = useState<Site[]>([]);
@@ -316,8 +395,137 @@ export default function ReferentielsTab() {
   const selectedCentri = centrifugeuses.find((c) => c.id === selectedCentriId);
 
   return (
-    <div className="flex h-full min-h-0 gap-0">
+    <div className="flex flex-col h-full min-h-0 gap-0">
       <Toast toast={toast} />
+
+      {/* ── Sub-tabs ── */}
+      <div className="flex border-b border-gray-200 bg-white shrink-0">
+        {([
+          { key: 'centrifugation', label: 'Centrifugation' },
+          { key: 'destinataires', label: 'Destinataires transport' },
+        ] as { key: ReferentielsSubTab; label: string }[]).map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setSubTab(tab.key)}
+            className={`px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              subTab === tab.key
+                ? 'border-teal-600 text-teal-700'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Onglet Destinataires ── */}
+      {subTab === 'destinataires' && (
+        <div className="flex-1 flex flex-col min-h-0">
+          <SectionHeader
+            title="Laboratoires destinataires"
+            action={
+              <Btn variant="teal" onClick={() => { setShowAddLab(true); setEditingLabId(null); }}>
+                + Ajouter
+              </Btn>
+            }
+          />
+
+          {showAddLab && (
+            <div className="px-3 py-2 border-b border-teal-100 bg-teal-50 flex gap-2 items-end flex-wrap">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-gray-500">Nom</span>
+                <InlineInput
+                  value={newLabNom}
+                  onChange={setNewLabNom}
+                  placeholder="Nom du labo"
+                  className="text-xs w-44"
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleAddLab(); if (e.key === 'Escape') { setShowAddLab(false); setNewLabNom(''); setNewLabEmail(''); } }}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-gray-500">Email réception (optionnel)</span>
+                <InlineInput
+                  value={newLabEmail}
+                  onChange={setNewLabEmail}
+                  placeholder="email@labo.fr"
+                  className="text-xs w-52"
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleAddLab(); if (e.key === 'Escape') { setShowAddLab(false); setNewLabNom(''); setNewLabEmail(''); } }}
+                />
+              </div>
+              <Btn variant="teal" onClick={handleAddLab} disabled={!newLabNom.trim()}>✓ Ajouter</Btn>
+              <Btn variant="ghost" onClick={() => { setShowAddLab(false); setNewLabNom(''); setNewLabEmail(''); }}>Annuler</Btn>
+            </div>
+          )}
+
+          {loadingLabs ? (
+            <div className="flex-1 flex items-center justify-center text-sm text-gray-400">Chargement...</div>
+          ) : (
+            <div className="flex-1 overflow-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-gray-50 z-10">
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">Nom</th>
+                    <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">Email réception</th>
+                    <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">Statut</th>
+                    <th className="px-4 py-2 w-40" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {laboratoires.length === 0 && !showAddLab && (
+                    <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-400">Aucun destinataire</td></tr>
+                  )}
+                  {laboratoires.map((lab) => (
+                    <tr
+                      key={lab.id}
+                      className={`border-b border-gray-100 group hover:bg-gray-50 ${!lab.actif ? 'opacity-50' : ''}`}
+                    >
+                      {editingLabId === lab.id ? (
+                        <>
+                          <td className="px-3 py-1.5">
+                            <InlineInput value={editingLabNom} onChange={setEditingLabNom} className="w-full" />
+                          </td>
+                          <td className="px-3 py-1.5">
+                            <InlineInput value={editingLabEmail} onChange={setEditingLabEmail} placeholder="email@labo.fr" className="w-full" />
+                          </td>
+                          <td />
+                          <td className="px-3 py-1.5 flex gap-1">
+                            <Btn variant="teal" onClick={() => handleSaveLab(lab.id)} disabled={!editingLabNom.trim()}>✓</Btn>
+                            <Btn variant="ghost" onClick={() => setEditingLabId(null)}>✕</Btn>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="px-4 py-2.5 font-medium text-gray-800">{lab.nom}</td>
+                          <td className="px-4 py-2.5 text-gray-500 text-xs">{lab.email_reception ?? '—'}</td>
+                          <td className="px-4 py-2.5">
+                            {lab.actif
+                              ? <Badge label="Actif" color="bg-teal-100 text-teal-700" />
+                              : <Badge label="Inactif" color="bg-gray-100 text-gray-500" />
+                            }
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <div className="opacity-0 group-hover:opacity-100 flex gap-1 justify-end">
+                              <Btn variant="ghost" onClick={() => { setEditingLabId(lab.id); setEditingLabNom(lab.nom); setEditingLabEmail(lab.email_reception ?? ''); }}>✎ Modifier</Btn>
+                              {lab.actif
+                                ? <Btn variant="red" onClick={() => handleToggleLab(lab)}>⊗ Désactiver</Btn>
+                                : <Btn variant="ghost" onClick={() => handleToggleLab(lab)}>↺ Réactiver</Btn>
+                              }
+                            </div>
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Onglet Centrifugation ── */}
+      {subTab === 'centrifugation' && (
+      <div className="flex flex-1 min-h-0 gap-0">
 
       {/* ── Colonne Sites ── */}
       <aside className="w-56 shrink-0 border-r border-gray-200 bg-white flex flex-col min-h-0">
@@ -580,6 +788,8 @@ export default function ReferentielsTab() {
           </div>
         )}
       </div>
+      </div>
+      )}
     </div>
   );
 }
