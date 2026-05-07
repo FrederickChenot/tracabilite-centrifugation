@@ -104,21 +104,26 @@ export async function exportTracabiliteJour(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(30, 30, 30);
-  doc.text('PASSAGES DU JOUR', marginL, 53);
+  doc.text('SCANS DU JOUR', marginL, 53);
 
   let startY = 57;
 
   for (const session of sessions) {
-    const passageLabel = [
-      `▸ Passage — ${session.centri_nom ?? ''}`,
-      session.prog_libelle ? `Pgm ${session.prog_numero} ${session.prog_libelle}` : '',
+    const libelleCourt = session.prog_libelle
+      ? (session.prog_libelle.length > 28 ? session.prog_libelle.slice(0, 28) + '…' : session.prog_libelle)
+      : '';
+    const scanLine1 = [
+      `Scan — ${session.centri_nom ?? ''}`,
+      session.prog_numero ? `Pgm ${session.prog_numero}${libelleCourt ? ' ' + libelleCourt : ''}` : '',
       STOCKAGE_LABEL[session.stockage] ?? session.stockage,
       `Visa : ${session.visa}`,
-      `Ouvert à ${fmtTimeShort(session.opened_at)}${session.closed_at ? ` — Clôturé à ${fmtTimeShort(session.closed_at)}` : ' — En cours'}`,
-      `${session.tubes.length} tube${session.tubes.length !== 1 ? 's' : ''}`,
     ]
       .filter(Boolean)
       .join('  ·  ');
+    const scanLine2 = [
+      `Ouvert à ${fmtTimeShort(session.opened_at)}${session.closed_at ? ` — Clôturé à ${fmtTimeShort(session.closed_at)}` : ' — En cours'}`,
+      `${session.tubes.length} tube${session.tubes.length !== 1 ? 's' : ''}`,
+    ].join('  ·  ');
 
     const body = session.tubes.map((tube, i) => [
       String(i + 1),
@@ -137,15 +142,27 @@ export async function exportTracabiliteJour(
       head: [
         [
           {
-            content: passageLabel,
+            content: scanLine1,
             colSpan: 5,
             styles: {
               fillColor: [230, 245, 240],
               textColor: [14, 110, 86],
               fontStyle: 'bold',
+              fontSize: 8,
+              cellPadding: { top: 3, bottom: 1, left: 3, right: 3 },
+            },
+          },
+        ],
+        [
+          {
+            content: scanLine2,
+            colSpan: 5,
+            styles: {
+              fillColor: [230, 245, 240],
+              textColor: [100, 100, 100],
+              fontStyle: 'normal',
               fontSize: 7,
-              overflow: 'linebreak',
-              cellPadding: { top: 3, bottom: 3, left: 3, right: 3 },
+              cellPadding: { top: 1, bottom: 3, left: 3, right: 3 },
             },
           },
         ],
@@ -187,7 +204,7 @@ export async function exportTracabiliteJour(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(40, 40, 40);
-  doc.text(`Total passages : ${sessions.length}`, marginL, sumY + 11);
+  doc.text(`Total scans : ${sessions.length}`, marginL, sumY + 11);
   doc.text(`Total tubes : ${totalTubes}`, marginL, sumY + 17);
   doc.text(`Centrifugeuses utilisées : ${centris || '—'}`, marginL, sumY + 23);
   doc.text(`Opérateurs : ${operateurs || '—'}`, marginL, sumY + 29);
