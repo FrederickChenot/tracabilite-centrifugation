@@ -17,7 +17,8 @@ export async function GET(
     `;
     if (rows.length === 0) return NextResponse.json({ error: 'Introuvable' }, { status: 404 });
     const sachets = await sql`
-      SELECT * FROM envoi_sachets WHERE envoi_id = ${id} ORDER BY temperature, ordre
+      SELECT id, envoi_id, temperature, code_barre, ordre, scanned_at, created_at
+      FROM envoi_sachets WHERE envoi_id = ${id} ORDER BY temperature, ordre
     `;
     return NextResponse.json({ envoi: { ...rows[0], sachets } });
   } catch (err) {

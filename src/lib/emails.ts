@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = 'onboarding@resend.dev';
+const FROM = 'BioTools <onboarding@resend.dev>';
 const TO = process.env.EMAIL_EXPEDITEUR ?? '';
 
 function bonNum(id: string) { return id.slice(0, 6).toUpperCase(); }
@@ -13,31 +13,40 @@ function baseUrl() {
   return url;
 }
 
-function htmlEmail(title: string, body: string, bonId: string): string {
+function htmlEmail(title: string, tableRows: string, bonId: string, iconTitle: string): string {
   return `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
-      <div style="background:#0d9488;color:white;padding:16px 24px">
-        <h1 style="margin:0;font-size:18px">GCS Bio Med — Transport Prélèvements</h1>
+      <div style="background:#0F6E56;color:white;padding:20px;border-radius:8px 8px 0 0">
+        <h2 style="margin:0;font-size:18px">GCS Bio Med — BioTools</h2>
+        <p style="margin:6px 0 0;font-size:14px;opacity:0.85">${iconTitle}</p>
       </div>
-      <div style="padding:24px;background:#f9fafb">
-        <h2 style="color:#1f2937;font-size:16px">${title}</h2>
-        ${body}
-        <div style="margin-top:24px">
-          <a href="${baseUrl()}/transport/${bonId}"
-             style="background:#0d9488;color:white;padding:10px 20px;border-radius:6px;text-decoration:none;font-size:14px">
-            Voir le bon
-          </a>
-        </div>
+      <div style="padding:20px;border:1px solid #e0e0e0;border-top:none;background:#fff">
+        <h3 style="margin:0 0 16px;color:#1f2937;font-size:16px">${title}</h3>
+        <table style="width:100%;border-collapse:collapse;margin:0 0 20px">
+          ${tableRows}
+        </table>
+        <a href="${baseUrl()}/transport/${bonId}"
+           style="display:inline-block;background:#0F6E56;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">
+          Voir le bon de transport
+        </a>
       </div>
-      <div style="padding:12px 24px;font-size:11px;color:#9ca3af;border-top:1px solid #e5e7eb">
+      <div style="padding:12px 20px;font-size:11px;color:#9ca3af;border-top:1px solid #e5e7eb">
         BioTools — tracabilite-centrifugation.vercel.app
       </div>
     </div>
   `;
 }
 
+function row(label: string, value: string) {
+  return `<tr>
+    <td style="padding:8px 0;color:#666;font-size:13px;width:40%">${label}</td>
+    <td style="padding:8px 0;font-weight:600;color:#111827">${value}</td>
+  </tr>`;
+}
+
 export async function sendEmailPriseEnCharge(params: {
   id: string;
+  dest_nom?: string;
   nom_transporteur: string;
   visa_transporteur: string;
   envoye_at: string;
@@ -46,27 +55,34 @@ export async function sendEmailPriseEnCharge(params: {
   nb_congele: number;
 }) {
   const num = bonNum(params.id);
-  const body = `
-    <p style="color:#374151">Vos prélèvements ont été pris en charge.</p>
-    <table style="border-collapse:collapse;width:100%;margin:16px 0">
-      <tr><td style="padding:6px 0;color:#6b7280;font-size:13px">Transporteur</td>
-          <td style="padding:6px 0;font-weight:600;color:#111827">${params.nom_transporteur} (${params.visa_transporteur})</td></tr>
-      <tr><td style="color:#6b7280;font-size:13px">Heure</td>
-          <td style="font-weight:600;color:#111827">${new Date(params.envoye_at).toLocaleString('fr-FR')}</td></tr>
-      <tr><td style="color:#6b7280;font-size:13px">Ambiant</td>
-          <td style="font-weight:600;color:#111827">${params.nb_ambiant} sachet(s)</td></tr>
-      <tr><td style="color:#6b7280;font-size:13px">+4°C</td>
-          <td style="font-weight:600;color:#111827">${params.nb_plus4} sachet(s)</td></tr>
-      <tr><td style="color:#6b7280;font-size:13px">Congelé</td>
-          <td style="font-weight:600;color:#111827">${params.nb_congele} sachet(s)</td></tr>
-    </table>
-  `;
-  await resend.emails.send({
-    from: FROM,
-    to: [TO],
-    subject: `Bon N°${num} — Pris en charge par ${params.nom_transporteur}`,
-    html: htmlEmail(`Bon N°${num} — Pris en charge`, body, params.id),
+  const heure = new Date(params.envoye_at).toLocaleString('fr-FR', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
+  const tableRows = [
+    row('Bon N°', num),
+    row('Transporteur', `${params.nom_transporteur} (${params.visa_transporteur})`),
+    row('Heure', heure),
+    ...(params.dest_nom ? [row('Destination', params.dest_nom)] : []),
+    row('Ambiant', `${params.nb_ambiant} sachet(s)`),
+    row('+4°C', `${params.nb_plus4} sachet(s)`),
+    row('Congelé', `${params.nb_congele} sachet(s)`),
+  ].join('');
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: [TO],
+      subject: `🚚 Bon N°${num} — Pris en charge par ${params.nom_transporteur}`,
+      html: htmlEmail(
+        `Bon N°${num} — Prise en charge`,
+        tableRows,
+        params.id,
+        'Vos prélèvements ont été pris en charge',
+      ),
+    });
+  } catch (err) {
+    console.error('[emails] sendEmailPriseEnCharge error:', err);
+  }
 }
 
 export async function sendEmailReception(params: {
@@ -80,27 +96,32 @@ export async function sendEmailReception(params: {
   nb_congele: number;
 }) {
   const num = bonNum(params.id);
-  const body = `
-    <p style="color:#374151">Vos prélèvements ont été réceptionnés.</p>
-    <table style="border-collapse:collapse;width:100%;margin:16px 0">
-      <tr><td style="padding:6px 0;color:#6b7280;font-size:13px">Réceptionné par</td>
-          <td style="padding:6px 0;font-weight:600;color:#111827">${params.nom_receptionnaire} (${params.visa_receptionnaire})</td></tr>
-      <tr><td style="color:#6b7280;font-size:13px">Heure</td>
-          <td style="font-weight:600;color:#111827">${new Date(params.receptionne_at).toLocaleString('fr-FR')}</td></tr>
-      <tr><td style="color:#6b7280;font-size:13px">Destination</td>
-          <td style="font-weight:600;color:#111827">${params.dest_nom}</td></tr>
-      <tr><td style="color:#6b7280;font-size:13px">Ambiant</td>
-          <td style="font-weight:600;color:#111827">${params.nb_ambiant} sachet(s)</td></tr>
-      <tr><td style="color:#6b7280;font-size:13px">+4°C</td>
-          <td style="font-weight:600;color:#111827">${params.nb_plus4} sachet(s)</td></tr>
-      <tr><td style="color:#6b7280;font-size:13px">Congelé</td>
-          <td style="font-weight:600;color:#111827">${params.nb_congele} sachet(s)</td></tr>
-    </table>
-  `;
-  await resend.emails.send({
-    from: FROM,
-    to: [TO],
-    subject: `Bon N°${num} — Réceptionné à ${params.dest_nom}`,
-    html: htmlEmail(`Bon N°${num} — Réceptionné`, body, params.id),
+  const heure = new Date(params.receptionne_at).toLocaleString('fr-FR', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
+  const tableRows = [
+    row('Bon N°', num),
+    row('Réceptionné par', `${params.nom_receptionnaire} (${params.visa_receptionnaire})`),
+    row('Heure de réception', heure),
+    row('Laboratoire', params.dest_nom),
+    row('Ambiant', `${params.nb_ambiant} sachet(s)`),
+    row('+4°C', `${params.nb_plus4} sachet(s)`),
+    row('Congelé', `${params.nb_congele} sachet(s)`),
+  ].join('');
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: [TO],
+      subject: `✅ Bon N°${num} — Réceptionné à ${params.dest_nom}`,
+      html: htmlEmail(
+        `Bon N°${num} — Réception confirmée`,
+        tableRows,
+        params.id,
+        'Vos prélèvements ont été réceptionnés',
+      ),
+    });
+  } catch (err) {
+    console.error('[emails] sendEmailReception error:', err);
+  }
 }

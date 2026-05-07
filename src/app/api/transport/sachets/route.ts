@@ -13,13 +13,13 @@ export async function POST(request: NextRequest) {
     if (!envoi_id || !temperature || !code_barre) {
       return NextResponse.json({ error: 'Champs requis manquants' }, { status: 400 });
     }
-    const maxOrdre = await sql`
-      SELECT COALESCE(MAX(ordre), 0) as max_ordre FROM envoi_sachets WHERE envoi_id = ${envoi_id}
-    `;
-    const ordre = Number(maxOrdre[0].max_ordre) + 1;
     const result = await sql`
-      INSERT INTO envoi_sachets (envoi_id, temperature, code_barre, ordre)
-      VALUES (${envoi_id}, ${temperature}, ${code_barre.trim()}, ${ordre})
+      INSERT INTO envoi_sachets (envoi_id, temperature, code_barre, ordre, created_at)
+      VALUES (
+        ${envoi_id}, ${temperature}, ${code_barre.trim()},
+        (SELECT COALESCE(MAX(ordre), 0) + 1 FROM envoi_sachets WHERE envoi_id = ${envoi_id}),
+        NOW()
+      )
       RETURNING *
     `;
     return NextResponse.json({ sachet: result[0] }, { status: 201 });

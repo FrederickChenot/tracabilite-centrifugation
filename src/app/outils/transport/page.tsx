@@ -15,16 +15,19 @@ function todayDate(): string {
 
 function bonNum(id: string) { return id.slice(0, 6).toUpperCase(); }
 
-function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+function fmtTime(iso: string | null | undefined) {
+  if (!iso) return '--:--';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '--:--';
+  return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
 function statutBadge(statut: string) {
   const map: Record<string, { label: string; cls: string }> = {
-    en_preparation: { label: 'En préparation', cls: 'bg-amber-100 text-amber-700' },
-    valide:         { label: 'Validé',           cls: 'bg-blue-100 text-blue-700' },
-    envoye:         { label: 'Envoyé',            cls: 'bg-purple-100 text-purple-700' },
-    receptionne:    { label: 'Réceptionné',       cls: 'bg-green-100 text-green-700' },
+    en_preparation: { label: 'En préparation', cls: 'bg-gray-100 text-gray-600' },
+    valide:         { label: 'Validé',          cls: 'bg-orange-100 text-orange-700' },
+    envoye:         { label: 'Pris en charge',  cls: 'bg-blue-100 text-blue-700' },
+    receptionne:    { label: 'Réceptionné',     cls: 'bg-green-100 text-green-700' },
   };
   const s = map[statut] ?? { label: statut, cls: 'bg-gray-100 text-gray-600' };
   return <span className={`px-2 py-0.5 rounded text-xs font-semibold ${s.cls}`}>{s.label}</span>;
@@ -463,7 +466,7 @@ export default function TransportPage() {
                                   className="flex items-center gap-2 px-3 py-1.5 bg-white"
                                 >
                                   <span className="flex-1 text-xs font-mono text-gray-700">{s.code_barre}</span>
-                                  <span className="text-xs text-gray-400">{fmtTime(s.scanned_at)}</span>
+                                  <span className="text-xs text-gray-400">{fmtTime(s.created_at ?? s.scanned_at)}</span>
                                   <button
                                     onClick={() => handleDeleteSachet(s.id, temp)}
                                     className="text-red-400 hover:text-red-600 text-xs ml-1"

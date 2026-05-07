@@ -2,72 +2,135 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { EnvoiTransport, TemperatureTransport } from '@/lib/schemas';
+import { EnvoiTransport, EnvoiSachet, TemperatureTransport } from '@/lib/schemas';
 
 /* ─── Helpers ────────────────────────────────────────────────── */
 
 function bonNum(id: string) { return id.slice(0, 6).toUpperCase(); }
 
-function fmtDateTime(iso: string) {
-  return new Date(iso).toLocaleString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+function fmtDateTime(iso: string | null | undefined) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleString('fr-FR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
   });
+}
+
+function formatHeure(iso: string | null | undefined) {
+  if (!iso) return '--:--';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '--:--';
+  return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
 function statutBadge(statut: string) {
   const map: Record<string, { label: string; cls: string }> = {
-    en_preparation: { label: 'En préparation', cls: 'bg-amber-100 text-amber-700 border border-amber-200' },
-    valide:         { label: 'Validé — en attente du transporteur', cls: 'bg-blue-100 text-blue-700 border border-blue-200' },
-    envoye:         { label: 'En transit', cls: 'bg-purple-100 text-purple-700 border border-purple-200' },
-    receptionne:    { label: 'Réceptionné', cls: 'bg-green-100 text-green-700 border border-green-200' },
+    en_preparation: { label: 'En préparation',             cls: 'bg-gray-100 text-gray-600 border border-gray-200' },
+    valide:         { label: 'Validé — en attente du transporteur', cls: 'bg-orange-100 text-orange-700 border border-orange-200' },
+    envoye:         { label: 'Pris en charge',             cls: 'bg-blue-100 text-blue-700 border border-blue-200' },
+    receptionne:    { label: 'Réceptionné',                cls: 'bg-green-100 text-green-700 border border-green-200' },
   };
   const s = map[statut] ?? { label: statut, cls: 'bg-gray-100 text-gray-600 border border-gray-200' };
   return (
-    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${s.cls}`}>
+    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${s.cls}`}>
       {s.label}
     </span>
   );
 }
 
 const TEMP_CONFIG: Record<TemperatureTransport, { label: string; icon: string; bg: string; badge: string; border: string }> = {
-  ambiant: {
-    label: 'Ambiant (15-25°C)',
-    icon: '☀',
-    bg: 'bg-orange-50',
-    badge: 'bg-orange-100 text-orange-700',
-    border: 'border-orange-200',
-  },
-  '+4': {
-    label: '+4°C (2-8°C)',
-    icon: '❄',
-    bg: 'bg-blue-50',
-    badge: 'bg-blue-100 text-blue-700',
-    border: 'border-blue-200',
-  },
-  congele: {
-    label: 'Congelé (≤ -15°C)',
-    icon: '🧊',
-    bg: 'bg-purple-50',
-    badge: 'bg-purple-100 text-purple-700',
-    border: 'border-purple-200',
-  },
+  ambiant: { label: 'Ambiant (15-25°C)', icon: '☀', bg: 'bg-orange-50', badge: 'bg-orange-100 text-orange-700', border: 'border-orange-200' },
+  '+4':    { label: '+4°C (2-8°C)',      icon: '❄', bg: 'bg-blue-50',   badge: 'bg-blue-100 text-blue-700',     border: 'border-blue-200'   },
+  congele: { label: 'Congelé (≤ -15°C)', icon: '🧊', bg: 'bg-purple-50', badge: 'bg-purple-100 text-purple-700', border: 'border-purple-200' },
 };
+
+const TEMPS: TemperatureTransport[] = ['ambiant', '+4', 'congele'];
+
+/* ─── Vérification compteurs ─────────────────────────────────── */
+
+function CounterVerifier({
+  sachets,
+  onChange,
+}: {
+  sachets: EnvoiSachet[];
+  onChange: (allOk: boolean) => void;
+}) {
+  const expected = (t: TemperatureTransport) => sachets.filter((s) => s.temperature === t).length;
+  const [counts, setCounts] = useState<Record<TemperatureTransport, number>>({ ambiant: 0, '+4': 0, congele: 0 });
+
+  const visibleTemps = TEMPS.filter((t) => expected(t) > 0);
+
+  useEffect(() => {
+    const allOk = visibleTemps.length > 0
+      ? visibleTemps.every((t) => counts[t] === expected(t))
+      : false;
+    onChange(allOk);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [counts]);
+
+  function adjust(t: TemperatureTransport, delta: number) {
+    setCounts((prev) => ({ ...prev, [t]: Math.max(0, prev[t] + delta) }));
+  }
+
+  if (visibleTemps.length === 0) {
+    return <p className="text-sm text-gray-400 mb-4">Aucun sachet enregistré</p>;
+  }
+
+  return (
+    <div className="mb-4 space-y-2">
+      <p className="text-xs text-gray-500 font-medium">Vérifiez le nombre de sachets reçus :</p>
+      {visibleTemps.map((t) => {
+        const exp = expected(t);
+        const count = counts[t];
+        const ok = count === exp;
+        const tc = TEMP_CONFIG[t];
+        return (
+          <div key={t} className={`flex items-center gap-3 p-2.5 rounded-lg border ${tc.border} ${tc.bg}`}>
+            <span className="flex-1 text-sm text-gray-700 font-medium">{tc.icon} {tc.label}</span>
+            <span className="text-xs text-gray-500">attendu : <strong>{exp}</strong></span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => adjust(t, -1)}
+                className="w-7 h-7 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 text-base flex items-center justify-center leading-none"
+              >−</button>
+              <span className="w-8 text-center text-sm font-mono font-bold text-gray-800">{count}</span>
+              <button
+                type="button"
+                onClick={() => adjust(t, 1)}
+                className="w-7 h-7 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 text-base flex items-center justify-center leading-none"
+              >+</button>
+            </div>
+            <span className={`text-base font-bold w-5 text-center ${ok ? 'text-green-600' : 'text-red-500'}`}>
+              {ok ? '✓' : '✗'}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 /* ─── Formulaire transporteur ────────────────────────────────── */
 
-function FormulaireTransporteur({ envoiId, onSuccess }: { envoiId: string; onSuccess: () => void }) {
+function FormulaireTransporteur({
+  envoiId, sachets, onSuccess,
+}: {
+  envoiId: string; sachets: EnvoiSachet[]; onSuccess: () => void;
+}) {
   const [nom, setNom] = useState('');
   const [visa, setVisa] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [allOk, setAllOk] = useState(false);
+
+  const canSubmit = nom.trim() && visa.trim() && allOk;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!nom.trim() || !visa.trim()) return;
+    if (!canSubmit) return;
     setLoading(true);
     setError('');
     try {
@@ -91,13 +154,14 @@ function FormulaireTransporteur({ envoiId, onSuccess }: { envoiId: string; onSuc
     <div className="bg-white rounded-xl border border-purple-200 shadow-sm p-5">
       <h3 className="text-base font-bold text-gray-900 mb-1">Prise en charge — Transporteur</h3>
       <p className="text-sm text-gray-500 mb-4">
-        Confirmez la prise en charge de ces prélèvements.
+        Comptez les sachets reçus, confirmez les totaux puis signez.
       </p>
       {error && (
-        <div className="mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-          {error}
-        </div>
+        <div className="mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>
       )}
+
+      <CounterVerifier sachets={sachets} onChange={setAllOk} />
+
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Nom du transporteur</label>
@@ -124,11 +188,14 @@ function FormulaireTransporteur({ envoiId, onSuccess }: { envoiId: string; onSuc
         </div>
         <button
           type="submit"
-          disabled={loading || !nom.trim() || !visa.trim()}
+          disabled={loading || !canSubmit}
           className="w-full py-2.5 rounded-lg text-sm font-semibold bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? 'Confirmation...' : 'Confirmer la prise en charge'}
         </button>
+        {!allOk && nom.trim() && visa.trim() && (
+          <p className="text-xs text-center text-red-500">Tous les compteurs doivent être confirmés (✓)</p>
+        )}
       </form>
     </div>
   );
@@ -136,15 +203,22 @@ function FormulaireTransporteur({ envoiId, onSuccess }: { envoiId: string; onSuc
 
 /* ─── Formulaire réceptionneur ───────────────────────────────── */
 
-function FormulaireReceptionnaire({ envoiId, onSuccess }: { envoiId: string; onSuccess: () => void }) {
+function FormulaireReceptionnaire({
+  envoiId, sachets, onSuccess,
+}: {
+  envoiId: string; sachets: EnvoiSachet[]; onSuccess: () => void;
+}) {
   const [nom, setNom] = useState('');
   const [visa, setVisa] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [allOk, setAllOk] = useState(false);
+
+  const canSubmit = nom.trim() && visa.trim() && allOk;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!nom.trim() || !visa.trim()) return;
+    if (!canSubmit) return;
     setLoading(true);
     setError('');
     try {
@@ -168,13 +242,14 @@ function FormulaireReceptionnaire({ envoiId, onSuccess }: { envoiId: string; onS
     <div className="bg-white rounded-xl border border-green-200 shadow-sm p-5">
       <h3 className="text-base font-bold text-gray-900 mb-1">Réception — Laboratoire destinataire</h3>
       <p className="text-sm text-gray-500 mb-4">
-        Confirmez la réception de ces prélèvements.
+        Vérifiez les sachets reçus, confirmez les totaux puis signez.
       </p>
       {error && (
-        <div className="mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-          {error}
-        </div>
+        <div className="mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>
       )}
+
+      <CounterVerifier sachets={sachets} onChange={setAllOk} />
+
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Nom du réceptionnaire</label>
@@ -201,11 +276,14 @@ function FormulaireReceptionnaire({ envoiId, onSuccess }: { envoiId: string; onS
         </div>
         <button
           type="submit"
-          disabled={loading || !nom.trim() || !visa.trim()}
+          disabled={loading || !canSubmit}
           className="w-full py-2.5 rounded-lg text-sm font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? 'Confirmation...' : 'Confirmer la réception'}
         </button>
+        {!allOk && nom.trim() && visa.trim() && (
+          <p className="text-xs text-center text-red-500">Tous les compteurs doivent être confirmés (✓)</p>
+        )}
       </form>
     </div>
   );
@@ -243,10 +321,6 @@ export default function TransportBonPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  function handlePrint() {
-    window.print();
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -278,22 +352,31 @@ export default function TransportBonPage() {
             <p className="text-xs font-semibold text-teal-200 uppercase tracking-wider">GCS Bio Med</p>
             <h1 className="text-lg font-bold">Bon de transport N°{num}</h1>
           </div>
-          <div className="text-right">
-            <div className="print:hidden">
-              {statutBadge(envoi.statut)}
-            </div>
+          <div className="print:hidden">
+            {statutBadge(envoi.statut)}
           </div>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
 
+        {/* Badge transport complété */}
+        {envoi.statut === 'receptionne' && (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+            <span className="inline-flex items-center gap-2 text-green-800 font-bold text-base">
+              <span className="text-xl">✓</span>
+              Transport complété
+            </span>
+            <p className="text-green-700 text-sm mt-1">
+              Prélèvements réceptionnés au laboratoire {envoi.dest_nom}.
+            </p>
+          </div>
+        )}
+
         {/* Informations générales */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">
-              Informations
-            </h2>
+            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Informations</h2>
           </div>
           <div className="px-4 py-4 grid grid-cols-2 gap-4">
             <div>
@@ -313,7 +396,7 @@ export default function TransportBonPage() {
               <p className="text-xs text-gray-500 mb-0.5">Opérateur expéditeur</p>
               <p className="text-sm font-mono font-bold text-gray-900">{envoi.visa_expediteur}</p>
             </div>
-            <div className="col-span-2">
+            <div className="col-span-2 print:hidden">
               <p className="text-xs text-gray-500 mb-1">Statut</p>
               {statutBadge(envoi.statut)}
             </div>
@@ -323,9 +406,7 @@ export default function TransportBonPage() {
         {/* Table sachets */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">
-              Prélèvements
-            </h2>
+            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Prélèvements</h2>
             <span className="text-sm font-bold text-teal-700">
               {sachets.length} sachet{sachets.length !== 1 ? 's' : ''}
             </span>
@@ -338,19 +419,17 @@ export default function TransportBonPage() {
             return (
               <div key={temp} className={`border-b last:border-b-0 border-gray-100 ${tc.bg}`}>
                 <div className={`px-4 py-2 border-b ${tc.border} flex items-center justify-between`}>
-                  <span className="text-xs font-semibold text-gray-700">
-                    {tc.icon} {tc.label}
-                  </span>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${tc.badge}`}>
-                    {ts.length}
-                  </span>
+                  <span className="text-xs font-semibold text-gray-700">{tc.icon} {tc.label}</span>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${tc.badge}`}>{ts.length}</span>
                 </div>
                 <ul className="divide-y divide-gray-100">
                   {ts.map((s, i) => (
                     <li key={s.id} className="flex items-center gap-3 px-4 py-2 bg-white">
                       <span className="text-xs text-gray-400 w-5">{i + 1}.</span>
                       <span className="flex-1 text-sm font-mono text-gray-800">{s.code_barre}</span>
-                      <span className="text-xs text-gray-400">{fmtDateTime(s.scanned_at)}</span>
+                      <span className="text-xs text-gray-400">
+                        {formatHeure(s.created_at ?? s.scanned_at)}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -359,19 +438,15 @@ export default function TransportBonPage() {
           })}
 
           {sachets.length === 0 && (
-            <div className="px-4 py-6 text-center text-sm text-gray-400">
-              Aucun sachet enregistré
-            </div>
+            <div className="px-4 py-6 text-center text-sm text-gray-400">Aucun sachet enregistré</div>
           )}
         </div>
 
-        {/* Recap transport si envoyé */}
+        {/* Recap prise en charge */}
         {(envoi.statut === 'envoye' || envoi.statut === 'receptionne') && envoi.nom_transporteur && (
-          <div className="bg-white rounded-xl border border-purple-200 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 bg-purple-50 border-b border-purple-200">
-              <h2 className="text-sm font-bold text-purple-800 uppercase tracking-wider">
-                Prise en charge
-              </h2>
+          <div className="bg-white rounded-xl border border-blue-200 shadow-sm overflow-hidden">
+            <div className="px-4 py-3 bg-blue-50 border-b border-blue-200">
+              <h2 className="text-sm font-bold text-blue-800 uppercase tracking-wider">Prise en charge</h2>
             </div>
             <div className="px-4 py-4 grid grid-cols-2 gap-4">
               <div>
@@ -381,21 +456,17 @@ export default function TransportBonPage() {
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-0.5">Heure de prise en charge</p>
-                <p className="text-sm font-medium text-gray-800">
-                  {envoi.envoye_at ? fmtDateTime(envoi.envoye_at) : '—'}
-                </p>
+                <p className="text-sm font-medium text-gray-800">{fmtDateTime(envoi.envoye_at)}</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Recap réception si réceptionné */}
+        {/* Recap réception */}
         {envoi.statut === 'receptionne' && envoi.nom_receptionnaire && (
           <div className="bg-white rounded-xl border border-green-200 shadow-sm overflow-hidden">
             <div className="px-4 py-3 bg-green-50 border-b border-green-200">
-              <h2 className="text-sm font-bold text-green-800 uppercase tracking-wider">
-                Réception
-              </h2>
+              <h2 className="text-sm font-bold text-green-800 uppercase tracking-wider">Réception</h2>
             </div>
             <div className="px-4 py-4 grid grid-cols-2 gap-4">
               <div>
@@ -405,21 +476,9 @@ export default function TransportBonPage() {
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-0.5">Heure de réception</p>
-                <p className="text-sm font-medium text-gray-800">
-                  {envoi.receptionne_at ? fmtDateTime(envoi.receptionne_at) : '—'}
-                </p>
+                <p className="text-sm font-medium text-gray-800">{fmtDateTime(envoi.receptionne_at)}</p>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Message final réceptionné */}
-        {envoi.statut === 'receptionne' && (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-            <p className="text-green-800 font-bold text-base mb-1">Transport terminé</p>
-            <p className="text-green-700 text-sm">
-              Ces prélèvements ont été réceptionnés au laboratoire {envoi.dest_nom}.
-            </p>
           </div>
         )}
 
@@ -427,6 +486,7 @@ export default function TransportBonPage() {
         {envoi.statut === 'valide' && (
           <FormulaireTransporteur
             envoiId={envoi.id}
+            sachets={sachets}
             onSuccess={() => {
               setLoading(true);
               loadEnvoi();
@@ -438,6 +498,7 @@ export default function TransportBonPage() {
         {envoi.statut === 'envoye' && (
           <FormulaireReceptionnaire
             envoiId={envoi.id}
+            sachets={sachets}
             onSuccess={() => {
               setLoading(true);
               loadEnvoi();
@@ -448,7 +509,7 @@ export default function TransportBonPage() {
         {/* Bouton impression */}
         <div className="flex justify-center print:hidden">
           <button
-            onClick={handlePrint}
+            onClick={() => window.print()}
             className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
           >
             <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -458,7 +519,6 @@ export default function TransportBonPage() {
           </button>
         </div>
 
-        {/* Footer */}
         <div className="text-center text-xs text-gray-400 pb-4">
           BioTools — tracabilite-centrifugation.vercel.app · Bon N°{num}
         </div>

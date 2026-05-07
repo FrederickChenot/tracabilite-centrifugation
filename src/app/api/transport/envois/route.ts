@@ -14,8 +14,7 @@ async function ensureTables() {
     site_id INT REFERENCES sites(id),
     dest_id INT REFERENCES laboratoires_dest(id),
     visa_expediteur VARCHAR(10) NOT NULL,
-    statut VARCHAR(20) DEFAULT 'en_preparation'
-      CHECK (statut IN ('en_preparation','valide','envoye','receptionne')),
+    statut VARCHAR(20) DEFAULT 'en_preparation',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     valide_at TIMESTAMPTZ,
     envoye_at TIMESTAMPTZ,
@@ -28,11 +27,25 @@ async function ensureTables() {
   await sql`CREATE TABLE IF NOT EXISTS envoi_sachets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     envoi_id UUID REFERENCES envois_transport(id) ON DELETE CASCADE,
-    temperature VARCHAR(10) NOT NULL CHECK (temperature IN ('ambiant','+4','congele')),
+    temperature VARCHAR(10) NOT NULL,
     code_barre VARCHAR(100) NOT NULL,
     ordre INT NOT NULL DEFAULT 1,
-    scanned_at TIMESTAMPTZ DEFAULT NOW()
+    scanned_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW()
   )`;
+
+  /* Migrations idempotentes */
+  await sql`ALTER TABLE IF EXISTS envoi_sachets ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`;
+  await sql`ALTER TABLE IF EXISTS envoi_sachets ADD COLUMN IF NOT EXISTS scanned_at TIMESTAMPTZ DEFAULT NOW()`;
+
+  /* Fix constraint statut */
+  try {
+    await sql`ALTER TABLE envois_transport DROP CONSTRAINT IF EXISTS envois_transport_statut_check`;
+    await sql`ALTER TABLE envois_transport ADD CONSTRAINT envois_transport_statut_check
+      CHECK (statut IN ('en_preparation','valide','envoye','receptionne'))`;
+  } catch (err) {
+    console.warn('[ensureTables] constraint migration:', err);
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -43,33 +56,43 @@ export async function GET(request: NextRequest) {
     await ensureTables();
     const { searchParams } = new URL(request.url);
     const site_id = searchParams.get('site_id');
-    const date = searchParams.get('date') ?? new Date().toLocaleDateString('fr-CA');
+    const date = searchParams.get('date');
+
+    if (!site_id || !date) {
+      return NextResponse.json({ error: 'site_id et date requis' }, { status: 400 });
+    }
 
     const rows = await sql`
-      SELECT e.id, e.site_id, e.dest_id, e.visa_expediteur, e.statut,
-             e.created_at, e.valide_at, e.envoye_at, e.receptionne_at,
-             e.nom_transporteur, e.visa_transporteur, e.nom_receptionnaire, e.visa_receptionnaire,
-             s.nom AS site_nom, l.nom AS dest_nom
+      SELECT
+        e.*,
+        s.nom AS site_nom,
+        d.nom  AS dest_nom,
+        d.email_reception,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id',          sa.id,
+              'envoi_id',    sa.envoi_id,
+              'temperature', sa.temperature,
+              'code_barre',  sa.code_barre,
+              'ordre',       sa.ordre,
+              'scanned_at',  sa.scanned_at,
+              'created_at',  sa.created_at
+            ) ORDER BY sa.ordre
+          ) FILTER (WHERE sa.id IS NOT NULL),
+          '[]'::json
+        ) AS sachets
       FROM envois_transport e
-      JOIN sites s ON s.id = e.site_id
-      JOIN laboratoires_dest l ON l.id = e.dest_id
-      WHERE (${site_id}::int IS NULL OR e.site_id = ${site_id ? Number(site_id) : null}::int)
+      JOIN sites               s  ON s.id  = e.site_id
+      JOIN laboratoires_dest   d  ON d.id  = e.dest_id
+      LEFT JOIN envoi_sachets  sa ON sa.envoi_id = e.id
+      WHERE e.site_id = ${Number(site_id)}
         AND DATE(e.created_at AT TIME ZONE 'Europe/Paris') = ${date}::date
+      GROUP BY e.id, s.nom, d.nom, d.email_reception
       ORDER BY e.created_at DESC
     `;
 
-    const envoisWithSachets = await Promise.all(
-      rows.map(async (e) => {
-        const sachets = await sql`
-          SELECT id, envoi_id, temperature, code_barre, ordre, scanned_at
-          FROM envoi_sachets WHERE envoi_id = ${e.id as string}
-          ORDER BY temperature, ordre
-        `;
-        return { ...e, sachets };
-      })
-    );
-
-    return NextResponse.json({ envois: envoisWithSachets });
+    return NextResponse.json({ envois: rows });
   } catch (err) {
     console.error('[GET /api/transport/envois]', err);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });

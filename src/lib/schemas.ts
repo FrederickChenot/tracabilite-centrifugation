@@ -114,6 +114,7 @@ export interface EnvoiSachet {
   code_barre: string;
   ordre: number;
   scanned_at: string;
+  created_at?: string | null;
 }
 
 export type StatutEnvoi = 'en_preparation' | 'valide' | 'envoye' | 'receptionne';
