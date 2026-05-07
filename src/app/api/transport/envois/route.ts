@@ -34,9 +34,18 @@ async function ensureTables() {
     created_at TIMESTAMPTZ DEFAULT NOW()
   )`;
 
-  /* Migrations idempotentes */
+  /* Migrations idempotentes — sachets */
   await sql`ALTER TABLE IF EXISTS envoi_sachets ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`;
   await sql`ALTER TABLE IF EXISTS envoi_sachets ADD COLUMN IF NOT EXISTS scanned_at TIMESTAMPTZ DEFAULT NOW()`;
+
+  /* Migrations idempotentes — envois_transport */
+  await sql`ALTER TABLE IF EXISTS envois_transport ADD COLUMN IF NOT EXISTS valide_at TIMESTAMPTZ`;
+  await sql`ALTER TABLE IF EXISTS envois_transport ADD COLUMN IF NOT EXISTS envoye_at TIMESTAMPTZ`;
+  await sql`ALTER TABLE IF EXISTS envois_transport ADD COLUMN IF NOT EXISTS receptionne_at TIMESTAMPTZ`;
+  await sql`ALTER TABLE IF EXISTS envois_transport ADD COLUMN IF NOT EXISTS nom_transporteur VARCHAR(100)`;
+  await sql`ALTER TABLE IF EXISTS envois_transport ADD COLUMN IF NOT EXISTS visa_transporteur VARCHAR(10)`;
+  await sql`ALTER TABLE IF EXISTS envois_transport ADD COLUMN IF NOT EXISTS nom_receptionnaire VARCHAR(100)`;
+  await sql`ALTER TABLE IF EXISTS envois_transport ADD COLUMN IF NOT EXISTS visa_receptionnaire VARCHAR(10)`;
 
   /* Fix constraint statut */
   try {
