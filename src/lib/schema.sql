@@ -52,3 +52,17 @@ CREATE TABLE IF NOT EXISTS users (
   actif BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS config (
+  id SERIAL PRIMARY KEY,
+  cle VARCHAR(50) UNIQUE NOT NULL,
+  valeur TEXT NOT NULL,
+  description TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_by VARCHAR(50)
+);
+
+INSERT INTO config (cle, valeur, description) VALUES
+  ('session_timeout_minutes', '30', 'Durée inactivité avant déconnexion (minutes)'),
+  ('session_warning_minutes', '2', 'Délai avertissement avant déconnexion (minutes)')
+ON CONFLICT (cle) DO NOTHING;

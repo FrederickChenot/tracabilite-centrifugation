@@ -11,26 +11,31 @@ export async function PATCH(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const { cle } = await params;
-  const body = await req.json();
-  const { valeur } = body as { valeur?: string };
+  try {
+    const { cle } = await params;
+    const body = await req.json();
+    const { valeur } = body as { valeur?: string };
 
-  if (valeur === undefined) {
-    return NextResponse.json({ error: 'valeur requis' }, { status: 400 });
+    if (valeur === undefined) {
+      return NextResponse.json({ error: 'valeur requis' }, { status: 400 });
+    }
+
+    const updatedBy = session.user?.email ?? 'admin';
+
+    const rows = await sql`
+      UPDATE config
+      SET valeur = ${String(valeur)}, updated_at = NOW(), updated_by = ${updatedBy}
+      WHERE cle = ${cle}
+      RETURNING id, cle, valeur, updated_at, updated_by
+    `;
+
+    if (rows.length === 0) {
+      return NextResponse.json({ error: 'Clé introuvable' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, cle: rows[0].cle, valeur: rows[0].valeur });
+  } catch (err) {
+    console.error('[PATCH /api/admin/config/[cle]]', err);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
-
-  const updatedBy = session.user?.email ?? 'admin';
-
-  const rows = await sql`
-    UPDATE config
-    SET valeur = ${String(valeur)}, updated_at = NOW(), updated_by = ${updatedBy}
-    WHERE cle = ${cle}
-    RETURNING id, cle, valeur, updated_at, updated_by
-  `;
-
-  if (rows.length === 0) {
-    return NextResponse.json({ error: 'Clé introuvable' }, { status: 404 });
-  }
-
-  return NextResponse.json({ config: rows[0] });
 }
