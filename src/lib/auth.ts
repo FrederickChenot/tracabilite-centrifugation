@@ -3,6 +3,13 @@ import Credentials from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
 import sql from '@/lib/db';
 
+type ExtUser = {
+  role?: string;
+  site_id?: number | null;
+  nom?: string | null;
+  prenom?: string | null;
+};
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Credentials({
@@ -23,13 +30,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: process.env.ADMIN_EMAIL as string,
             name: 'Administrateur',
             role: 'admin',
+            site_id: null,
+            nom: 'Administrateur',
+            prenom: '',
           };
         }
 
         // DB users
         try {
           const rows = await sql`
-            SELECT id, email, password_hash, nom, prenom, role
+            SELECT id, email, password_hash, nom, prenom, site_id, role
             FROM users
             WHERE email = ${credentials.email as string} AND actif = true
             LIMIT 1
@@ -45,6 +55,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: user.email as string,
             name: `${user.prenom ?? ''} ${user.nom ?? ''}`.trim() || (user.email as string),
             role: user.role as string,
+            site_id: user.site_id as number | null,
+            nom: user.nom as string | null,
+            prenom: user.prenom as string | null,
           };
         } catch {
           return null;
@@ -54,11 +67,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.role = (user as { role?: string }).role;
+      if (user) {
+        const u = user as ExtUser;
+        token.role = u.role;
+        token.site_id = u.site_id ?? null;
+        token.nom = u.nom ?? null;
+        token.prenom = u.prenom ?? null;
+      }
       return token;
     },
     async session({ session, token }) {
-      (session.user as { role?: string }).role = token.role as string;
+      const u = session.user as ExtUser & { id?: string };
+      u.role = token.role as string;
+      u.site_id = token.site_id as number | null;
+      u.nom = token.nom as string | null;
+      u.prenom = token.prenom as string | null;
+      if (token.sub) u.id = token.sub;
       return session;
     },
   },

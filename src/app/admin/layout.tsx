@@ -9,6 +9,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect('/login');
   }
 
+  if ((session.user as { role?: string })?.role !== 'admin') {
+    redirect('/outils/centrifugation');
+  }
+
   return (
     <SessionProvider session={session}>
       {children}

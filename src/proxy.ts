@@ -7,6 +7,8 @@ export default auth((req) => {
   if (
     pathname === '/login' ||
     pathname.startsWith('/api/auth/') ||
+    pathname.startsWith('/transport/') ||
+    pathname.startsWith('/api/transport/') ||
     pathname.startsWith('/_next/') ||
     pathname === '/favicon.ico'
   ) {

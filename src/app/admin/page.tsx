@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { HistoriqueSession } from '@/lib/schemas';
 import ReferentielsTab from '@/components/admin/ReferentielsTab';
 import ConfigTab from '@/components/admin/ConfigTab';
+import InactivityGuard from '@/components/InactivityGuard';
 import { exportTracabiliteJour } from '@/lib/exportPdf';
 
 type Tab = 'sessions' | 'referentiels' | 'configuration';
@@ -91,13 +92,14 @@ export default function AdminPage() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
+      <InactivityGuard />
 
       {/* ── Header ── */}
       <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4 shrink-0">
         <Link href="/" className="text-sm text-gray-500 hover:text-gray-700">← Accueil</Link>
         <h1 className="text-xl font-bold text-gray-900 flex-1">Administration · Centrifugation</h1>
         <button
-          onClick={() => signOut({ callbackUrl: '/admin/login' })}
+          onClick={() => signOut({ callbackUrl: '/login' })}
           className="text-sm text-gray-500 hover:text-gray-700"
         >
           Déconnexion
