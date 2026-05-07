@@ -4,13 +4,30 @@ import { NextResponse } from 'next/server';
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
-  if (pathname.startsWith('/admin') && pathname !== '/admin/login' && !req.auth) {
-    return NextResponse.redirect(new URL('/admin/login', req.url));
+  if (
+    pathname === '/login' ||
+    pathname.startsWith('/api/auth/') ||
+    pathname.startsWith('/_next/') ||
+    pathname === '/favicon.ico'
+  ) {
+    return NextResponse.next();
+  }
+
+  if (!req.auth) {
+    return NextResponse.redirect(new URL('/login', req.url));
+  }
+
+  const role = (req.auth.user as { role?: string })?.role;
+  if (
+    (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) &&
+    role !== 'admin'
+  ) {
+    return NextResponse.redirect(new URL('/outils/centrifugation', req.url));
   }
 
   return NextResponse.next();
 });
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/admin/:path*'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };

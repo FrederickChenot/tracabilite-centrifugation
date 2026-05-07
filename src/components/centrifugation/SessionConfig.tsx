@@ -47,7 +47,7 @@ export default function SessionConfig({
           value={selectedCentri ?? ''}
           onChange={(e) => onCentriChange(Number(e.target.value))}
           disabled={sessionActive}
-          className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="w-full text-sm border border-gray-300 rounded px-2 py-2 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-teal-500"
         >
           <option value="">Choisir...</option>
           {normales.length > 0 && (
@@ -80,7 +80,7 @@ export default function SessionConfig({
                 key={p.id}
                 onClick={() => onProgChange(p.id)}
                 disabled={sessionActive}
-                className={`w-full text-left px-2 py-1.5 text-xs border-b last:border-b-0 border-gray-100 transition-colors disabled:cursor-not-allowed ${
+                className={`w-full text-left px-2 py-2 text-xs border-b last:border-b-0 border-gray-100 transition-colors disabled:cursor-not-allowed ${
                   selectedProg === p.id
                     ? 'bg-teal-600 text-white'
                     : 'hover:bg-teal-50 text-gray-700'
@@ -98,13 +98,14 @@ export default function SessionConfig({
         <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">
           Stockage
         </label>
-        <div className="flex gap-1">
+        {/* Mobile : pleine largeur, desktop : côte à côte */}
+        <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-1">
           {stockageOptions.map((opt) => (
             <button
               key={opt.value}
               onClick={() => onStockageChange(opt.value)}
               disabled={sessionActive}
-              className={`flex-1 text-xs py-1.5 px-1 rounded border font-medium transition-all disabled:cursor-not-allowed ${
+              className={`w-full sm:flex-1 text-sm sm:text-xs py-3 sm:py-1.5 px-2 rounded border font-medium transition-all disabled:cursor-not-allowed ${
                 stockage === opt.value
                   ? opt.color + ' ring-2 ring-offset-1 ring-current'
                   : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50'
@@ -126,7 +127,7 @@ export default function SessionConfig({
           onChange={(e) => onVisaChange(e.target.value.toUpperCase().slice(0, 5))}
           disabled={sessionActive}
           placeholder="Ex: DUPJ"
-          className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 uppercase disabled:bg-gray-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="w-full text-sm border border-gray-300 rounded px-2 py-2 uppercase disabled:bg-gray-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-teal-500"
           maxLength={5}
         />
       </div>

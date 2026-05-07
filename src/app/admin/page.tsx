@@ -5,6 +5,7 @@ import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { HistoriqueSession } from '@/lib/schemas';
 import ReferentielsTab from '@/components/admin/ReferentielsTab';
+import { exportTracabiliteJour } from '@/lib/exportPdf';
 
 type Tab = 'sessions' | 'referentiels';
 
@@ -75,33 +76,14 @@ export default function AdminPage() {
     });
   }
 
-  function exportCsv() {
-    const rows: string[][] = [
-      ['Session ID', 'Centrifugeuse', 'Programme', 'Stockage', 'Visa', 'Ouverture', 'Clôture', 'Statut', 'Tube', 'Heure scan'],
-    ];
-    for (const s of sessions) {
-      if (s.tubes.length === 0) {
-        rows.push([s.id, s.centri_nom ?? '', s.prog_libelle ?? '', s.stockage, s.visa, s.opened_at, s.closed_at ?? '', s.statut, '', '']);
-      } else {
-        for (const t of s.tubes) {
-          rows.push([s.id, s.centri_nom ?? '', s.prog_libelle ?? '', s.stockage, s.visa, s.opened_at, s.closed_at ?? '', s.statut, t.num_echant, t.scanned_at]);
-        }
-      }
-    }
-    const csv = rows.map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `centrifugation_${date}_site${siteId}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  async function exportPdf() {
+    await exportTracabiliteJour(sessions, siteName, date);
   }
 
   const siteName = siteId === 1 ? 'Épinal' : siteId === 2 ? 'Remiremont' : 'Neufchâteau';
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: 'sessions', label: 'Sessions' },
+    { id: 'sessions', label: 'Passages' },
     { id: 'referentiels', label: 'Référentiels' },
   ];
 
@@ -169,10 +151,10 @@ export default function AdminPage() {
                   className="text-sm border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
                 <button
-                  onClick={exportCsv}
+                  onClick={exportPdf}
                   className="ml-auto text-sm px-4 py-1.5 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors"
                 >
-                  Export CSV
+                  Export PDF
                 </button>
               </div>
 
@@ -180,7 +162,7 @@ export default function AdminPage() {
               <div className="grid grid-cols-3 gap-4">
                 {[
                   { label: `Tubes · ${date} · ${siteName}`, value: metrics.tubesToday },
-                  { label: `Sessions · ${date} · ${siteName}`, value: metrics.sessionsTodayCount },
+                  { label: `Passages · ${date} · ${siteName}`, value: metrics.sessionsTodayCount },
                   { label: `Tubes 7 jours · ${siteName}`, value: metrics.tubesWeek },
                 ].map((m) => (
                   <div key={m.label} className="bg-white rounded-xl border border-gray-200 p-5">
@@ -193,7 +175,7 @@ export default function AdminPage() {
               {/* Tableau sessions */}
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="px-5 py-3 border-b border-gray-200 flex items-center gap-2">
-                  <h2 className="font-semibold text-gray-900 text-sm">Sessions</h2>
+                  <h2 className="font-semibold text-gray-900 text-sm">Passages</h2>
                   {loading && <span className="text-xs text-gray-400">Chargement...</span>}
                 </div>
 

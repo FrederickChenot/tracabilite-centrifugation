@@ -17,7 +17,11 @@
       "Bash(git status *)",
       "Bash(git log *)",
       "Bash(node -e ' *)",
-      "Skill(update-config)"
+      "Skill(update-config)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Dev\\\\tracabilite-centrifugation\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)",
+      "Bash(npx next *)"
     ]
   },
   "hooks": {

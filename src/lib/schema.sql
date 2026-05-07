@@ -40,3 +40,15 @@ CREATE TABLE IF NOT EXISTS tubes_centri (
 CREATE INDEX IF NOT EXISTS idx_tubes_session ON tubes_centri(session_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions_centri(opened_at);
 CREATE INDEX IF NOT EXISTS idx_sessions_site ON sessions_centri(site_id);
+
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(100) UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  nom VARCHAR(50),
+  prenom VARCHAR(50),
+  site_id INT REFERENCES sites(id),
+  role VARCHAR(10) DEFAULT 'technicien' CHECK (role IN ('technicien','admin')),
+  actif BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);

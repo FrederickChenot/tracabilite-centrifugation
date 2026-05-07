@@ -69,17 +69,19 @@ export default function ScanZone({
         <input
           ref={inputRef}
           type="text"
+          inputMode="text"
           value={scanValue}
           onChange={(e) => setScanValue(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={!sessionActive || scanning}
-          placeholder={sessionActive ? 'Scanner ou saisir...' : 'Configurer d\'abord la session'}
+          placeholder={sessionActive ? 'Scanner ou saisir...' : "Configurer d'abord le passage"}
           autoFocus={sessionActive}
-          className={`w-full text-sm border rounded px-2 py-2 font-mono focus:outline-none focus:ring-2 transition-colors ${
+          className={`w-full text-base border rounded px-3 font-mono focus:outline-none focus:ring-2 transition-colors ${
             sessionActive
               ? 'border-teal-400 focus:ring-teal-500 bg-white'
               : 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
           }`}
+          style={{ minHeight: '48px', fontSize: '16px' }}
         />
         {scanning && (
           <p className="text-xs text-teal-600 mt-1">Enregistrement...</p>
@@ -118,13 +120,13 @@ export default function ScanZone({
           <button
             onClick={handleStartClick}
             disabled={!canStart}
-            className={`w-full py-2 rounded text-sm font-semibold transition-colors ${
+            className={`w-full py-3 rounded text-sm font-semibold transition-colors ${
               canStart
                 ? 'bg-teal-600 text-white hover:bg-teal-700'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
-            Ouvrir la session
+            Démarrer le passage
           </button>
         )}
       </div>

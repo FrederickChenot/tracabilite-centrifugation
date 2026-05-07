@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
+    "@types/bcryptjs": "^2.4.6",
+    "bcryptjs": "^3.0.3",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "next": "16.2.5",

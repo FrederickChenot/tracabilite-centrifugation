@@ -6,14 +6,17 @@ import Topbar from '@/components/layout/Topbar';
 import SessionConfig from '@/components/centrifugation/SessionConfig';
 import ScanZone from '@/components/centrifugation/ScanZone';
 import HistoriqueTable from '@/components/centrifugation/HistoriqueTable';
+import { exportTracabiliteJour } from '@/lib/exportPdf';
 import {
   CentrifugeusesAvecProgrammes,
   Tube,
   HistoriqueSession,
 } from '@/lib/schemas';
 
+const SITE_NAMES: Record<number, string> = { 1: 'Épinal', 2: 'Remiremont', 3: 'Neufchâteau' };
+
 function todayDate(): string {
-  return new Date().toLocaleDateString('fr-CA'); // YYYY-MM-DD
+  return new Date().toLocaleDateString('fr-CA');
 }
 
 export default function CentrifugationPage() {
@@ -31,6 +34,8 @@ export default function CentrifugationPage() {
 
   const [historique, setHistorique] = useState<HistoriqueSession[]>([]);
   const [loadingReferentiels, setLoadingReferentiels] = useState(true);
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const loadReferentiels = useCallback(async (sid: number) => {
     setLoadingReferentiels(true);
@@ -120,13 +125,23 @@ export default function CentrifugationPage() {
     await loadHistorique();
   }
 
-  function handleExportPdf() {
-    window.print();
+  async function handleExportPdf() {
+    await exportTracabiliteJour(
+      historique,
+      SITE_NAMES[siteId] ?? String(siteId),
+      todayDate(),
+      visa || undefined,
+    );
   }
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
-      <Sidebar siteId={siteId} onSiteChange={setSiteId} />
+      <Sidebar
+        siteId={siteId}
+        onSiteChange={setSiteId}
+        mobileOpen={sidebarOpen}
+        onMobileClose={() => setSidebarOpen(false)}
+      />
 
       <div className="flex flex-col flex-1 min-w-0">
         <Topbar
@@ -134,80 +149,88 @@ export default function CentrifugationPage() {
           tubeCount={tubes.length}
           onCloturer={handleCloturer}
           onExportPdf={handleExportPdf}
+          onOpenSidebar={() => setSidebarOpen(true)}
         />
 
-        <div className="flex flex-1 min-h-0 gap-0">
-          {/* Panneau gauche : config + scan */}
-          <div className="w-[270px] shrink-0 bg-white border-r border-gray-200 flex flex-col min-h-0">
-            <div className="border-b border-gray-200">
+        {/* Layout responsive : 1 col mobile, 2 col + historique desktop */}
+        <div className="flex-1 min-h-0 overflow-auto md:overflow-hidden">
+          <div className="flex flex-col md:flex-row md:h-full gap-0">
+
+            {/* Panneau gauche : config + scan */}
+            <div className="md:w-[270px] md:shrink-0 bg-white border-b md:border-b-0 md:border-r border-gray-200 flex flex-col">
+              <div className="border-b border-gray-200">
+                <div className="px-3 py-2 bg-gray-50 border-b border-gray-200">
+                  <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                    Configuration passage
+                  </h2>
+                </div>
+                {loadingReferentiels ? (
+                  <div className="p-4 text-xs text-gray-400">Chargement...</div>
+                ) : (
+                  <SessionConfig
+                    centrifugeuses={centrifugeuses}
+                    selectedCentri={selectedCentri}
+                    selectedProg={selectedProg}
+                    stockage={stockage}
+                    visa={visa}
+                    sessionActive={sessionActive}
+                    onCentriChange={(id) => {
+                      setSelectedCentri(id);
+                      setSelectedProg(null);
+                    }}
+                    onProgChange={setSelectedProg}
+                    onStockageChange={setStockage}
+                    onVisaChange={setVisa}
+                  />
+                )}
+              </div>
+
               <div className="px-3 py-2 bg-gray-50 border-b border-gray-200">
                 <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Configuration session
+                  Scan tubes
                 </h2>
               </div>
-              {loadingReferentiels ? (
-                <div className="p-4 text-xs text-gray-400">Chargement...</div>
-              ) : (
-                <SessionConfig
-                  centrifugeuses={centrifugeuses}
-                  selectedCentri={selectedCentri}
-                  selectedProg={selectedProg}
-                  stockage={stockage}
-                  visa={visa}
-                  sessionActive={sessionActive}
-                  onCentriChange={(id) => {
-                    setSelectedCentri(id);
-                    setSelectedProg(null);
-                  }}
-                  onProgChange={setSelectedProg}
-                  onStockageChange={setStockage}
-                  onVisaChange={setVisa}
-                />
-              )}
+
+              <ScanZone
+                sessionId={sessionId}
+                tubes={tubes}
+                sessionActive={sessionActive}
+                canStart={canStart}
+                onScan={handleScan}
+                onDelete={handleDeleteTube}
+                onStartSession={handleStartSession}
+              />
             </div>
 
-            <div className="px-3 py-2 bg-gray-50 border-b border-gray-200">
-              <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Scan tubes
-              </h2>
-            </div>
-
-            <ScanZone
-              sessionId={sessionId}
-              tubes={tubes}
-              sessionActive={sessionActive}
-              canStart={canStart}
-              onScan={handleScan}
-              onDelete={handleDeleteTube}
-              onStartSession={handleStartSession}
-            />
-          </div>
-
-          {/* Panneau droit : historique */}
-          <div className="flex-1 flex flex-col min-w-0 min-h-0">
-            <div className="px-4 py-2 bg-white border-b border-gray-200 flex items-center gap-3">
-              <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Historique du jour
-              </h2>
-              <span className="text-xs text-gray-400">
-                {new Date().toLocaleDateString('fr-FR', {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </span>
-              <span className="ml-auto text-xs text-gray-500">
-                {historique.length} session{historique.length !== 1 ? 's' : ''}
-                {' · '}
-                {historique.reduce((acc, s) => acc + s.tubes.length, 0)} tubes
-              </span>
-            </div>
-            <div className="flex-1 min-h-0 overflow-auto">
-              <HistoriqueTable sessions={historique} currentSessionId={sessionId} />
+            {/* Panneau droit : historique */}
+            <div className="flex-1 flex flex-col md:min-h-0">
+              <div className="px-4 py-2 bg-white border-b border-gray-200 flex items-center gap-3">
+                <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                  Passages du jour
+                </h2>
+                <span className="text-xs text-gray-400">
+                  {new Date().toLocaleDateString('fr-FR', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </span>
+                <span className="ml-auto text-xs text-gray-500">
+                  {historique.length} passage{historique.length !== 1 ? 's' : ''}
+                  {' · '}
+                  {historique.reduce((acc, s) => acc + s.tubes.length, 0)} tubes
+                </span>
+              </div>
+              <div className="flex-1 md:min-h-0 md:overflow-auto">
+                <HistoriqueTable sessions={historique} currentSessionId={sessionId} />
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Padding bottom mobile pour le bouton sticky */}
+        {sessionActive && <div className="md:hidden h-14" />}
       </div>
     </div>
   );
