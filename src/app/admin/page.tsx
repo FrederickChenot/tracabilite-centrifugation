@@ -5,9 +5,10 @@ import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { HistoriqueSession } from '@/lib/schemas';
 import ReferentielsTab from '@/components/admin/ReferentielsTab';
+import ConfigTab from '@/components/admin/ConfigTab';
 import { exportTracabiliteJour } from '@/lib/exportPdf';
 
-type Tab = 'sessions' | 'referentiels';
+type Tab = 'sessions' | 'referentiels' | 'configuration';
 
 function todayDate(): string {
   return new Date().toLocaleDateString('fr-CA');
@@ -85,6 +86,7 @@ export default function AdminPage() {
   const tabs: { id: Tab; label: string }[] = [
     { id: 'sessions', label: 'Passages' },
     { id: 'referentiels', label: 'Référentiels' },
+    { id: 'configuration', label: 'Configuration' },
   ];
 
   return (
@@ -259,6 +261,13 @@ export default function AdminPage() {
         {activeTab === 'referentiels' && (
           <div className="h-full bg-white">
             <ReferentielsTab />
+          </div>
+        )}
+
+        {/* Configuration tab */}
+        {activeTab === 'configuration' && (
+          <div className="h-full bg-gray-50">
+            <ConfigTab />
           </div>
         )}
       </div>

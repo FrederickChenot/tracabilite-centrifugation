@@ -21,7 +21,10 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Dev\\\\tracabilite-centrifugation\" -Recurse -Force)",
       "Bash(Select-Object FullName)",
       "Bash(Sort-Object FullName)",
-      "Bash(npx next *)"
+      "Bash(npx next *)",
+      "Bash(node *)",
+      "Bash(mkdir -p \"C:\\\\Dev\\\\tracabilite-centrifugation\\\\src\\\\app\\\\api\\\\admin\\\\config\\\\[cle]\")",
+      "Bash(mkdir -p \"C:\\\\Dev\\\\tracabilite-centrifugation\\\\src\\\\app\\\\api\\\\admin\\\\users\\\\[id]\\\\reset-password\")"
     ]
   },
   "hooks": {

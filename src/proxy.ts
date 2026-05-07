@@ -18,10 +18,15 @@ export default auth((req) => {
   }
 
   const role = (req.auth.user as { role?: string })?.role;
+
   if (
     (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) &&
     role !== 'admin'
   ) {
+    return NextResponse.redirect(new URL('/outils/centrifugation', req.url));
+  }
+
+  if (pathname === '/' && role !== 'admin') {
     return NextResponse.redirect(new URL('/outils/centrifugation', req.url));
   }
 

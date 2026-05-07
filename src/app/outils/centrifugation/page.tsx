@@ -7,6 +7,7 @@ import SessionConfig from '@/components/centrifugation/SessionConfig';
 import ScanZone from '@/components/centrifugation/ScanZone';
 import HistoriqueTable from '@/components/centrifugation/HistoriqueTable';
 import { exportTracabiliteJour } from '@/lib/exportPdf';
+import InactivityGuard from '@/components/InactivityGuard';
 import {
   CentrifugeusesAvecProgrammes,
   Tube,
@@ -136,6 +137,7 @@ export default function CentrifugationPage() {
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
+      <InactivityGuard />
       <Sidebar
         siteId={siteId}
         onSiteChange={setSiteId}

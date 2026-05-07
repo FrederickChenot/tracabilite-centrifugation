@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Sidebar from '@/components/layout/Sidebar';
+import InactivityGuard from '@/components/InactivityGuard';
 import { RechercheResult, FilterState, Centrifugeuse } from '@/lib/schemas';
 
 /* ─── Helpers ────────────────────────────────────────────── */
@@ -252,6 +253,7 @@ async function generateAuditPdf(results: RechercheResult[], filters: FilterState
 
 export default function RecherchePage() {
   const [sidebarSiteId, setSidebarSiteId] = useState(1);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [query, setQuery]       = useState('');
   const [filters, setFilters]   = useState<FilterState>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
@@ -348,12 +350,27 @@ export default function RecherchePage() {
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
-      <Sidebar siteId={sidebarSiteId} onSiteChange={setSidebarSiteId} />
+      <InactivityGuard />
+      <Sidebar
+        siteId={sidebarSiteId}
+        onSiteChange={setSidebarSiteId}
+        mobileOpen={sidebarOpen}
+        onMobileClose={() => setSidebarOpen(false)}
+      />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* ── Header ── */}
-        <header className="h-14 bg-white border-b border-gray-200 flex items-center px-6 gap-4 shrink-0">
+        <header className="h-14 bg-white border-b border-gray-200 flex items-center px-3 md:px-6 gap-2 md:gap-4 shrink-0">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="md:hidden flex items-center justify-center w-9 h-9 rounded text-gray-600 hover:bg-gray-100 shrink-0"
+            aria-label="Ouvrir le menu"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
           <h1 className="text-lg font-bold text-gray-900">Recherche</h1>
           {searched && !loading && (
             <span className="text-sm text-gray-500">
