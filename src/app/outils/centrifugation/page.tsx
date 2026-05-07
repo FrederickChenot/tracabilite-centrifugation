@@ -163,7 +163,7 @@ export default function CentrifugationPage() {
               <div className="border-b border-gray-200">
                 <div className="px-3 py-2 bg-gray-50 border-b border-gray-200">
                   <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Configuration passage
+                    Configuration
                   </h2>
                 </div>
                 {loadingReferentiels ? (
@@ -208,7 +208,7 @@ export default function CentrifugationPage() {
             <div className="flex-1 flex flex-col md:min-h-0">
               <div className="px-4 py-2 bg-white border-b border-gray-200 flex items-center gap-3">
                 <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Passages du jour
+                  Scans du jour
                 </h2>
                 <span className="text-xs text-gray-400">
                   {new Date().toLocaleDateString('fr-FR', {
@@ -219,7 +219,7 @@ export default function CentrifugationPage() {
                   })}
                 </span>
                 <span className="ml-auto text-xs text-gray-500">
-                  {historique.length} passage{historique.length !== 1 ? 's' : ''}
+                  {historique.length} scan{historique.length !== 1 ? 's' : ''}
                   {' · '}
                   {historique.reduce((acc, s) => acc + s.tubes.length, 0)} tubes
                 </span>

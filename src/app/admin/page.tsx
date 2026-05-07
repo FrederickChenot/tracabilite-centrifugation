@@ -85,7 +85,7 @@ export default function AdminPage() {
   const siteName = siteId === 1 ? 'Épinal' : siteId === 2 ? 'Remiremont' : 'Neufchâteau';
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: 'sessions', label: 'Passages' },
+    { id: 'sessions', label: 'Scans' },
     { id: 'referentiels', label: 'Référentiels' },
     { id: 'configuration', label: 'Configuration' },
   ];
@@ -96,7 +96,7 @@ export default function AdminPage() {
 
       {/* ── Header ── */}
       <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4 shrink-0">
-        <Link href="/" className="text-sm text-gray-500 hover:text-gray-700">← Accueil</Link>
+        <Link href="/outils/centrifugation" className="text-sm text-gray-500 hover:text-gray-700">← Retour</Link>
         <h1 className="text-xl font-bold text-gray-900 flex-1">Administration · Centrifugation</h1>
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
@@ -166,7 +166,7 @@ export default function AdminPage() {
               <div className="grid grid-cols-3 gap-4">
                 {[
                   { label: `Tubes · ${date} · ${siteName}`, value: metrics.tubesToday },
-                  { label: `Passages · ${date} · ${siteName}`, value: metrics.sessionsTodayCount },
+                  { label: `Scans · ${date} · ${siteName}`, value: metrics.sessionsTodayCount },
                   { label: `Tubes 7 jours · ${siteName}`, value: metrics.tubesWeek },
                 ].map((m) => (
                   <div key={m.label} className="bg-white rounded-xl border border-gray-200 p-5">
@@ -179,7 +179,7 @@ export default function AdminPage() {
               {/* Tableau sessions */}
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="px-5 py-3 border-b border-gray-200 flex items-center gap-2">
-                  <h2 className="font-semibold text-gray-900 text-sm">Passages</h2>
+                  <h2 className="font-semibold text-gray-900 text-sm">Scans</h2>
                   {loading && <span className="text-xs text-gray-400">Chargement...</span>}
                 </div>
 

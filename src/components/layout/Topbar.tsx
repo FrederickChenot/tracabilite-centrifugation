@@ -38,7 +38,7 @@ export default function Topbar({
         {sessionActive && (
           <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-teal-100 text-teal-800 shrink-0">
             <span className="w-1.5 h-1.5 bg-teal-500 rounded-full animate-pulse" />
-            Passage en cours · {tubeCount} tube{tubeCount !== 1 ? 's' : ''}
+            Scan en cours · {tubeCount} tube{tubeCount !== 1 ? 's' : ''}
           </span>
         )}
 
@@ -55,7 +55,7 @@ export default function Topbar({
             onClick={onCloturer}
             className="hidden md:block text-sm px-3 py-1.5 rounded bg-red-600 text-white hover:bg-red-700 transition-colors font-medium shrink-0"
           >
-            Terminer le passage
+            Terminer
           </button>
         )}
       </header>
@@ -71,7 +71,7 @@ export default function Topbar({
             className="w-full bg-teal-600 text-white font-semibold text-base"
             style={{ height: '56px' }}
           >
-            Terminer le passage
+            Terminer
           </button>
         </div>
       )}

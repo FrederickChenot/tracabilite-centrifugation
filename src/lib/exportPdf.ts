@@ -109,12 +109,9 @@ export async function exportTracabiliteJour(
   let startY = 57;
 
   for (const session of sessions) {
-    const libelleCourt = session.prog_libelle
-      ? (session.prog_libelle.length > 28 ? session.prog_libelle.slice(0, 28) + '…' : session.prog_libelle)
-      : '';
     const scanLine1 = [
       `Scan — ${session.centri_nom ?? ''}`,
-      session.prog_numero ? `Pgm ${session.prog_numero}${libelleCourt ? ' ' + libelleCourt : ''}` : '',
+      session.prog_numero ? `Pgm ${session.prog_numero}${session.prog_libelle ? ' ' + session.prog_libelle : ''}` : '',
       STOCKAGE_LABEL[session.stockage] ?? session.stockage,
       `Visa : ${session.visa}`,
     ]

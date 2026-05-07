@@ -126,7 +126,7 @@ export default function ScanZone({
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
-            Démarrer le passage
+            Nouveau scan
           </button>
         )}
       </div>
