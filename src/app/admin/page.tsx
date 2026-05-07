@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { HistoriqueSession } from '@/lib/schemas';
@@ -199,9 +199,8 @@ export default function AdminPage() {
                     </thead>
                     <tbody>
                       {sessions.map((s) => (
-                        <>
+                        <React.Fragment key={s.id}>
                           <tr
-                            key={s.id}
                             className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
                             onClick={() => toggleExpand(s.id)}
                           >
@@ -247,7 +246,7 @@ export default function AdminPage() {
                               </td>
                             </tr>
                           )}
-                        </>
+                        </React.Fragment>
                       ))}
                     </tbody>
                   </table>
