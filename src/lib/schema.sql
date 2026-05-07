@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS sites (
   id SERIAL PRIMARY KEY,
-  nom VARCHAR(50) NOT NULL
+  nom VARCHAR(50) NOT NULL,
+  actif BOOLEAN DEFAULT true
 );
 
 CREATE TABLE IF NOT EXISTS centrifugeuses (
@@ -8,7 +9,8 @@ CREATE TABLE IF NOT EXISTS centrifugeuses (
   site_id INT REFERENCES sites(id),
   nom VARCHAR(50) NOT NULL,
   modele VARCHAR(50),
-  est_backup BOOLEAN DEFAULT false
+  est_backup BOOLEAN DEFAULT false,
+  actif BOOLEAN DEFAULT true
 );
 
 CREATE TABLE IF NOT EXISTS programmes (

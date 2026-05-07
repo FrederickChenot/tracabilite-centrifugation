@@ -13,32 +13,42 @@ export async function GET(request: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
 
-  const { searchParams } = new URL(request.url);
-  const centri_id = searchParams.get('centri_id');
-  if (!centri_id) return NextResponse.json({ error: 'centri_id requis' }, { status: 400 });
+  try {
+    const { searchParams } = new URL(request.url);
+    const centri_id = searchParams.get('centri_id');
+    if (!centri_id) return NextResponse.json({ error: 'centri_id requis' }, { status: 400 });
 
-  const rows = await sql`
-    SELECT id, centrifugeuse_id, numero, libelle
-    FROM programmes
-    WHERE centrifugeuse_id = ${Number(centri_id)}
-    ORDER BY numero ASC
-  `;
-  return NextResponse.json({ programmes: rows });
+    const rows = await sql`
+      SELECT id, centrifugeuse_id, numero, libelle
+      FROM programmes
+      WHERE centrifugeuse_id = ${Number(centri_id)}
+      ORDER BY numero ASC
+    `;
+    return NextResponse.json({ programmes: rows });
+  } catch (err) {
+    console.error('[GET /api/admin/programmes]', err);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
 
-  const body = await request.json();
-  const parsed = CreateProgSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  try {
+    const body = await request.json();
+    const parsed = CreateProgSchema.safeParse(body);
+    if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const { centrifugeuse_id, numero, libelle } = parsed.data;
-  const result = await sql`
-    INSERT INTO programmes (centrifugeuse_id, numero, libelle)
-    VALUES (${centrifugeuse_id}, ${numero}, ${libelle})
-    RETURNING id, centrifugeuse_id, numero, libelle
-  `;
-  return NextResponse.json(result[0], { status: 201 });
+    const { centrifugeuse_id, numero, libelle } = parsed.data;
+    const result = await sql`
+      INSERT INTO programmes (centrifugeuse_id, numero, libelle)
+      VALUES (${centrifugeuse_id}, ${numero}, ${libelle})
+      RETURNING *
+    `;
+    return NextResponse.json({ success: true, programme: result[0] }, { status: 201 });
+  } catch (err) {
+    console.error('[POST /api/admin/programmes]', err);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+  }
 }

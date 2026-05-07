@@ -15,22 +15,27 @@ export async function PATCH(
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
 
-  const { id } = await params;
-  const body = await request.json();
-  const parsed = PatchProgSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  try {
+    const { id } = await params;
+    const body = await request.json();
+    const parsed = PatchProgSchema.safeParse(body);
+    if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const { numero, libelle } = parsed.data;
-  const result = await sql`
-    UPDATE programmes SET
-      numero  = COALESCE(${numero ?? null}, numero),
-      libelle = COALESCE(${libelle ?? null}, libelle)
-    WHERE id = ${Number(id)}
-    RETURNING id, centrifugeuse_id, numero, libelle
-  `;
+    const { numero, libelle } = parsed.data;
+    const result = await sql`
+      UPDATE programmes SET
+        numero  = COALESCE(${numero ?? null}, numero),
+        libelle = COALESCE(${libelle ?? null}, libelle)
+      WHERE id = ${Number(id)}
+      RETURNING id, centrifugeuse_id, numero, libelle
+    `;
 
-  if (result.length === 0) return NextResponse.json({ error: 'Programme introuvable' }, { status: 404 });
-  return NextResponse.json(result[0]);
+    if (result.length === 0) return NextResponse.json({ error: 'Programme introuvable' }, { status: 404 });
+    return NextResponse.json(result[0]);
+  } catch (err) {
+    console.error('[PATCH /api/admin/programmes/[id]]', err);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+  }
 }
 
 export async function DELETE(
@@ -40,19 +45,24 @@ export async function DELETE(
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
 
-  const { id } = await params;
+  try {
+    const { id } = await params;
 
-  const used = await sql`
-    SELECT COUNT(*) as nb FROM sessions_centri WHERE prog_id = ${Number(id)}
-  `;
-  if (Number(used[0].nb) > 0) {
-    return NextResponse.json(
-      { error: `Ce programme est utilisé dans ${used[0].nb} session(s) — suppression impossible.` },
-      { status: 409 }
-    );
+    const used = await sql`
+      SELECT COUNT(*) as nb FROM sessions_centri WHERE prog_id = ${Number(id)}
+    `;
+    if (Number(used[0].nb) > 0) {
+      return NextResponse.json(
+        { error: `Ce programme est utilisé dans ${used[0].nb} session(s) — suppression impossible.` },
+        { status: 409 }
+      );
+    }
+
+    const result = await sql`DELETE FROM programmes WHERE id = ${Number(id)} RETURNING id`;
+    if (result.length === 0) return NextResponse.json({ error: 'Programme introuvable' }, { status: 404 });
+    return NextResponse.json({ deleted: true });
+  } catch (err) {
+    console.error('[DELETE /api/admin/programmes/[id]]', err);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
-
-  const result = await sql`DELETE FROM programmes WHERE id = ${Number(id)} RETURNING id`;
-  if (result.length === 0) return NextResponse.json({ error: 'Programme introuvable' }, { status: 404 });
-  return NextResponse.json({ deleted: true });
 }
