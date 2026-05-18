@@ -121,8 +121,18 @@ export default function Sidebar({ siteId, onSiteChange, mobileOpen, onMobileClos
           </div>
         </div>
 
-        {/* Déconnexion */}
-        <div className="px-4 py-3 border-t border-gray-700">
+        {/* Profil + Déconnexion */}
+        <div className="px-4 py-3 border-t border-gray-700 flex flex-col gap-1">
+          <Link
+            href="/profil"
+            onClick={onMobileClose}
+            className="flex items-center gap-2 px-3 py-2 rounded text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            Mon profil
+          </Link>
           <button
             onClick={() => signOut({ callbackUrl: '/login?disconnected=true' })}
             className="w-full flex items-center gap-2 px-3 py-2 rounded text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"

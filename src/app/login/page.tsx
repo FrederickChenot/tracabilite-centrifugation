@@ -24,6 +24,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const disconnected = searchParams.get('disconnected') === 'true';
+  const changed = searchParams.get('changed') === 'true';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -63,7 +64,12 @@ function LoginForm() {
           <p className="text-sm text-gray-500 mt-1">CH Épinal — GCS Bio Med</p>
         </div>
 
-        {disconnected && (
+        {changed && (
+          <div className="mb-4 px-3 py-2 bg-teal-50 border border-teal-200 rounded-lg text-sm text-teal-700 text-center">
+            Mot de passe modifié — reconnectez-vous
+          </div>
+        )}
+        {disconnected && !changed && (
           <div className="mb-4 px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-sm text-gray-500 text-center">
             Vous avez été déconnecté
           </div>
@@ -115,6 +121,11 @@ function LoginForm() {
           >
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
+          <div className="text-center">
+            <a href="/login/forgot-password" className="text-xs text-gray-400 hover:text-teal-600 transition-colors">
+              Mot de passe oublié ?
+            </a>
+          </div>
         </form>
       </div>
     </div>

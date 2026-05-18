@@ -125,3 +125,95 @@ export async function sendEmailReception(params: {
     console.error('[emails] sendEmailReception error:', err);
   }
 }
+
+export async function sendEmailForgotPassword(params: {
+  email: string;
+  nom?: string;
+  resetUrl: string;
+}) {
+  const greeting = params.nom ? `Bonjour ${params.nom},` : 'Bonjour,';
+  const html = `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+      <div style="background:#0F6E56;color:white;padding:20px;border-radius:8px 8px 0 0">
+        <h2 style="margin:0;font-size:18px">GCS Bio Med — BioLabTrack</h2>
+        <p style="margin:6px 0 0;font-size:14px;opacity:0.85">Réinitialisation de mot de passe</p>
+      </div>
+      <div style="padding:24px;border:1px solid #e0e0e0;border-top:none;background:#fff">
+        <p style="margin:0 0 16px;color:#374151">${greeting}</p>
+        <p style="margin:0 0 20px;color:#374151">
+          Vous avez demandé la réinitialisation de votre mot de passe BioLabTrack.
+          Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe.
+          Ce lien est valable <strong>1 heure</strong>.
+        </p>
+        <a href="${params.resetUrl}"
+           style="display:inline-block;background:#0F6E56;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">
+          Réinitialiser mon mot de passe
+        </a>
+        <p style="margin:20px 0 0;font-size:12px;color:#9ca3af">
+          Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.
+        </p>
+      </div>
+    </div>
+  `;
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: [params.email],
+      subject: 'BioLabTrack — Réinitialisation de votre mot de passe',
+      html,
+    });
+  } catch (err) {
+    console.error('[emails] sendEmailForgotPassword error:', err);
+  }
+}
+
+export async function sendEmailBienvenue(params: {
+  email: string;
+  prenom?: string;
+  nom?: string;
+  tempPassword: string;
+}) {
+  const greeting = params.prenom ? `Bonjour ${params.prenom},` : 'Bonjour,';
+  const appUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : (process.env.NEXTAUTH_URL ?? 'https://biolabtrack.fr');
+  const html = `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+      <div style="background:#0F6E56;color:white;padding:20px;border-radius:8px 8px 0 0">
+        <h2 style="margin:0;font-size:18px">GCS Bio Med — BioLabTrack</h2>
+        <p style="margin:6px 0 0;font-size:14px;opacity:0.85">Bienvenue !</p>
+      </div>
+      <div style="padding:24px;border:1px solid #e0e0e0;border-top:none;background:#fff">
+        <p style="margin:0 0 16px;color:#374151">${greeting}</p>
+        <p style="margin:0 0 20px;color:#374151">Votre compte BioLabTrack a été créé. Voici vos identifiants :</p>
+        <table style="width:100%;border-collapse:collapse;margin:0 0 20px">
+          <tr>
+            <td style="padding:8px 0;color:#666;font-size:13px;width:40%">Email</td>
+            <td style="padding:8px 0;font-weight:600;color:#111827">${params.email}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;color:#666;font-size:13px">Mot de passe temporaire</td>
+            <td style="padding:8px 0;font-weight:700;color:#0F6E56;font-size:18px;letter-spacing:2px">${params.tempPassword}</td>
+          </tr>
+        </table>
+        <a href="${appUrl}"
+           style="display:inline-block;background:#0F6E56;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">
+          Se connecter
+        </a>
+        <p style="margin:20px 0 0;font-size:12px;color:#9ca3af">
+          Vous devrez changer votre mot de passe à la première connexion.
+        </p>
+      </div>
+    </div>
+  `;
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: [params.email],
+      subject: 'Bienvenue sur BioLabTrack — Vos identifiants',
+      html,
+    });
+  } catch (err) {
+    console.error('[emails] sendEmailBienvenue error:', err);
+  }
+}

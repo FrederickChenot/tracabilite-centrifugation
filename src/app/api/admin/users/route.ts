@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import sql from '@/lib/db';
 import { hash } from 'bcryptjs';
+import { sendEmailBienvenue } from '@/lib/emails';
 
 export async function GET() {
   const session = await auth();
@@ -36,17 +37,27 @@ export async function POST(req: NextRequest) {
 
   try {
     const rows = await sql`
-      INSERT INTO users (email, password_hash, nom, prenom, site_id, role)
+      INSERT INTO users (email, password_hash, nom, prenom, site_id, role, must_change_password)
       VALUES (
         ${email as string},
         ${passwordHash},
         ${(nom as string | null) ?? null},
         ${(prenom as string | null) ?? null},
         ${(site_id as number | null) ?? null},
-        ${(role as string) ?? 'technicien'}
+        ${(role as string) ?? 'technicien'},
+        true
       )
       RETURNING id, email, nom, prenom, site_id, role, actif, created_at
     `;
+
+    // Email de bienvenue (non bloquant)
+    sendEmailBienvenue({
+      email: email as string,
+      prenom: (prenom as string | null) ?? undefined,
+      nom: (nom as string | null) ?? undefined,
+      tempPassword: password as string,
+    }).catch((err) => console.error('[users] welcome email error:', err));
+
     return NextResponse.json({ user: rows[0] }, { status: 201 });
   } catch (e: unknown) {
     const err = e as { code?: string };

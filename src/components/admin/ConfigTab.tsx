@@ -144,7 +144,6 @@ export default function ConfigTab() {
   }
 
   async function resetPassword(user: User) {
-    if (!confirm(`Réinitialiser le mot de passe de ${user.email} ?`)) return;
     const res = await fetch(`/api/admin/users/${user.id}/reset-password`, { method: 'POST' });
     const data = await res.json();
     if (res.ok) {
@@ -326,8 +325,20 @@ export default function ConfigTab() {
           {resetPwdResult && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex items-start gap-3">
               <div className="flex-1">
-                <p className="text-sm font-semibold text-amber-800 mb-1">Mot de passe temporaire — visible une seule fois</p>
+                <p className="text-sm font-semibold text-amber-800 mb-2">Mot de passe temporaire — visible une seule fois</p>
                 <code className="text-lg font-mono font-bold text-amber-900 tracking-widest">{resetPwdResult.pass}</code>
+                <div className="mt-3">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(resetPwdResult.pass);
+                      showToast('Copié dans le presse-papier');
+                    }}
+                    className="px-3 py-1.5 bg-amber-600 text-white rounded text-xs font-semibold hover:bg-amber-700 transition-colors"
+                  >
+                    Copier
+                  </button>
+                </div>
+                <p className="mt-2 text-xs text-amber-700">L&apos;utilisateur devra changer ce mot de passe à la prochaine connexion.</p>
               </div>
               <button
                 onClick={() => setResetPwdResult(null)}

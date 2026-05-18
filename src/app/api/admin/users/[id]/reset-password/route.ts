@@ -28,7 +28,7 @@ export async function POST(
   const passwordHash = await hash(tempPassword, 12);
 
   const rows = await sql`
-    UPDATE users SET password_hash = ${passwordHash}
+    UPDATE users SET password_hash = ${passwordHash}, must_change_password = true
     WHERE id = ${userId}
     RETURNING id, email
   `;

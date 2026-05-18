@@ -20,6 +20,11 @@ export default auth((req) => {
   }
 
   const role = (req.auth.user as { role?: string })?.role;
+  const mustChange = (req.auth.user as { must_change_password?: boolean })?.must_change_password;
+
+  if (mustChange && !pathname.startsWith('/profil') && !pathname.startsWith('/api')) {
+    return NextResponse.redirect(new URL('/profil', req.url));
+  }
 
   if (
     (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) &&

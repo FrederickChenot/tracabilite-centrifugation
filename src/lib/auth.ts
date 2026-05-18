@@ -8,6 +8,7 @@ type ExtUser = {
   site_id?: number | null;
   nom?: string | null;
   prenom?: string | null;
+  must_change_password?: boolean;
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -39,7 +40,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // DB users
         try {
           const rows = await sql`
-            SELECT id, email, password_hash, nom, prenom, site_id, role
+            SELECT id, email, password_hash, nom, prenom, site_id, role,
+                   COALESCE(must_change_password, false) AS must_change_password
             FROM users
             WHERE email = ${credentials.email as string} AND actif = true
             LIMIT 1
@@ -58,6 +60,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             site_id: user.site_id as number | null,
             nom: user.nom as string | null,
             prenom: user.prenom as string | null,
+            must_change_password: Boolean(user.must_change_password),
           };
         } catch {
           return null;
@@ -73,6 +76,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.site_id = u.site_id ?? null;
         token.nom = u.nom ?? null;
         token.prenom = u.prenom ?? null;
+        token.must_change_password = u.must_change_password ?? false;
       }
       return token;
     },
@@ -82,6 +86,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       u.site_id = token.site_id as number | null;
       u.nom = token.nom as string | null;
       u.prenom = token.prenom as string | null;
+      u.must_change_password = token.must_change_password as boolean ?? false;
       if (token.sub) u.id = token.sub;
       return session;
     },
