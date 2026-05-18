@@ -1,8 +1,16 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = 'BioTools <onboarding@resend.dev>';
 const TO = process.env.EMAIL_EXPEDITEUR ?? '';
+
+function getResend(): Resend | null {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn('RESEND_API_KEY non définie — emails désactivés');
+    return null;
+  }
+  return new Resend(apiKey);
+}
 
 function bonNum(id: string) { return id.slice(0, 6).toUpperCase(); }
 
@@ -69,6 +77,8 @@ export async function sendEmailPriseEnCharge(params: {
   ].join('');
 
   try {
+    const resend = getResend();
+    if (!resend) return;
     await resend.emails.send({
       from: FROM,
       to: [TO],
@@ -110,6 +120,8 @@ export async function sendEmailReception(params: {
   ].join('');
 
   try {
+    const resend = getResend();
+    if (!resend) return;
     await resend.emails.send({
       from: FROM,
       to: [TO],
@@ -156,6 +168,8 @@ export async function sendEmailForgotPassword(params: {
     </div>
   `;
   try {
+    const resend = getResend();
+    if (!resend) return;
     await resend.emails.send({
       from: FROM,
       to: [params.email],
@@ -207,6 +221,8 @@ export async function sendEmailBienvenue(params: {
     </div>
   `;
   try {
+    const resend = getResend();
+    if (!resend) return;
     await resend.emails.send({
       from: FROM,
       to: [params.email],
