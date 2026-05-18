@@ -12,9 +12,9 @@ export default function MentionsLegalesPage() {
 
         <h2 className="text-xl font-bold text-gray-800 mt-8 mb-3">1. Éditeur du site</h2>
         <p className="text-gray-600">
-          BioLabTrack est édité par :<br />
-          <strong>Fred Chenot</strong> — Technicien de Laboratoire Médical<br />
-          Email : fredchenot@gmail.com
+          <strong>BioLabTrack</strong> — Éditeur de logiciels<br />
+          Vosges, France<br />
+          Email : contact@biolabtrack.fr
         </p>
 
         <h2 className="text-xl font-bold text-gray-800 mt-8 mb-3">2. Hébergement</h2>
@@ -33,7 +33,7 @@ export default function MentionsLegalesPage() {
         <p className="text-gray-600">
           Les données collectées (adresse email, nom, données de traçabilité) sont utilisées uniquement dans le cadre du service BioLabTrack.
           Elles ne sont ni vendues ni transmises à des tiers. Conformément au RGPD, vous disposez d&apos;un droit d&apos;accès, de rectification et de suppression de vos données.
-          Pour exercer ces droits, contactez : fredchenot@gmail.com
+          Pour exercer ces droits, contactez : contact@biolabtrack.fr
         </p>
 
         <h2 className="text-xl font-bold text-gray-800 mt-8 mb-3">5. Cookies</h2>

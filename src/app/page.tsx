@@ -57,7 +57,7 @@ export default function LandingPage() {
       {/* ── HERO ── */}
       <section className="max-w-6xl mx-auto px-6 pt-24 pb-20 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-teal-50 border border-teal-200 rounded-full text-xs text-teal-700 font-medium mb-8">
-          Conçu par un technicien de laboratoire médical
+          Conçu pour et par les professionnels du labo
         </div>
         <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
           La traçabilité laboratoire<br />
@@ -332,8 +332,8 @@ export default function LandingPage() {
               <Link href="/cgu" className="hover:text-white transition-colors">CGU</Link>
             </div>
             <div className="text-sm text-white/60">
-              <p className="font-semibold text-white mb-1">© 2026 BioLabTrack</p>
-              <p>Conçu par un technicien de laboratoire</p>
+              <p className="font-semibold text-white mb-1">© 2026 BioLabTrack — Tous droits réservés</p>
+              <p>Solution de traçabilité pour la biologie médicale</p>
               <a href="mailto:contact@biolabtrack.fr" className="mt-2 block text-white/70 hover:text-white transition-colors">
                 contact@biolabtrack.fr
               </a>

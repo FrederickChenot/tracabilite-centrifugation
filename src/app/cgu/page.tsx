@@ -14,7 +14,7 @@ export default function CguPage() {
           <h2 className="text-xl font-bold text-gray-800 mb-3">1. Objet du service</h2>
           <p className="text-gray-600 text-sm leading-relaxed">
             BioLabTrack est un service SaaS de traçabilité pour laboratoires de biologie médicale. Il permet la gestion des sessions de centrifugation,
-            le suivi des transports de prélèvements et la recherche inter-sites. L&apos;accès est réservé aux professionnels de santé habilitéss.
+            le suivi des transports de prélèvements et la recherche inter-sites. L&apos;accès est réservé aux professionnels de santé habilités.
           </p>
         </section>
 
@@ -30,7 +30,7 @@ export default function CguPage() {
         <section className="mb-8">
           <h2 className="text-xl font-bold text-gray-800 mb-3">3. Données et confidentialité</h2>
           <p className="text-gray-600 text-sm leading-relaxed">
-            Les données de traçabilité saisies sont la propriété de l&apos;établissement utilisateur. L&apos;éditeur s&apos;engage à ne pas les exploiter
+            Les données de traçabilité saisies sont la propriété de l&apos;établissement utilisateur. Nous nous engageons à ne pas les exploiter
             à des fins commerciales. Les données sont stockées sur des serveurs sécurisés (Neon/Vercel) et font l&apos;objet de sauvegardes régulières.
           </p>
         </section>
@@ -38,9 +38,9 @@ export default function CguPage() {
         <section className="mb-8">
           <h2 className="text-xl font-bold text-gray-800 mb-3">4. Responsabilités</h2>
           <p className="text-gray-600 text-sm leading-relaxed">
-            L&apos;éditeur s&apos;engage à mettre en œuvre les moyens nécessaires pour assurer la disponibilité et la sécurité du service.
+            Nous nous engageons à mettre en œuvre les moyens nécessaires pour assurer la disponibilité et la sécurité du service.
             L&apos;utilisateur est responsable de la conformité des données saisies avec les exigences de son établissement.
-            L&apos;éditeur ne peut être tenu responsable des décisions prises sur la base des données enregistrées.
+            BioLabTrack ne peut être tenu responsable des décisions prises sur la base des données enregistrées.
           </p>
         </section>
 
@@ -55,7 +55,7 @@ export default function CguPage() {
         <section className="mb-8">
           <h2 className="text-xl font-bold text-gray-800 mb-3">6. Modifications</h2>
           <p className="text-gray-600 text-sm leading-relaxed">
-            L&apos;éditeur se réserve le droit de modifier les présentes CGU. Les utilisateurs seront informés par email
+            Nous nous réservons le droit de modifier les présentes CGU. Les utilisateurs seront informés par email
             de tout changement substantiel avec un préavis de 30 jours.
           </p>
         </section>
@@ -64,10 +64,13 @@ export default function CguPage() {
           <h2 className="text-xl font-bold text-gray-800 mb-3">7. Droit applicable</h2>
           <p className="text-gray-600 text-sm leading-relaxed">
             Les présentes CGU sont soumises au droit français. En cas de litige, les parties s&apos;engagent à rechercher
-            une solution amiable avant tout recours judiciaire. À défaut, les tribunaux compétents seront ceux du ressort
-            du domicile de l&apos;éditeur.
+            une solution amiable avant tout recours judiciaire. À défaut, les tribunaux compétents français seront compétents.
           </p>
         </section>
+
+        <p className="text-xs text-gray-400 mt-12">
+          Pour toute question : <a href="mailto:contact@biolabtrack.fr" className="text-teal-600 hover:underline">contact@biolabtrack.fr</a>
+        </p>
       </div>
     </div>
   );
