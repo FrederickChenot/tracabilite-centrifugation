@@ -1,5 +1,6 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import { HistoriqueSession } from '@/lib/schemas';
 
 interface HistoriqueTableProps {
@@ -7,7 +8,7 @@ interface HistoriqueTableProps {
   currentSessionId: string | null;
 }
 
-const stockageBadgeStyle: Record<string, React.CSSProperties> = {
+const stockageBadgeStyle: Record<string, CSSProperties> = {
   ambiant: { background: '#FFF3E0', color: '#E65100', border: '1px solid #FF9800' },
   '+5': { background: '#E3F2FD', color: '#0D47A1', border: '1px solid #2196F3' },
   '-20': { background: '#EDE7F6', color: '#311B92', border: '1px solid #673AB7' },

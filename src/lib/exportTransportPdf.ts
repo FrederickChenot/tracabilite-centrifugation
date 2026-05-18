@@ -76,15 +76,22 @@ export async function exportTransportPdf(envoi: EnvoiTransport) {
     { label: 'Congele (<= -15°C)', color: [237, 231, 246] as [number, number, number], items: congele },
   ];
 
-  const tableBody = rows.map((r) => [
+  type CellStyles = {
+    fillColor: [number, number, number];
+    halign?: 'center' | 'left' | 'right';
+    fontSize?: number;
+    fontStyle?: 'bold' | 'normal' | 'italic';
+  };
+  type CellDef = { content: string; styles: CellStyles };
+  const tableBody: CellDef[][] = rows.map((r) => [
     { content: r.label, styles: { fillColor: r.color } },
-    { content: String(r.items.length), styles: { fillColor: r.color, halign: 'center' as const } },
+    { content: String(r.items.length), styles: { fillColor: r.color, halign: 'center' } },
     { content: r.items.map((s) => s.code_barre).join(', ') || '-', styles: { fillColor: r.color, fontSize: 7 } },
   ]);
   tableBody.push([
-    { content: 'TOTAL', styles: { fillColor: [240, 240, 240] as [number, number, number], fontStyle: 'bold' as const } },
-    { content: String(sachets.length), styles: { fillColor: [240, 240, 240] as [number, number, number], halign: 'center' as const, fontStyle: 'bold' as const } },
-    { content: '', styles: { fillColor: [240, 240, 240] as [number, number, number] } },
+    { content: 'TOTAL', styles: { fillColor: [240, 240, 240], fontStyle: 'bold' } },
+    { content: String(sachets.length), styles: { fillColor: [240, 240, 240], halign: 'center', fontStyle: 'bold' } },
+    { content: '', styles: { fillColor: [240, 240, 240] } },
   ]);
 
   autoTable(doc, {

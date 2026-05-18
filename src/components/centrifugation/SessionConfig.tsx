@@ -1,5 +1,6 @@
 'use client';
 
+import type { CSSProperties, ReactNode } from 'react';
 import {
   IconRotateClockwise2,
   IconChevronDown,
@@ -28,8 +29,8 @@ type StockageValue = 'ambiant' | '+5' | '-20';
 interface StockageOption {
   value: StockageValue;
   label: string;
-  activeStyle: React.CSSProperties;
-  icon: React.ReactNode;
+  activeStyle: CSSProperties;
+  icon: ReactNode;
 }
 
 const stockageOptions: StockageOption[] = [

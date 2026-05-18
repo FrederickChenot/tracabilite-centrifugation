@@ -1,4 +1,5 @@
 ﻿'use client'
+import type { CSSProperties, ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 
@@ -63,7 +64,7 @@ function Counter({
   )
 }
 
-const btnSmall: React.CSSProperties = {
+const btnSmall: CSSProperties = {
   width: 28, height: 28, border: '1px solid #d1d5db',
   borderRadius: 4, background: '#f9fafb', cursor: 'pointer', fontSize: 16,
 }
@@ -302,15 +303,15 @@ function Row({ label, value }: { label: string; value: string }) {
   )
 }
 
-function Th({ children }: { children: React.ReactNode }) {
+function Th({ children }: { children?: ReactNode }) {
   return <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 700, color: '#374151', borderBottom: '1px solid #d1d5db' }}>{children}</th>
 }
 
-function Td({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+function Td({ children, style }: { children?: ReactNode; style?: CSSProperties }) {
   return <td style={{ padding: '6px 8px', borderBottom: '1px solid #f3f4f6', ...style }}>{children}</td>
 }
 
-const pageStyle: React.CSSProperties = {
+const pageStyle: CSSProperties = {
   maxWidth: 600,
   margin: '0 auto',
   padding: '20px 16px 40px',
@@ -319,7 +320,7 @@ const pageStyle: React.CSSProperties = {
   minHeight: '100vh',
 }
 
-const card: React.CSSProperties = {
+const card: CSSProperties = {
   background: '#fff',
   border: '1px solid #e5e7eb',
   borderRadius: 10,
@@ -327,7 +328,7 @@ const card: React.CSSProperties = {
   boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
 }
 
-const sectionTitle: React.CSSProperties = {
+const sectionTitle: CSSProperties = {
   fontSize: 15,
   fontWeight: 700,
   color: '#0F6E56',
@@ -336,7 +337,7 @@ const sectionTitle: React.CSSProperties = {
   borderBottom: '2px solid #d1fae5',
 }
 
-const inputStyle: React.CSSProperties = {
+const inputStyle: CSSProperties = {
   width: '100%',
   padding: '10px 12px',
   border: '1px solid #d1d5db',
@@ -345,7 +346,7 @@ const inputStyle: React.CSSProperties = {
   boxSizing: 'border-box',
 }
 
-const btnPrimary: React.CSSProperties = {
+const btnPrimary: CSSProperties = {
   width: '100%',
   padding: '12px',
   background: '#0F6E56',

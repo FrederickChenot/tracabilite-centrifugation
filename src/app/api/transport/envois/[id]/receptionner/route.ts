@@ -34,8 +34,31 @@ export async function POST(
     }
 
     try {
+      const emailData = await sql`
+        SELECT
+          d.nom AS dest_nom,
+          COUNT(sa.id) FILTER (WHERE sa.temperature = 'ambiant')::int AS nb_ambiant,
+          COUNT(sa.id) FILTER (WHERE sa.temperature = 'plus4')::int AS nb_plus4,
+          COUNT(sa.id) FILTER (WHERE sa.temperature = 'congele')::int AS nb_congele
+        FROM envois_transport e
+        JOIN laboratoires_dest d ON d.id = e.dest_id
+        LEFT JOIN envoi_sachets sa ON sa.envoi_id = e.id
+        WHERE e.id = ${id}
+        GROUP BY d.nom
+      `
+      const e = result[0]
+      const ed = emailData[0] ?? {}
       const { sendEmailReception } = await import('@/lib/emails')
-      await sendEmailReception(result[0])
+      await sendEmailReception({
+        id: String(e.id),
+        dest_nom: String(ed.dest_nom ?? ''),
+        nom_receptionnaire: String(e.nom_receptionnaire),
+        visa_receptionnaire: String(e.visa_receptionnaire),
+        receptionne_at: String(e.receptionne_at),
+        nb_ambiant: Number(ed.nb_ambiant ?? 0),
+        nb_plus4: Number(ed.nb_plus4 ?? 0),
+        nb_congele: Number(ed.nb_congele ?? 0),
+      })
     } catch (emailError) {
       console.error('[receptionner] email error:', emailError)
     }
