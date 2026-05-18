@@ -1,7 +1,8 @@
 import { Resend } from 'resend';
+import sql from '@/lib/db';
 
 const FROM = 'BioTools <onboarding@resend.dev>';
-const TO = process.env.EMAIL_EXPEDITEUR ?? '';
+const TO_FALLBACK = process.env.EMAIL_EXPEDITEUR ?? '';
 
 function getResend(): Resend | null {
   const apiKey = process.env.RESEND_API_KEY;
@@ -21,7 +22,23 @@ function baseUrl() {
   return url;
 }
 
+async function getSiteEmail(envoi_id: string): Promise<string> {
+  try {
+    const rows = await sql`
+      SELECT s.email_notifications
+      FROM envois_transport e
+      JOIN sites s ON s.id = e.site_id
+      WHERE e.id = ${envoi_id}
+    `;
+    const email = rows[0]?.email_notifications;
+    return (email && email.trim()) ? email.trim() : TO_FALLBACK;
+  } catch {
+    return TO_FALLBACK;
+  }
+}
+
 function htmlEmail(title: string, tableRows: string, bonId: string, iconTitle: string): string {
+  const appDomain = process.env.NEXTAUTH_URL?.replace('https://', '') || 'biolabtrack.fr';
   return `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
       <div style="background:#0F6E56;color:white;padding:20px;border-radius:8px 8px 0 0">
@@ -39,7 +56,7 @@ function htmlEmail(title: string, tableRows: string, bonId: string, iconTitle: s
         </a>
       </div>
       <div style="padding:12px 20px;font-size:11px;color:#9ca3af;border-top:1px solid #e5e7eb">
-        BioTools — tracabilite-centrifugation.vercel.app
+        BioTools — ${appDomain}
       </div>
     </div>
   `;
@@ -72,16 +89,17 @@ export async function sendEmailPriseEnCharge(params: {
     row('Heure', heure),
     ...(params.dest_nom ? [row('Destination', params.dest_nom)] : []),
     row('Ambiant', `${params.nb_ambiant} sachet(s)`),
-    row('+4°C', `${params.nb_plus4} sachet(s)`),
+    row('+5°C', `${params.nb_plus4} sachet(s)`),
     row('Congelé', `${params.nb_congele} sachet(s)`),
   ].join('');
 
   try {
     const resend = getResend();
     if (!resend) return;
+    const to = await getSiteEmail(params.id);
     await resend.emails.send({
       from: FROM,
-      to: [TO],
+      to: [to],
       subject: `🚚 Bon N°${num} — Pris en charge par ${params.nom_transporteur}`,
       html: htmlEmail(
         `Bon N°${num} — Prise en charge`,
@@ -115,16 +133,17 @@ export async function sendEmailReception(params: {
     row('Heure de réception', heure),
     row('Laboratoire', params.dest_nom),
     row('Ambiant', `${params.nb_ambiant} sachet(s)`),
-    row('+4°C', `${params.nb_plus4} sachet(s)`),
+    row('+5°C', `${params.nb_plus4} sachet(s)`),
     row('Congelé', `${params.nb_congele} sachet(s)`),
   ].join('');
 
   try {
     const resend = getResend();
     if (!resend) return;
+    const to = await getSiteEmail(params.id);
     await resend.emails.send({
       from: FROM,
-      to: [TO],
+      to: [to],
       subject: `✅ Bon N°${num} — Réceptionné à ${params.dest_nom}`,
       html: htmlEmail(
         `Bon N°${num} — Réception confirmée`,
@@ -188,9 +207,7 @@ export async function sendEmailBienvenue(params: {
   tempPassword: string;
 }) {
   const greeting = params.prenom ? `Bonjour ${params.prenom},` : 'Bonjour,';
-  const appUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : (process.env.NEXTAUTH_URL ?? 'https://biolabtrack.fr');
+  const appUrl = process.env.NEXTAUTH_URL ?? 'https://biolabtrack.fr';
   const html = `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
       <div style="background:#0F6E56;color:white;padding:20px;border-radius:8px 8px 0 0">

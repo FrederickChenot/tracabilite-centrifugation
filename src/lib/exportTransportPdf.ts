@@ -67,12 +67,12 @@ export async function exportTransportPdf(envoi: EnvoiTransport) {
   // Sachets table
   const sachets = envoi.sachets ?? [];
   const ambiant = sachets.filter((s) => s.temperature === 'ambiant');
-  const plus4   = sachets.filter((s) => s.temperature === '+4');
+  const plus4   = sachets.filter((s) => s.temperature === 'plus4');
   const congele = sachets.filter((s) => s.temperature === 'congele');
 
   const rows = [
     { label: 'Ambiant (15-25°C)',  color: [255, 243, 224] as [number, number, number], items: ambiant },
-    { label: '+4°C (2-8°C)',  color: [227, 242, 253] as [number, number, number], items: plus4   },
+    { label: '+5°C (2-8°C)',  color: [227, 242, 253] as [number, number, number], items: plus4   },
     { label: 'Congele (<= -15°C)', color: [237, 231, 246] as [number, number, number], items: congele },
   ];
 
@@ -121,7 +121,7 @@ export async function exportTransportPdf(envoi: EnvoiTransport) {
   doc.text('Date et heure de prise en charge : _________________________', mL + 3, y + 15);
   doc.text('Nom du transporteur : ___________________________________', mL + 3, y + 22);
   doc.text('Signature : _____________________________________________', mL + 3, y + 29);
-  doc.text('[ ] Ambiant : ___   [ ] +4°C : ___   [ ] Congele : ___', mL + 3, y + 36);
+  doc.text('[ ] Ambiant : ___   [ ] +5°C : ___   [ ] Congele : ___', mL + 3, y + 36);
   y += 50;
 
   // Section RECEPTION
@@ -137,7 +137,7 @@ export async function exportTransportPdf(envoi: EnvoiTransport) {
   doc.text('Date et heure de reception : ____________________________', mL + 3, y + 15);
   doc.text('Nom du receptionneur : _________________________________', mL + 3, y + 22);
   doc.text('Signature : _____________________________________________', mL + 3, y + 29);
-  doc.text('[ ] Ambiant : ___   [ ] +4°C : ___   [ ] Congele : ___', mL + 3, y + 36);
+  doc.text('[ ] Ambiant : ___   [ ] +5°C : ___   [ ] Congele : ___', mL + 3, y + 36);
 
   // Footer
   const pageCount = doc.getNumberOfPages();
@@ -146,7 +146,7 @@ export async function exportTransportPdf(envoi: EnvoiTransport) {
     doc.setFontSize(7);
     doc.setTextColor(150, 150, 150);
     doc.text(
-      `BioTools v1.0 - tracabilite-centrifugation.vercel.app | Page ${i} / ${pageCount}`,
+      `BioTools v1.0 - biolabtrack.fr | Page ${i} / ${pageCount}`,
       pageW / 2, pageH - 6, { align: 'center' }
     );
   }

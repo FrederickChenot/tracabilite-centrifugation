@@ -15,7 +15,7 @@ export async function GET() {
 
   try {
     await ensureSitesActif();
-    const sites = await sql`SELECT id, nom, actif FROM sites ORDER BY id`;
+    const sites = await sql`SELECT id, nom, actif, email_notifications FROM sites ORDER BY id`;
     return NextResponse.json({ sites });
   } catch (err) {
     console.error('[GET /api/admin/sites]', err);

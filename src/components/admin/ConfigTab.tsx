@@ -4,6 +4,12 @@ import { useState, useEffect, useCallback } from 'react';
 import Toast, { useToast } from './Toast';
 
 interface ConfigRow { cle: string; valeur: string; description: string }
+interface SiteWithEmail {
+  id: number;
+  nom: string;
+  actif: boolean;
+  email_notifications?: string | null;
+}
 interface User {
   id: number;
   email: string;
@@ -29,19 +35,25 @@ const EMPTY_FORM: NewUserForm = { email: '', password: '', nom: '', prenom: '', 
 export default function ConfigTab() {
   const { toast, showToast } = useToast();
 
+  /* ── Sécurité ── */
   const [timeoutMinutes, setTimeoutMinutes] = useState(30);
   const [warningMinutes, setWarningMinutes] = useState(2);
   const [configLoading, setConfigLoading] = useState(true);
   const [configSaving, setConfigSaving] = useState(false);
 
+  /* ── Emails par site ── */
+  const [sites, setSites] = useState<SiteWithEmail[]>([]);
+  const [siteEmails, setSiteEmails] = useState<Record<number, string>>({});
+  const [savingEmail, setSavingEmail] = useState<number | null>(null);
+
+  /* ── Utilisateurs ── */
   const [users, setUsers] = useState<User[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newUser, setNewUser] = useState<NewUserForm>(EMPTY_FORM);
   const [addingUser, setAddingUser] = useState(false);
   const [resetPwdResult, setResetPwdResult] = useState<{ userId: number; pass: string } | null>(null);
-
-  const [sites, setSites] = useState<{ id: number; nom: string }[]>([]);
+  const [userSiteFilter, setUserSiteFilter] = useState<'all' | number | 'none'>('all');
 
   const loadConfig = useCallback(async () => {
     setConfigLoading(true);
@@ -58,12 +70,22 @@ export default function ConfigTab() {
     }
   }, []);
 
-  const loadUsers = useCallback(async () => {
+  const loadSitesAndUsers = useCallback(async () => {
     setUsersLoading(true);
     try {
-      const res = await fetch('/api/admin/users');
-      const data = await res.json();
-      setUsers(data.users ?? []);
+      const [sitesRes, usersRes] = await Promise.all([
+        fetch('/api/admin/sites'),
+        fetch('/api/admin/users'),
+      ]);
+      const sitesData = await sitesRes.json();
+      const usersData = await usersRes.json();
+      const loadedSites: SiteWithEmail[] = sitesData.sites ?? [];
+      setSites(loadedSites);
+      // Init email inputs from loaded sites
+      const emailMap: Record<number, string> = {};
+      loadedSites.forEach((s) => { emailMap[s.id] = s.email_notifications ?? ''; });
+      setSiteEmails(emailMap);
+      setUsers(usersData.users ?? []);
     } finally {
       setUsersLoading(false);
     }
@@ -71,11 +93,8 @@ export default function ConfigTab() {
 
   useEffect(() => {
     loadConfig();
-    loadUsers();
-    fetch('/api/admin/sites')
-      .then((r) => r.json())
-      .then((d) => setSites((d.sites ?? []).filter((s: { actif: boolean }) => s.actif)));
-  }, [loadConfig, loadUsers]);
+    loadSitesAndUsers();
+  }, [loadConfig, loadSitesAndUsers]);
 
   async function saveConfig() {
     setConfigSaving(true);
@@ -96,6 +115,21 @@ export default function ConfigTab() {
       else showToast('Erreur lors de l\'enregistrement', 'error');
     } finally {
       setConfigSaving(false);
+    }
+  }
+
+  async function saveSiteEmail(siteId: number) {
+    setSavingEmail(siteId);
+    try {
+      const res = await fetch(`/api/admin/sites/${siteId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email_notifications: siteEmails[siteId] ?? '' }),
+      });
+      if (res.ok) showToast('Email enregistré');
+      else showToast('Erreur lors de l\'enregistrement', 'error');
+    } finally {
+      setSavingEmail(null);
     }
   }
 
@@ -120,7 +154,7 @@ export default function ConfigTab() {
         showToast('Utilisateur créé');
         setNewUser(EMPTY_FORM);
         setShowAddForm(false);
-        await loadUsers();
+        await loadSitesAndUsers();
       } else {
         showToast(data.error ?? 'Erreur', 'error');
       }
@@ -136,7 +170,7 @@ export default function ConfigTab() {
       body: JSON.stringify({ actif: !user.actif }),
     });
     if (res.ok) {
-      await loadUsers();
+      await loadSitesAndUsers();
       showToast(user.actif ? `${user.email} désactivé` : `${user.email} réactivé`);
     } else {
       showToast('Erreur', 'error');
@@ -152,6 +186,15 @@ export default function ConfigTab() {
       showToast('Erreur lors de la réinitialisation', 'error');
     }
   }
+
+  /* ── Filtrage utilisateurs ── */
+  const filteredUsers = userSiteFilter === 'all'
+    ? users
+    : userSiteFilter === 'none'
+      ? users.filter((u) => !u.site_id || u.role === 'admin')
+      : users.filter((u) => u.site_id === userSiteFilter);
+
+  const activeSites = sites.filter((s) => s.actif);
 
   return (
     <div className="h-full overflow-auto">
@@ -228,6 +271,57 @@ export default function ConfigTab() {
           )}
         </section>
 
+        {/* ── Emails par site ── */}
+        <section>
+          <h2 className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4">Emails de notification par site</h2>
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50">
+                  <th className="text-left py-2 px-4 text-xs font-semibold text-gray-600">Site</th>
+                  <th className="text-left py-2 px-4 text-xs font-semibold text-gray-600">Email de notification</th>
+                  <th className="py-2 px-4 w-32" />
+                </tr>
+              </thead>
+              <tbody>
+                {sites.length === 0 ? (
+                  <tr><td colSpan={3} className="px-4 py-6 text-center text-sm text-gray-400">Chargement...</td></tr>
+                ) : (
+                  sites.map((site) => (
+                    <tr key={site.id} className="border-b border-gray-100 last:border-0">
+                      <td className="py-2.5 px-4 font-medium text-gray-800">
+                        {site.nom}
+                        {!site.actif && <span className="ml-2 text-xs text-gray-400">(inactif)</span>}
+                      </td>
+                      <td className="py-2 px-4">
+                        <input
+                          type="email"
+                          value={siteEmails[site.id] ?? ''}
+                          onChange={(e) => setSiteEmails((prev) => ({ ...prev, [site.id]: e.target.value }))}
+                          placeholder="notifications@site.fr"
+                          className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                        />
+                      </td>
+                      <td className="py-2 px-4">
+                        <button
+                          onClick={() => saveSiteEmail(site.id)}
+                          disabled={savingEmail === site.id}
+                          className="px-3 py-1 bg-teal-600 text-white rounded text-xs font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+                        >
+                          {savingEmail === site.id ? '...' : 'Enregistrer'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+            <p className="px-4 py-2 text-xs text-gray-400 border-t border-gray-100">
+              Cet email reçoit les notifications de prise en charge et réception pour ce site. Laissez vide pour utiliser la variable EMAIL_EXPEDITEUR.
+            </p>
+          </div>
+        </section>
+
         {/* ── Gestion des utilisateurs ── */}
         <section>
           <div className="flex items-center justify-between mb-4">
@@ -289,7 +383,7 @@ export default function ConfigTab() {
                     className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
                     <option value="">Aucun</option>
-                    {sites.map((s) => <option key={s.id} value={s.id}>{s.nom}</option>)}
+                    {activeSites.map((s) => <option key={s.id} value={s.id}>{s.nom}</option>)}
                   </select>
                 </div>
                 <div>
@@ -349,10 +443,31 @@ export default function ConfigTab() {
             </div>
           )}
 
+          {/* Filtre par site */}
+          <div className="flex gap-2 mb-3 flex-wrap">
+            {([
+              { key: 'all' as const, label: 'Tous les sites' },
+              ...activeSites.map((s) => ({ key: s.id as number | 'all' | 'none', label: s.nom })),
+              { key: 'none' as const, label: 'Sans site / Admin' },
+            ]).map((f) => (
+              <button
+                key={String(f.key)}
+                onClick={() => setUserSiteFilter(f.key)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  userSiteFilter === f.key
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             {usersLoading ? (
               <div className="p-8 text-center text-sm text-gray-400">Chargement...</div>
-            ) : users.length === 0 ? (
+            ) : filteredUsers.length === 0 ? (
               <div className="p-8 text-center text-sm text-gray-400">Aucun utilisateur</div>
             ) : (
               <table className="w-full text-sm">
@@ -368,7 +483,7 @@ export default function ConfigTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((u) => (
+                  {filteredUsers.map((u) => (
                     <tr
                       key={u.id}
                       className={`border-b border-gray-100 hover:bg-gray-50 ${!u.actif ? 'opacity-60' : ''}`}

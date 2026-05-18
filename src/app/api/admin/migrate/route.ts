@@ -20,6 +20,10 @@ export async function POST() {
       )
     `
     await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT false`
+    await sql`ALTER TABLE sites ADD COLUMN IF NOT EXISTS email_notifications VARCHAR(100)`
+    await sql`UPDATE sites SET email_notifications = '' WHERE email_notifications IS NULL`
+    await sql`ALTER TABLE envoi_sachets DROP CONSTRAINT IF EXISTS envoi_sachets_temperature_check`
+    await sql`ALTER TABLE envoi_sachets ADD CONSTRAINT envoi_sachets_temperature_check CHECK (temperature IN ('ambiant','plus4','congele'))`
     return NextResponse.json({ success: true, message: 'Migrations appliquées' })
   } catch (error) {
     console.error('[migrate]', error)

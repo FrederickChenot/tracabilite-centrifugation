@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import type { CSSProperties, ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
@@ -35,6 +35,15 @@ function fmt(d: string | null) {
   })
 }
 
+function getTempLabel(temp: string) {
+  switch (temp) {
+    case 'ambiant': return 'Ambiant (15-25°C)'
+    case 'plus4':   return '+5°C (2-8°C)'
+    case 'congele': return 'Congelé (≤-15°C)'
+    default: return temp
+  }
+}
+
 function Counter({
   label, expected, value, onChange,
 }: {
@@ -47,15 +56,9 @@ function Counter({
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
       <span style={{ flex: 1, fontSize: 14 }}>{label}</span>
-      <button
-        onClick={() => onChange(Math.max(0, value - 1))}
-        style={btnSmall}
-      >−</button>
+      <button onClick={() => onChange(Math.max(0, value - 1))} style={btnSmall}>−</button>
       <span style={{ width: 32, textAlign: 'center', fontWeight: 700 }}>{value}</span>
-      <button
-        onClick={() => onChange(value + 1)}
-        style={btnSmall}
-      >+</button>
+      <button onClick={() => onChange(value + 1)} style={btnSmall}>+</button>
       <span style={{ fontSize: 18, color: ok ? '#16a34a' : '#dc2626', width: 24, textAlign: 'center' }}>
         {ok ? '✓' : '✗'}
       </span>
@@ -77,6 +80,7 @@ export default function TransportPublicPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [qrCode, setQrCode] = useState<string>('')
 
   // Prise en charge
   const [nomTransporteur, setNomTransporteur] = useState('')
@@ -91,6 +95,14 @@ export default function TransportPublicPage() {
   const [countAmbiantR, setCountAmbiantR] = useState(0)
   const [countPlus4R, setCountPlus4R] = useState(0)
   const [countCongeleR, setCountCongeleR] = useState(0)
+
+  useEffect(() => {
+    import('qrcode').then((QRCode) => {
+      QRCode.toDataURL(window.location.href, { width: 120 })
+        .then((url) => setQrCode(url))
+        .catch(() => {})
+    })
+  }, [])
 
   async function load() {
     setLoading(true)
@@ -144,6 +156,134 @@ export default function TransportPublicPage() {
     }
   }
 
+  async function exportCompletedPdf() {
+    if (!envoi) return
+    const { jsPDF } = await import('jspdf')
+    const { default: autoTable } = await import('jspdf-autotable')
+
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+    const pageW = doc.internal.pageSize.width
+    const pageH = doc.internal.pageSize.height
+    const mL = 14, mR = 14
+    const num = bonNum
+
+    // En-tête vert
+    doc.setFillColor(15, 110, 86)
+    doc.rect(mL, 10, pageW - mL - mR, 14, 'F')
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(11)
+    doc.setTextColor(255, 255, 255)
+    doc.text('GCS Bio Med', mL + 3, 19)
+    doc.text(`BON N°${num} — Transport complété`, pageW - mR, 19, { align: 'right' })
+
+    // Badge complété
+    doc.setFillColor(220, 252, 231)
+    doc.rect(mL, 26, pageW - mL - mR, 8, 'F')
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(10)
+    doc.setTextColor(22, 163, 74)
+    doc.text('Transport complété ✓', pageW / 2, 31.5, { align: 'center' })
+
+    // Infos
+    autoTable(doc, {
+      startY: 36,
+      body: [
+        ['Expéditeur', envoi.site_nom],
+        ['Destinataire', envoi.dest_nom],
+        ['Opérateur', envoi.visa_expediteur],
+        ['Date création', fmt(envoi.created_at)],
+      ],
+      styles: { fontSize: 8.5, cellPadding: 2 },
+      columnStyles: { 0: { cellWidth: 45, textColor: [100, 100, 100] }, 1: { fontStyle: 'bold' } },
+      margin: { left: mL, right: mR },
+    })
+
+    // Sachets
+    let y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6
+
+    const sachets = envoi.sachets
+    const ambiant = sachets.filter(s => s.temperature === 'ambiant')
+    const plus4   = sachets.filter(s => s.temperature === 'plus4')
+    const congele = sachets.filter(s => s.temperature === 'congele')
+
+    type CS = { fillColor: [number, number, number]; halign?: 'center' | 'left'; fontSize?: number; fontStyle?: 'bold' | 'normal' }
+    type CD = { content: string; styles: CS }
+    const body: CD[][] = [
+      [
+        { content: 'Ambiant (15-25°C)', styles: { fillColor: [255, 243, 224] } },
+        { content: String(ambiant.length), styles: { fillColor: [255, 243, 224], halign: 'center' } },
+        { content: ambiant.map(s => s.code_barre).join(', ') || '—', styles: { fillColor: [255, 243, 224], fontSize: 7 } },
+      ],
+      [
+        { content: '+5°C (2-8°C)', styles: { fillColor: [227, 242, 253] } },
+        { content: String(plus4.length), styles: { fillColor: [227, 242, 253], halign: 'center' } },
+        { content: plus4.map(s => s.code_barre).join(', ') || '—', styles: { fillColor: [227, 242, 253], fontSize: 7 } },
+      ],
+      [
+        { content: 'Congelé (≤-15°C)', styles: { fillColor: [237, 231, 246] } },
+        { content: String(congele.length), styles: { fillColor: [237, 231, 246], halign: 'center' } },
+        { content: congele.map(s => s.code_barre).join(', ') || '—', styles: { fillColor: [237, 231, 246], fontSize: 7 } },
+      ],
+      [
+        { content: 'TOTAL', styles: { fillColor: [240, 240, 240], fontStyle: 'bold' } },
+        { content: String(sachets.length), styles: { fillColor: [240, 240, 240], halign: 'center', fontStyle: 'bold' } },
+        { content: '', styles: { fillColor: [240, 240, 240] } },
+      ],
+    ]
+
+    autoTable(doc, {
+      startY: y,
+      head: [['Température', 'Nb sachets', 'Codes-barres']],
+      body,
+      styles: { fontSize: 8, cellPadding: 2.5 },
+      headStyles: { fillColor: [13, 148, 136], textColor: 255, fontStyle: 'bold' },
+      columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 25, halign: 'center' }, 2: { cellWidth: 'auto' } },
+      margin: { left: mL, right: mR },
+    })
+
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8
+
+    // Section DÉPART
+    if (y + 28 > pageH - 20) { doc.addPage(); y = 20 }
+    doc.setDrawColor(13, 148, 136)
+    doc.setLineWidth(0.3)
+    doc.rect(mL, y, pageW - mL - mR, 28)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9)
+    doc.setTextColor(13, 148, 136)
+    doc.text('DÉPART — Prise en charge', mL + 3, y + 7)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8.5)
+    doc.setTextColor(60, 60, 60)
+    doc.text(`Pris en charge par : ${envoi.nom_transporteur} (${envoi.visa_transporteur})`, mL + 3, y + 15)
+    doc.text(`Le : ${fmt(envoi.envoye_at)}`, mL + 3, y + 22)
+    y += 34
+
+    // Section RÉCEPTION
+    if (y + 28 > pageH - 20) { doc.addPage(); y = 20 }
+    doc.rect(mL, y, pageW - mL - mR, 28)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9)
+    doc.setTextColor(13, 148, 136)
+    doc.text('RÉCEPTION — Laboratoire destinataire', mL + 3, y + 7)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8.5)
+    doc.setTextColor(60, 60, 60)
+    doc.text(`Réceptionné par : ${envoi.nom_receptionnaire} (${envoi.visa_receptionnaire})`, mL + 3, y + 15)
+    doc.text(`Le : ${fmt(envoi.receptionne_at)}`, mL + 3, y + 22)
+
+    // Pied de page
+    const pageCount = doc.getNumberOfPages()
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i)
+      doc.setFontSize(7)
+      doc.setTextColor(150, 150, 150)
+      doc.text(`BioTools — biolabtrack.fr | Page ${i} / ${pageCount}`, pageW / 2, pageH - 6, { align: 'center' })
+    }
+
+    doc.save(`bon-transport-${num}-complet.pdf`)
+  }
+
   if (loading) return <div style={pageStyle}><p style={{ textAlign: 'center', color: '#6b7280' }}>Chargement…</p></div>
   if (error || !envoi) return <div style={pageStyle}><p style={{ textAlign: 'center', color: '#dc2626' }}>{error || 'Envoi introuvable'}</p></div>
 
@@ -166,11 +306,19 @@ export default function TransportPublicPage() {
 
   return (
     <div style={pageStyle}>
-      {/* EN-TÊTE */}
-      <div style={{ textAlign: 'center', marginBottom: 24 }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: teal, letterSpacing: 1 }}>GCS Bio Med</div>
-        <div style={{ fontSize: 15, color: '#374151', marginTop: 2 }}>Bon de transport numérique</div>
-        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>N° {bonNum}</div>
+      {/* EN-TÊTE avec QR code */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+        <div style={{ flex: 1, textAlign: 'center' }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: teal, letterSpacing: 1 }}>GCS Bio Med</div>
+          <div style={{ fontSize: 15, color: '#374151', marginTop: 2 }}>Bon de transport numérique</div>
+          <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>N° {bonNum}</div>
+        </div>
+        {qrCode && (
+          <div style={{ textAlign: 'center', flexShrink: 0 }}>
+            <img src={qrCode} width={80} height={80} alt="QR code" style={{ display: 'block' }} />
+            <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 4 }}>Scannez pour accéder au bon</div>
+          </div>
+        )}
       </div>
 
       <div style={card}>
@@ -190,9 +338,9 @@ export default function TransportPublicPage() {
             </tr>
           </thead>
           <tbody>
-            <tr><Td>Ambiant (15-25°C)</Td><Td>{nbAmbiant}</Td><Td style={{ fontSize: 11 }}>{codesFor('ambiant')}</Td></tr>
-            <tr style={{ background: '#f9fafb' }}><Td>+4°C (2-8°C)</Td><Td>{nbPlus4}</Td><Td style={{ fontSize: 11 }}>{codesFor('plus4')}</Td></tr>
-            <tr><Td>Congelé (≤-15°C)</Td><Td>{nbCongele}</Td><Td style={{ fontSize: 11 }}>{codesFor('congele')}</Td></tr>
+            <tr><Td>{getTempLabel('ambiant')}</Td><Td>{nbAmbiant}</Td><Td style={{ fontSize: 11 }}>{codesFor('ambiant')}</Td></tr>
+            <tr style={{ background: '#f9fafb' }}><Td>{getTempLabel('plus4')}</Td><Td>{nbPlus4}</Td><Td style={{ fontSize: 11 }}>{codesFor('plus4')}</Td></tr>
+            <tr><Td>{getTempLabel('congele')}</Td><Td>{nbCongele}</Td><Td style={{ fontSize: 11 }}>{codesFor('congele')}</Td></tr>
             <tr style={{ background: '#f0fdf4', fontWeight: 700 }}><Td>TOTAL</Td><Td>{nbTotal}</Td><Td></Td></tr>
           </tbody>
         </table>
@@ -205,9 +353,9 @@ export default function TransportPublicPage() {
           <p style={{ fontSize: 13, color: '#374151', marginBottom: 12 }}>
             Vérifiez le nombre de sachets pris en charge :
           </p>
-          {nbAmbiant > 0 && <Counter label="Ambiant (15-25°C)" expected={nbAmbiant} value={countAmbiantT} onChange={setCountAmbiantT} />}
-          {nbPlus4 > 0 && <Counter label="+4°C (2-8°C)" expected={nbPlus4} value={countPlus4T} onChange={setCountPlus4T} />}
-          {nbCongele > 0 && <Counter label="Congelé (≤-15°C)" expected={nbCongele} value={countCongeleT} onChange={setCountCongeleT} />}
+          {nbAmbiant > 0 && <Counter label={getTempLabel('ambiant')} expected={nbAmbiant} value={countAmbiantT} onChange={setCountAmbiantT} />}
+          {nbPlus4 > 0 && <Counter label={getTempLabel('plus4')} expected={nbPlus4} value={countPlus4T} onChange={setCountPlus4T} />}
+          {nbCongele > 0 && <Counter label={getTempLabel('congele')} expected={nbCongele} value={countCongeleT} onChange={setCountCongeleT} />}
           <div style={{ marginTop: 16 }}>
             <input
               placeholder="Votre nom complet"
@@ -240,9 +388,9 @@ export default function TransportPublicPage() {
           <p style={{ fontSize: 13, color: '#374151', marginBottom: 12 }}>
             Vérifiez le nombre de sachets reçus :
           </p>
-          {nbAmbiant > 0 && <Counter label="Ambiant (15-25°C)" expected={nbAmbiant} value={countAmbiantR} onChange={setCountAmbiantR} />}
-          {nbPlus4 > 0 && <Counter label="+4°C (2-8°C)" expected={nbPlus4} value={countPlus4R} onChange={setCountPlus4R} />}
-          {nbCongele > 0 && <Counter label="Congelé (≤-15°C)" expected={nbCongele} value={countCongeleR} onChange={setCountCongeleR} />}
+          {nbAmbiant > 0 && <Counter label={getTempLabel('ambiant')} expected={nbAmbiant} value={countAmbiantR} onChange={setCountAmbiantR} />}
+          {nbPlus4 > 0 && <Counter label={getTempLabel('plus4')} expected={nbPlus4} value={countPlus4R} onChange={setCountPlus4R} />}
+          {nbCongele > 0 && <Counter label={getTempLabel('congele')} expected={nbCongele} value={countCongeleR} onChange={setCountCongeleR} />}
           <div style={{ marginTop: 16 }}>
             <input
               placeholder="Nom du réceptionnaire"
@@ -283,10 +431,10 @@ export default function TransportPublicPage() {
           <Row label="Réceptionné par" value={`${envoi.nom_receptionnaire} (${envoi.visa_receptionnaire})`} />
           <Row label="Le" value={fmt(envoi.receptionne_at)} />
           <button
-            onClick={() => window.print()}
+            onClick={exportCompletedPdf}
             style={{ ...btnPrimary, marginTop: 20, background: '#6b7280' }}
           >
-            Imprimer
+            Télécharger le PDF
           </button>
         </div>
       )}

@@ -35,19 +35,19 @@ function statutBadge(statut: string) {
 
 const TEMP_LABELS: Record<TemperatureTransport, string> = {
   ambiant: 'Ambiant (15-25°C)',
-  '+4': '+4°C (2-8°C)',
+  plus4: '+5°C (2-8°C)',
   congele: 'Congelé (≤ -15°C)',
 };
 
 const TEMP_COLORS: Record<TemperatureTransport, string> = {
   ambiant: 'bg-orange-50 border-orange-200',
-  '+4': 'bg-blue-50 border-blue-200',
+  plus4: 'bg-blue-50 border-blue-200',
   congele: 'bg-purple-50 border-purple-200',
 };
 
 const TEMP_BADGE: Record<TemperatureTransport, string> = {
   ambiant: 'bg-orange-100 text-orange-700',
-  '+4': 'bg-blue-100 text-blue-700',
+  plus4: 'bg-blue-100 text-blue-700',
   congele: 'bg-purple-100 text-purple-700',
 };
 
@@ -77,12 +77,12 @@ export default function TransportPage() {
   /* Scans */
   const [scanValues, setScanValues] = useState<Record<TemperatureTransport, string>>({
     ambiant: '',
-    '+4': '',
+    plus4: '',
     congele: '',
   });
   const [scanning, setScanning] = useState<Record<TemperatureTransport, boolean>>({
     ambiant: false,
-    '+4': false,
+    plus4: false,
     congele: false,
   });
 
@@ -92,7 +92,7 @@ export default function TransportPage() {
   const congeleRef = useRef<HTMLInputElement | null>(null);
   const scanRefs: Record<TemperatureTransport, React.MutableRefObject<HTMLInputElement | null>> = {
     ambiant: ambiantRef,
-    '+4': plus4Ref,
+    plus4: plus4Ref,
     congele: congeleRef,
   };
 
@@ -149,7 +149,7 @@ export default function TransportPage() {
 
   useEffect(() => {
     setEnvoi(null);
-    setScanValues({ ambiant: '', '+4': '', congele: '' });
+    setScanValues({ ambiant: '', plus4: '', congele: '' });
     loadHistorique(siteId);
   }, [siteId, loadHistorique]);
 
@@ -270,7 +270,7 @@ export default function TransportPage() {
 
       showToast('Envoi validé — bon exporté');
       setEnvoi(null);
-      setScanValues({ ambiant: '', '+4': '', congele: '' });
+      setScanValues({ ambiant: '', plus4: '', congele: '' });
       await loadHistorique(siteId);
     } finally {
       setValidating(false);
@@ -413,7 +413,7 @@ export default function TransportPage() {
                   </div>
 
                   <div className="flex-1 p-3 space-y-4 overflow-y-auto">
-                    {(['ambiant', '+4', 'congele'] as TemperatureTransport[]).map((temp) => {
+                    {(['ambiant', 'plus4', 'congele'] as TemperatureTransport[]).map((temp) => {
                       const tempSachets = sachetsByTemp(temp);
                       return (
                         <div
@@ -538,7 +538,7 @@ export default function TransportPage() {
                         <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600 whitespace-nowrap">Heure</th>
                         <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">Destinataire</th>
                         <th className="text-center px-3 py-2 text-xs font-semibold text-orange-600">Amb</th>
-                        <th className="text-center px-3 py-2 text-xs font-semibold text-blue-600">+4°C</th>
+                        <th className="text-center px-3 py-2 text-xs font-semibold text-blue-600">+5°C</th>
                         <th className="text-center px-3 py-2 text-xs font-semibold text-purple-600">Cong</th>
                         <th className="text-center px-3 py-2 text-xs font-semibold text-gray-600">Total</th>
                         <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600">Visa</th>
@@ -549,6 +549,7 @@ export default function TransportPage() {
                       {historique.map((e) => {
                         const s = e.sachets ?? [];
                         const nb = (t: TemperatureTransport) => s.filter((x) => x.temperature === t).length;
+
                         const isActive = envoi?.id === e.id;
                         return (
                           <tr
@@ -573,8 +574,8 @@ export default function TransportPage() {
                               </span>
                             </td>
                             <td className="px-3 py-2.5 text-center">
-                              <span className={`text-xs font-semibold ${nb('+4') > 0 ? 'text-blue-600' : 'text-gray-300'}`}>
-                                {nb('+4')}
+                              <span className={`text-xs font-semibold ${nb('plus4') > 0 ? 'text-blue-600' : 'text-gray-300'}`}>
+                                {nb('plus4')}
                               </span>
                             </td>
                             <td className="px-3 py-2.5 text-center">

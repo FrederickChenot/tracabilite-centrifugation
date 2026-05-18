@@ -20,6 +20,7 @@ export interface Site {
   id: number;
   nom: string;
   actif: boolean;
+  email_notifications?: string | null;
 }
 
 export interface Centrifugeuse {
@@ -105,7 +106,7 @@ export interface LaboratoireDest {
   actif: boolean;
 }
 
-export type TemperatureTransport = 'ambiant' | '+4' | 'congele';
+export type TemperatureTransport = 'ambiant' | 'plus4' | 'congele';
 
 export interface EnvoiSachet {
   id: string;
