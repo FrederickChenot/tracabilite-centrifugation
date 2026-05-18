@@ -602,7 +602,27 @@ export default function TransportPage() {
             </div>
           </div>
         </div>
+
+        {/* Padding bottom mobile pour le bouton sticky */}
+        {envoi && <div className="md:hidden h-16" />}
       </div>
+
+      {/* Bouton Valider sticky mobile */}
+      {envoi && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white border-t border-gray-200"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        >
+          <button
+            onClick={handleValider}
+            disabled={!canValider || validating || exporting}
+            className="w-full bg-teal-600 text-white font-semibold text-base disabled:opacity-40"
+            style={{ height: '56px' }}
+          >
+            {validating ? 'Validation...' : exporting ? 'Export PDF...' : `Valider (${totalSachets} sachet${totalSachets > 1 ? 's' : ''})`}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

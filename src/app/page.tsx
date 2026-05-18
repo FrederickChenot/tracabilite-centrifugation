@@ -8,6 +8,7 @@ export default function LandingPage() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [sendError, setSendError] = useState('');
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   async function handleContact(e: React.FormEvent) {
     e.preventDefault();
@@ -33,7 +34,7 @@ export default function LandingPage() {
 
       {/* ── NAV ── */}
       <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-6 py-3 flex items-center gap-8">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 py-3 flex items-center gap-4">
           <div className="flex items-center gap-2 shrink-0">
             <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center">
               <span className="text-white font-bold text-sm">B</span>
@@ -45,21 +46,48 @@ export default function LandingPage() {
             <a href="#tarifs" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Tarifs</a>
             <a href="#contact" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Contact</a>
           </div>
-          <Link
-            href="/app"
-            className="text-sm px-4 py-2 bg-teal-600 text-white rounded-full font-semibold hover:bg-teal-700 transition-colors whitespace-nowrap shrink-0"
-          >
-            Accès laboratoire →
-          </Link>
+          <div className="flex items-center gap-2 ml-auto">
+            <Link
+              href="/app"
+              className="text-sm px-4 py-2 bg-teal-600 text-white rounded-full font-semibold hover:bg-teal-700 transition-colors whitespace-nowrap shrink-0"
+            >
+              Accès laboratoire →
+            </Link>
+            <button
+              onClick={() => setMobileNavOpen((v) => !v)}
+              className="md:hidden flex items-center justify-center w-9 h-9 rounded text-gray-600 hover:bg-gray-100"
+              aria-label="Menu"
+            >
+              {mobileNavOpen ? (
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
+        {/* Menu mobile déroulant */}
+        {mobileNavOpen && (
+          <div className="md:hidden border-t border-gray-100 bg-white px-4 py-3 flex flex-col gap-3">
+            <a href="#fonctionnalites" onClick={() => setMobileNavOpen(false)} className="text-sm text-gray-700 py-2 hover:text-teal-600 transition-colors">Fonctionnalités</a>
+            <a href="#tarifs" onClick={() => setMobileNavOpen(false)} className="text-sm text-gray-700 py-2 hover:text-teal-600 transition-colors">Tarifs</a>
+            <a href="#contact" onClick={() => setMobileNavOpen(false)} className="text-sm text-gray-700 py-2 hover:text-teal-600 transition-colors">Contact</a>
+            <Link href="/mentions-legales" className="text-sm text-gray-700 py-2 hover:text-teal-600 transition-colors">Mentions légales</Link>
+            <Link href="/cgu" className="text-sm text-gray-700 py-2 hover:text-teal-600 transition-colors">CGU</Link>
+          </div>
+        )}
       </nav>
 
       {/* ── HERO ── */}
-      <section className="max-w-6xl mx-auto px-6 pt-24 pb-20 text-center">
+      <section className="max-w-6xl mx-auto px-4 md:px-6 pt-16 md:pt-24 pb-16 md:pb-20 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-teal-50 border border-teal-200 rounded-full text-xs text-teal-700 font-medium mb-8">
           Conçu pour et par les professionnels du labo
         </div>
-        <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
+        <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
           La traçabilité laboratoire<br />
           <span className="text-teal-600">enfin simple et fiable</span>
         </h1>

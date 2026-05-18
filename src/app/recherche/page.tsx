@@ -392,7 +392,7 @@ export default function RecherchePage() {
         </header>
 
         {/* ── Main ── */}
-        <main className="flex-1 overflow-auto px-6 py-5 space-y-4">
+        <main className="flex-1 overflow-auto px-4 md:px-6 py-5 space-y-4">
 
           {/* ── Barre de recherche ── */}
           <div className="flex gap-2 items-center">
@@ -430,7 +430,7 @@ export default function RecherchePage() {
           {/* ── Panneau filtres ── */}
           {showFilters && (
             <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
                 {/* Site */}
                 <div>

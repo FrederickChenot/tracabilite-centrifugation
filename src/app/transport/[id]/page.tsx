@@ -68,7 +68,7 @@ function Counter({
 }
 
 const btnSmall: CSSProperties = {
-  width: 28, height: 28, border: '1px solid #d1d5db',
+  width: 44, height: 44, border: '1px solid #d1d5db',
   borderRadius: 4, background: '#f9fafb', cursor: 'pointer', fontSize: 16,
 }
 
