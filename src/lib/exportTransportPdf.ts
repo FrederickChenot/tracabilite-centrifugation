@@ -3,13 +3,13 @@ import type { EnvoiTransport } from '@/lib/schemas';
 function bonNum(id: string) { return id.slice(0, 6).toUpperCase(); }
 
 function fmtDateTime(iso: string) {
-  return new Date(iso).toLocaleString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const d = new Date(iso);
+  const dd = d.getDate().toString().padStart(2, '0');
+  const mm = (d.getMonth() + 1).toString().padStart(2, '0');
+  const yyyy = d.getFullYear();
+  const hh = d.getHours().toString().padStart(2, '0');
+  const min = d.getMinutes().toString().padStart(2, '0');
+  return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
 }
 
 export async function exportTransportPdf(envoi: EnvoiTransport) {

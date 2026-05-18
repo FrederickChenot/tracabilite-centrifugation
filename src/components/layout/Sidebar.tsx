@@ -35,9 +35,9 @@ export default function Sidebar({ siteId, onSiteChange, mobileOpen, onMobileClos
       {/* Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 w-[240px] bg-gray-900 text-white flex flex-col
+          fixed inset-y-0 left-0 z-50 w-[85vw] max-w-[280px] overflow-hidden bg-gray-900 text-white flex flex-col
           transform transition-transform duration-200
-          md:relative md:translate-x-0 md:w-[190px] md:shrink-0 md:z-auto
+          md:relative md:translate-x-0 md:w-[190px] md:max-w-none md:shrink-0 md:z-auto
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >

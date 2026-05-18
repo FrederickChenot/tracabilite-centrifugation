@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomBytes } from 'crypto';
 import { auth } from '@/lib/auth';
 import sql from '@/lib/db';
-import { hash } from 'bcryptjs';
+import { sendEmailForgotPassword } from '@/lib/emails';
 
-function generateTempPassword(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  let pass = '';
-  for (let i = 0; i < 10; i++) {
-    pass += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return pass;
-}
+const BASE_URL = process.env.NEXTAUTH_URL ?? 'https://biolabtrack.fr';
 
 export async function POST(
   _req: NextRequest,
@@ -24,16 +18,26 @@ export async function POST(
   const { id } = await params;
   const userId = parseInt(id, 10);
 
-  const tempPassword = generateTempPassword();
-  const passwordHash = await hash(tempPassword, 12);
-
   const rows = await sql`
-    UPDATE users SET password_hash = ${passwordHash}, must_change_password = true
-    WHERE id = ${userId}
-    RETURNING id, email
+    SELECT id, email, nom FROM users WHERE id = ${userId} LIMIT 1
   `;
-
   if (!rows[0]) return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
 
-  return NextResponse.json({ tempPassword });
+  const user = rows[0];
+  const token = randomBytes(32).toString('hex');
+
+  await sql`
+    INSERT INTO password_reset_tokens (user_id, token, expires_at)
+    VALUES (${user.id as number}, ${token}, NOW() + INTERVAL '1 hour')
+    ON CONFLICT (token) DO NOTHING
+  `;
+
+  const resetUrl = `${BASE_URL}/login/reset-password?token=${token}`;
+  await sendEmailForgotPassword({
+    email: user.email as string,
+    nom: user.nom as string | undefined,
+    resetUrl,
+  });
+
+  return NextResponse.json({ success: true });
 }
