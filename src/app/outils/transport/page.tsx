@@ -65,7 +65,7 @@ export default function TransportPage() {
   const [laboratoires, setLaboratoires] = useState<LaboratoireDest[]>([]);
 
   /* Formulaire nouvel envoi */
-  const [selectedDestId, setSelectedDestId] = useState<number | ''>('');
+  const [selectedDestId, setSelectedDestId] = useState<number | null>(null);
   const [visa, setVisa] = useState('');
 
   /* Envoi en cours */
@@ -123,19 +123,20 @@ export default function TransportPage() {
 
   /* ── Historique ── */
 
-  const loadHistorique = useCallback(async (sid: number) => {
+  const loadHistorique = useCallback(async (sid: number, restoreInProgress = false) => {
     setLoadingHistorique(true);
     try {
       const res = await fetch(`/api/transport/envois?site_id=${sid}&date=${todayDate()}`);
       const data = await res.json();
       const list: EnvoiTransport[] = data.envois ?? [];
       setHistorique(list);
-      // S'il y a un envoi en_preparation, on le reprend
-      const inProgress = list.find((e) => e.statut === 'en_preparation');
-      if (inProgress) {
-        setEnvoi(inProgress);
-        setSelectedDestId(inProgress.dest_id);
-        setVisa(inProgress.visa_expediteur);
+      if (restoreInProgress) {
+        const inProgress = list.find((e) => e.statut === 'en_preparation');
+        if (inProgress) {
+          setEnvoi(inProgress);
+          setSelectedDestId(inProgress.dest_id);
+          setVisa(inProgress.visa_expediteur);
+        }
       }
     } finally {
       setLoadingHistorique(false);
@@ -150,7 +151,7 @@ export default function TransportPage() {
   useEffect(() => {
     setEnvoi(null);
     setScanValues({ ambiant: '', plus4: '', congele: '' });
-    loadHistorique(siteId);
+    loadHistorique(siteId, true);
   }, [siteId, loadHistorique]);
 
   /* Pré-remplir visa depuis la session (une seule fois au chargement) */
@@ -289,7 +290,7 @@ export default function TransportPage() {
   const sachetsByTemp = (t: TemperatureTransport) => sachets.filter((s) => s.temperature === t);
   const totalSachets = sachets.length;
   const canValider = totalSachets > 0 && envoi?.statut === 'en_preparation';
-  const canCreate = !envoi && selectedDestId !== '' && visa.trim().length >= 1;
+  const canCreate = !envoi && selectedDestId !== null && visa.trim().length >= 1;
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
@@ -345,8 +346,8 @@ export default function TransportPage() {
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Destinataire</label>
                   <select
-                    value={selectedDestId}
-                    onChange={(e) => setSelectedDestId(e.target.value === '' ? '' : Number(e.target.value))}
+                    value={selectedDestId ?? ''}
+                    onChange={(e) => setSelectedDestId(e.target.value === '' ? null : Number(e.target.value))}
                     disabled={!!envoi}
                     className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:bg-gray-50 disabled:text-gray-400"
                   >
