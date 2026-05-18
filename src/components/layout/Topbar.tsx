@@ -60,7 +60,7 @@ export default function Topbar({
         )}
       </header>
 
-      {/* Sticky bottom button — mobile only, visible when passage en cours */}
+      {/* Sticky bottom button — mobile only, visible when scan en cours */}
       {sessionActive && (
         <div
           className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white border-t border-gray-200"

@@ -9,6 +9,8 @@ export default auth((req) => {
     pathname.startsWith('/api/auth/') ||
     pathname.startsWith('/transport/') ||
     pathname.startsWith('/api/transport/') ||
+    pathname.startsWith('/recherche') ||
+    pathname.startsWith('/api/centri/recherche') ||
     pathname.startsWith('/_next/') ||
     pathname === '/favicon.ico'
   ) {

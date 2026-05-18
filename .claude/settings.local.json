@@ -25,7 +25,13 @@
       "Bash(node *)",
       "Bash(mkdir -p \"C:\\\\Dev\\\\tracabilite-centrifugation\\\\src\\\\app\\\\api\\\\admin\\\\config\\\\[cle]\")",
       "Bash(mkdir -p \"C:\\\\Dev\\\\tracabilite-centrifugation\\\\src\\\\app\\\\api\\\\admin\\\\users\\\\[id]\\\\reset-password\")",
-      "Bash(powershell *)"
+      "Bash(powershell *)",
+      "Bash(Get-ChildItem -Recurse -Path src -Filter \"*.tsx\" -o \"*.ts\")",
+      "Bash(Select-String -Pattern \"passage\" -AllMatches -CaseSensitive)",
+      "Bash(xargs grep -n \"Terminer\")",
+      "Bash(xargs grep -n \"Aucun\\\\|En cours\")",
+      "Bash(xargs grep -n \"Clôtur\")",
+      "Bash(xargs grep -n \"Ouvr\\\\|Scan\\\\|tube\\\\|scan\")"
     ]
   },
   "hooks": {

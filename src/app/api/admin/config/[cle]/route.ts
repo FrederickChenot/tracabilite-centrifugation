@@ -23,15 +23,12 @@ export async function PATCH(
     const updatedBy = session.user?.email ?? 'admin';
 
     const rows = await sql`
-      UPDATE config
-      SET valeur = ${String(valeur)}, updated_at = NOW(), updated_by = ${updatedBy}
-      WHERE cle = ${cle}
+      INSERT INTO config (cle, valeur, updated_at, updated_by)
+      VALUES (${cle}, ${String(valeur)}, NOW(), ${updatedBy})
+      ON CONFLICT (cle) DO UPDATE
+        SET valeur = EXCLUDED.valeur, updated_at = NOW(), updated_by = ${updatedBy}
       RETURNING id, cle, valeur, updated_at, updated_by
     `;
-
-    if (rows.length === 0) {
-      return NextResponse.json({ error: 'Clé introuvable' }, { status: 404 });
-    }
 
     return NextResponse.json({ success: true, cle: rows[0].cle, valeur: rows[0].valeur });
   } catch (err) {
