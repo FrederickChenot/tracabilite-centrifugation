@@ -134,7 +134,7 @@ export default function Sidebar({ siteId, onSiteChange, mobileOpen, onMobileClos
             Mon profil
           </Link>
           <button
-            onClick={() => signOut({ callbackUrl: '/login?disconnected=true' })}
+            onClick={() => signOut({ callbackUrl: '/' })}
             className="w-full flex items-center gap-2 px-3 py-2 rounded text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
           >
             <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2}>

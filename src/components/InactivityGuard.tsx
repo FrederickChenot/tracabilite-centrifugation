@@ -55,7 +55,7 @@ export default function InactivityGuard() {
             Rester connecté
           </button>
           <button
-            onClick={() => signOut({ callbackUrl: '/login?disconnected=true' })}
+            onClick={() => signOut({ callbackUrl: '/' })}
             className="px-4 py-2.5 rounded-lg text-sm text-gray-600 border border-gray-300 hover:bg-gray-50 transition-colors"
           >
             Se déconnecter

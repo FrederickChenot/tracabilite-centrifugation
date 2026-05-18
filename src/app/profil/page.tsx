@@ -62,7 +62,7 @@ export default function ProfilPage() {
         setSuccess(true)
         setOldPwd(''); setNewPwd(''); setConfirmPwd('')
         if (mustChange) {
-          setTimeout(() => signOut({ callbackUrl: '/login?changed=true' }), 2000)
+          setTimeout(() => signOut({ callbackUrl: '/' }), 2000)
         }
       } else {
         setError(data.error ?? 'Erreur')
@@ -160,7 +160,7 @@ export default function ProfilPage() {
 
         <div className="text-center">
           <button
-            onClick={() => signOut({ callbackUrl: '/login?disconnected=true' })}
+            onClick={() => signOut({ callbackUrl: '/' })}
             className="text-sm text-gray-400 hover:text-gray-600"
           >
             Déconnexion

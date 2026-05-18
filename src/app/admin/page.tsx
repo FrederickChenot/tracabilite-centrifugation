@@ -99,7 +99,7 @@ export default function AdminPage() {
         <Link href="/outils/centrifugation" className="text-sm text-gray-500 hover:text-gray-700">← Retour</Link>
         <h1 className="text-xl font-bold text-gray-900 flex-1">Administration · Centrifugation</h1>
         <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
+          onClick={() => signOut({ callbackUrl: '/' })}
           className="text-sm text-gray-500 hover:text-gray-700"
         >
           Déconnexion
