@@ -32,12 +32,164 @@ interface NewUserForm {
 
 const EMPTY_FORM: NewUserForm = { email: '', password: '', nom: '', prenom: '', site_id: '', role: 'technicien' };
 
+interface EditUserForm {
+  nom: string;
+  prenom: string;
+  email: string;
+  site_id: string;
+  role: 'technicien' | 'admin';
+  actif: boolean;
+}
+
+function EditUserModal({
+  user,
+  sites,
+  onClose,
+  onSaved,
+}: {
+  user: User;
+  sites: SiteWithEmail[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [form, setForm] = useState<EditUserForm>({
+    nom: user.nom ?? '',
+    prenom: user.prenom ?? '',
+    email: user.email,
+    site_id: user.site_id ? String(user.site_id) : '',
+    role: user.role as 'technicien' | 'admin',
+    actif: user.actif,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function save() {
+    if (!form.email) return;
+    setSaving(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nom: form.nom || null,
+          prenom: form.prenom || null,
+          email: form.email,
+          site_id: form.site_id ? parseInt(form.site_id, 10) : null,
+          role: form.role,
+          actif: form.actif,
+        }),
+      });
+      if (res.ok) {
+        onSaved();
+      } else {
+        const data = await res.json();
+        setError(data.error ?? 'Erreur');
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-base font-bold text-gray-900 mb-4">Modifier l&apos;utilisateur</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Prénom</label>
+            <input
+              type="text"
+              value={form.prenom}
+              onChange={(e) => setForm((p) => ({ ...p, prenom: e.target.value }))}
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Nom</label>
+            <input
+              type="text"
+              value={form.nom}
+              onChange={(e) => setForm((p) => ({ ...p, nom: e.target.value }))}
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+          <div className="col-span-2">
+            <label className="block text-xs font-medium text-gray-700 mb-1">Email *</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Site</label>
+            <select
+              value={form.site_id}
+              onChange={(e) => setForm((p) => ({ ...p, site_id: e.target.value }))}
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              <option value="">Tous les sites</option>
+              {sites.filter((s) => s.actif).map((s) => (
+                <option key={s.id} value={s.id}>{s.nom}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Rôle</label>
+            <select
+              value={form.role}
+              onChange={(e) => setForm((p) => ({ ...p, role: e.target.value as 'technicien' | 'admin' }))}
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              <option value="technicien">Technicien</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div className="col-span-2 flex items-center gap-2 pt-1">
+            <input
+              type="checkbox"
+              id="edit-actif"
+              checked={form.actif}
+              onChange={(e) => setForm((p) => ({ ...p, actif: e.target.checked }))}
+              className="accent-teal-600 w-4 h-4"
+            />
+            <label htmlFor="edit-actif" className="text-sm text-gray-700 cursor-pointer">Compte actif</label>
+          </div>
+        </div>
+        {error && <p className="mt-3 text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+        <div className="flex gap-2 mt-5 pt-4 border-t border-gray-100">
+          <button
+            onClick={save}
+            disabled={saving || !form.email}
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50"
+          >
+            {saving ? 'Enregistrement...' : 'Enregistrer'}
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors"
+          >
+            Annuler
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function UserTable({
   users,
+  onEdit,
   onToggle,
   onReset,
 }: {
   users: User[];
+  onEdit: (u: User) => void;
   onToggle: (u: User) => void;
   onReset: (u: User) => void;
 }) {
@@ -80,10 +232,16 @@ function UserTable({
                 <td className="py-2.5 px-4">
                   <div className="flex gap-1 justify-end">
                     <button
+                      onClick={() => onEdit(u)}
+                      className="text-xs px-2 py-1 rounded border border-teal-300 text-teal-700 hover:bg-teal-50 transition-colors whitespace-nowrap font-medium"
+                    >
+                      Modifier
+                    </button>
+                    <button
                       onClick={() => onReset(u)}
                       className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap"
                     >
-                      Réinitialiser mdp
+                      Réinit. mdp
                     </button>
                     <button
                       onClick={() => onToggle(u)}
@@ -126,6 +284,7 @@ export default function ConfigTab() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newUser, setNewUser] = useState<NewUserForm>(EMPTY_FORM);
   const [addingUser, setAddingUser] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const loadConfig = useCallback(async () => {
     setConfigLoading(true);
@@ -263,6 +422,18 @@ export default function ConfigTab() {
   return (
     <div className="h-full overflow-auto">
       <Toast toast={toast} />
+      {editingUser && (
+        <EditUserModal
+          user={editingUser}
+          sites={sites}
+          onClose={() => setEditingUser(null)}
+          onSaved={async () => {
+            setEditingUser(null);
+            await loadSitesAndUsers();
+            showToast('Utilisateur mis à jour');
+          }}
+        />
+      )}
       <div className="max-w-4xl mx-auto p-6 space-y-8">
 
         {/* ── Sécurité ── */}
@@ -439,7 +610,7 @@ export default function ConfigTab() {
                     onChange={(e) => setNewUser((p) => ({ ...p, site_id: e.target.value }))}
                     className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
-                    <option value="">Aucun</option>
+                    <option value="">Tous les sites</option>
                     {activeSites.map((s) => <option key={s.id} value={s.id}>{s.nom}</option>)}
                   </select>
                 </div>
@@ -494,7 +665,7 @@ export default function ConfigTab() {
                         + Ajouter
                       </button>
                     </div>
-                    <UserTable users={siteUsers} onToggle={toggleUser} onReset={resetPassword} />
+                    <UserTable users={siteUsers} onEdit={setEditingUser} onToggle={toggleUser} onReset={resetPassword} />
                   </div>
                 );
               })}
@@ -517,7 +688,7 @@ export default function ConfigTab() {
                         + Ajouter
                       </button>
                     </div>
-                    <UserTable users={noSiteUsers} onToggle={toggleUser} onReset={resetPassword} />
+                    <UserTable users={noSiteUsers} onEdit={setEditingUser} onToggle={toggleUser} onReset={resetPassword} />
                   </div>
                 );
               })()}
