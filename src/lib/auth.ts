@@ -33,7 +33,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             role: 'admin',
             site_id: null,
             nom: 'Administrateur',
-            prenom: '',
+            prenom: null,
           };
         }
 

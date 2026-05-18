@@ -97,8 +97,8 @@ export default function ProfilPage() {
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Informations</h2>
           <dl className="space-y-3">
             {[
-              { label: 'Prénom', value: user?.prenom ?? '—' },
-              { label: 'Nom', value: user?.nom ?? '—' },
+              { label: 'Prénom', value: user?.prenom || '—' },
+              { label: 'Nom', value: user?.nom || '—' },
               { label: 'Email', value: user?.email ?? '—' },
               { label: 'Rôle', value: user?.role ?? '—' },
             ].map(({ label, value }) => (

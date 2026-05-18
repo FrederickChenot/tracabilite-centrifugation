@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 import sql from '@/lib/db';
 import { hash } from 'bcryptjs';
 import { sendEmailBienvenue } from '@/lib/emails';
@@ -50,13 +51,19 @@ export async function POST(req: NextRequest) {
       RETURNING id, email, nom, prenom, site_id, role, actif, created_at
     `;
 
-    // Email de bienvenue (non bloquant)
     sendEmailBienvenue({
       email: email as string,
       prenom: (prenom as string | null) ?? undefined,
       nom: (nom as string | null) ?? undefined,
       tempPassword: password as string,
     }).catch((err) => console.error('[users] welcome email error:', err));
+
+    await logAudit(
+      session.user?.email ?? null,
+      'CREATE_USER',
+      'user',
+      String(rows[0].id)
+    );
 
     return NextResponse.json({ user: rows[0] }, { status: 201 });
   } catch (e: unknown) {

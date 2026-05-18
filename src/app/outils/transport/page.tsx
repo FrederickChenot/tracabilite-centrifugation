@@ -256,7 +256,7 @@ export default function TransportPage() {
       // Fetch the full envoi for PDF export
       const fullRes = await fetch(`/api/transport/envois/${envoi.id}`);
       const fullData = await fullRes.json();
-      const fullEnvoi: EnvoiTransport = fullData.envoi;
+      const fullEnvoi: EnvoiTransport = fullData.envoi ?? fullData;
 
       setExporting(true);
       try {

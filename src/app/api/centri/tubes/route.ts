@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 import sql from '@/lib/db';
 import { AddTubeSchema } from '@/lib/schemas';
 
 export async function POST(request: NextRequest) {
+  const session = await auth();
+  if (!session) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  }
+
   const body = await request.json();
   const parsed = AddTubeSchema.safeParse(body);
 
@@ -33,6 +39,11 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const session = await auth();
+  if (!session) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const session_id = searchParams.get('session_id');
 

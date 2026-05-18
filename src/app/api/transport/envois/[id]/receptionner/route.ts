@@ -1,4 +1,5 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { logAudit } from '@/lib/audit'
 import { neon } from '@neondatabase/serverless'
 const sql = neon(process.env.DATABASE_URL!)
 
@@ -25,13 +26,24 @@ export async function POST(
         receptionne_at = NOW(),
         nom_receptionnaire = ${nom_receptionnaire},
         visa_receptionnaire = ${visa_receptionnaire}
-      WHERE id = ${id}
+      WHERE id = ${id} AND statut = 'envoye'
       RETURNING *
     `
 
     if (result.length === 0) {
-      return NextResponse.json({ error: 'Envoi non trouvé' }, { status: 404 })
+      return NextResponse.json({ error: 'Bon déjà réceptionné ou invalide' }, { status: 409 })
     }
+
+    const envoi = result[0]
+
+    await logAudit(
+      null,
+      'RECEIVE_ENVOI',
+      'envoi',
+      String(id),
+      envoi.site_id as number | undefined,
+      { receptionnaire: nom_receptionnaire as string, visa: visa_receptionnaire as string }
+    )
 
     try {
       const emailData = await sql`
@@ -46,15 +58,14 @@ export async function POST(
         WHERE e.id = ${id}
         GROUP BY d.nom
       `
-      const e = result[0]
       const ed = emailData[0] ?? {}
       const { sendEmailReception } = await import('@/lib/emails')
       await sendEmailReception({
-        id: String(e.id),
+        id: String(envoi.id),
         dest_nom: String(ed.dest_nom ?? ''),
-        nom_receptionnaire: String(e.nom_receptionnaire),
-        visa_receptionnaire: String(e.visa_receptionnaire),
-        receptionne_at: String(e.receptionne_at),
+        nom_receptionnaire: String(envoi.nom_receptionnaire),
+        visa_receptionnaire: String(envoi.visa_receptionnaire),
+        receptionne_at: String(envoi.receptionne_at),
         nb_ambiant: Number(ed.nb_ambiant ?? 0),
         nb_plus4: Number(ed.nb_plus4 ?? 0),
         nb_congele: Number(ed.nb_congele ?? 0),
@@ -63,7 +74,7 @@ export async function POST(
       console.error('[receptionner] email error:', emailError)
     }
 
-    return NextResponse.json({ success: true, envoi: result[0] })
+    return NextResponse.json({ success: true, envoi })
   } catch (error) {
     console.error('[receptionner POST]', error)
     return NextResponse.json({ error: String(error) }, { status: 500 })

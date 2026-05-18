@@ -24,6 +24,21 @@ export async function POST() {
     await sql`UPDATE sites SET email_notifications = '' WHERE email_notifications IS NULL`
     await sql`ALTER TABLE envoi_sachets DROP CONSTRAINT IF EXISTS envoi_sachets_temperature_check`
     await sql`ALTER TABLE envoi_sachets ADD CONSTRAINT envoi_sachets_temperature_check CHECK (temperature IN ('ambiant','plus4','congele'))`
+    await sql`
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_email VARCHAR(100),
+        action VARCHAR(50) NOT NULL,
+        entity VARCHAR(50),
+        entity_id VARCHAR(100),
+        site_id INT,
+        details JSONB,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at DESC)
+    `
     return NextResponse.json({ success: true, message: 'Migrations appliquées' })
   } catch (error) {
     console.error('[migrate]', error)

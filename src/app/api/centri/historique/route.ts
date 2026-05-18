@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 import sql from '@/lib/db';
 import { HistoriqueSession } from '@/lib/schemas';
 
 export async function GET(request: NextRequest) {
+  const session = await auth();
+  if (!session) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const site_id = searchParams.get('site_id');
   const date = searchParams.get('date');

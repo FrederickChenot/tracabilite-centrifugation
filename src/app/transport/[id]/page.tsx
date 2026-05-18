@@ -110,7 +110,8 @@ export default function TransportPublicPage() {
     try {
       const res = await fetch(`/api/transport/envois/${id}`)
       if (!res.ok) throw new Error('Envoi introuvable')
-      const data: Envoi = await res.json()
+      const json = await res.json()
+      const data: Envoi = json.envoi
       setEnvoi(data)
       const nb4 = data.sachets.filter(s => s.temperature === 'plus4').length
       const nbA = data.sachets.filter(s => s.temperature === 'ambiant').length

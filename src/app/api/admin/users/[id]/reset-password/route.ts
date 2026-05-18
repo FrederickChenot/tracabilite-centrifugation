@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import { auth } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 import sql from '@/lib/db';
 import { sendEmailForgotPassword } from '@/lib/emails';
 
@@ -38,6 +39,13 @@ export async function POST(
     nom: user.nom as string | undefined,
     resetUrl,
   });
+
+  await logAudit(
+    session.user?.email ?? null,
+    'RESET_PASSWORD',
+    'user',
+    String(userId)
+  );
 
   return NextResponse.json({ success: true });
 }

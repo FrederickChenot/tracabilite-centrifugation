@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 const sql = neon(process.env.DATABASE_URL!)
 
@@ -13,7 +13,6 @@ export async function GET(
         e.*,
         s.nom AS site_nom,
         d.nom AS dest_nom,
-        d.email_reception,
         COALESCE(
           json_agg(
             json_build_object(
@@ -31,12 +30,12 @@ export async function GET(
       JOIN laboratoires_dest d ON e.dest_id = d.id
       LEFT JOIN envoi_sachets sa ON sa.envoi_id = e.id
       WHERE e.id = ${id}
-      GROUP BY e.id, s.nom, d.nom, d.email_reception
+      GROUP BY e.id, s.nom, d.nom
     `
     if (result.length === 0) {
       return NextResponse.json({ error: 'Envoi non trouvé' }, { status: 404 })
     }
-    return NextResponse.json(result[0])
+    return NextResponse.json({ envoi: result[0] })
   } catch (error) {
     console.error('[envois GET id]', error)
     return NextResponse.json({ error: String(error) }, { status: 500 })

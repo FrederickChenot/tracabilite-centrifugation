@@ -5,8 +5,8 @@ import { hash } from 'bcryptjs';
 async function main() {
   const sql = neon(process.env.DATABASE_URL!);
 
-  const email = 'technicien.test@ch-epinal.fr';
-  const password = 'BioLabTrack2026';
+  const email = process.env.SEED_USER_EMAIL || 'technicien.test@ch-epinal.fr';
+  const password = process.env.SEED_USER_PASSWORD || 'BioLabTrack2026';
   const passwordHash = await hash(password, 12);
 
   const existing = await sql`SELECT id FROM users WHERE email = ${email}`;
@@ -21,9 +21,7 @@ async function main() {
     RETURNING id, email, role
   `;
 
-  console.log('Utilisateur créé :', rows[0]);
-  console.log(`Email    : ${email}`);
-  console.log(`Password : ${password}`);
+  console.log(`Utilisateur créé : ${rows[0].email}`);
 }
 
 main().catch((err) => { console.error(err); process.exit(1); });
