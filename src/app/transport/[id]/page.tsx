@@ -491,7 +491,7 @@ const inputStyle: CSSProperties = {
   padding: '10px 12px',
   border: '1px solid #d1d5db',
   borderRadius: 6,
-  fontSize: 14,
+  fontSize: 16,
   boxSizing: 'border-box',
 }
 

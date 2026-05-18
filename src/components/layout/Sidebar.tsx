@@ -52,7 +52,7 @@ export default function Sidebar({ siteId, onSiteChange, mobileOpen, onMobileClos
           {mobileOpen && (
             <button
               onClick={onMobileClose}
-              className="md:hidden text-gray-400 hover:text-white p-1"
+              className="md:hidden text-gray-400 hover:text-white p-2"
               aria-label="Fermer le menu"
             >
               ✕
@@ -109,7 +109,7 @@ export default function Sidebar({ siteId, onSiteChange, mobileOpen, onMobileClos
               <button
                 key={site.id}
                 onClick={() => { onSiteChange(site.id); onMobileClose?.(); }}
-                className={`w-full text-left text-sm px-3 py-1.5 rounded transition-colors ${
+                className={`w-full text-left text-sm px-3 py-2 rounded transition-colors ${
                   siteId === site.id
                     ? 'bg-teal-600 text-white font-medium'
                     : 'text-gray-300 hover:bg-gray-800'

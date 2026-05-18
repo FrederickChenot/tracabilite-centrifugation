@@ -446,12 +446,12 @@ export default function TransportPage() {
                                 }}
                                 placeholder="Scanner ou saisir..."
                                 disabled={scanning[temp]}
-                                className="flex-1 text-sm border border-gray-300 bg-white rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-50"
+                                className="flex-1 text-base border border-gray-300 bg-white rounded px-2 py-2.5 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-50"
                               />
                               <button
                                 onClick={() => handleScan(temp)}
                                 disabled={!scanValues[temp].trim() || scanning[temp]}
-                                className="px-2 py-1 text-xs bg-teal-600 text-white rounded hover:bg-teal-700 disabled:opacity-40 transition-colors"
+                                className="px-3 py-2.5 text-sm font-semibold bg-teal-600 text-white rounded hover:bg-teal-700 disabled:opacity-40 transition-colors min-w-[44px]"
                               >
                                 {scanning[temp] ? '...' : 'OK'}
                               </button>
@@ -533,71 +533,84 @@ export default function TransportPage() {
                     Aucun envoi aujourd&apos;hui
                   </div>
                 ) : (
-                  <table className="w-full text-sm">
-                    <thead className="sticky top-0 bg-gray-50 z-10">
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600 whitespace-nowrap">Heure</th>
-                        <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">Destinataire</th>
-                        <th className="text-center px-3 py-2 text-xs font-semibold text-orange-600">Amb</th>
-                        <th className="text-center px-3 py-2 text-xs font-semibold text-blue-600">+5°C</th>
-                        <th className="text-center px-3 py-2 text-xs font-semibold text-purple-600">Cong</th>
-                        <th className="text-center px-3 py-2 text-xs font-semibold text-gray-600">Total</th>
-                        <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600">Visa</th>
-                        <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">Statut</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <>
+                    {/* Mobile : cards */}
+                    <div className="md:hidden flex flex-col divide-y divide-gray-100">
                       {historique.map((e) => {
                         const s = e.sachets ?? [];
                         const nb = (t: TemperatureTransport) => s.filter((x) => x.temperature === t).length;
-
                         const isActive = envoi?.id === e.id;
                         return (
-                          <tr
+                          <div
                             key={e.id}
                             onClick={() => window.open(`/transport/${e.id}`, '_blank')}
-                            className={`border-b border-gray-100 cursor-pointer transition-colors ${
-                              isActive ? 'bg-teal-50' : 'hover:bg-gray-50'
-                            }`}
+                            className={`p-3 cursor-pointer active:bg-gray-100 ${isActive ? 'bg-teal-50' : 'bg-white'}`}
                           >
-                            <td className="px-4 py-2.5 text-xs text-gray-500 whitespace-nowrap font-mono">
-                              {fmtTime(e.created_at)}
-                            </td>
-                            <td className="px-4 py-2.5 text-gray-800 font-medium">
-                              {e.dest_nom}
-                              {isActive && (
-                                <span className="ml-1 text-xs text-teal-600 font-normal">(en cours)</span>
-                              )}
-                            </td>
-                            <td className="px-3 py-2.5 text-center">
-                              <span className={`text-xs font-semibold ${nb('ambiant') > 0 ? 'text-orange-600' : 'text-gray-300'}`}>
-                                {nb('ambiant')}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2.5 text-center">
-                              <span className={`text-xs font-semibold ${nb('plus4') > 0 ? 'text-blue-600' : 'text-gray-300'}`}>
-                                {nb('plus4')}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2.5 text-center">
-                              <span className={`text-xs font-semibold ${nb('congele') > 0 ? 'text-purple-600' : 'text-gray-300'}`}>
-                                {nb('congele')}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2.5 text-center">
-                              <span className="text-xs font-bold text-gray-700">{s.length}</span>
-                            </td>
-                            <td className="px-3 py-2.5 text-xs font-mono text-gray-600">
-                              {e.visa_expediteur}
-                            </td>
-                            <td className="px-4 py-2.5">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-mono text-gray-500">{fmtTime(e.created_at)}</span>
                               {statutBadge(e.statut)}
-                            </td>
-                          </tr>
+                            </div>
+                            <p className="font-medium text-sm text-gray-800">
+                              {e.dest_nom}
+                              {isActive && <span className="ml-1 text-xs text-teal-600 font-normal">(en cours)</span>}
+                            </p>
+                            <div className="flex items-center gap-3 mt-1.5 text-xs">
+                              {nb('ambiant') > 0 && <span className="text-orange-600 font-semibold">Amb: {nb('ambiant')}</span>}
+                              {nb('plus4') > 0 && <span className="text-blue-600 font-semibold">+5°C: {nb('plus4')}</span>}
+                              {nb('congele') > 0 && <span className="text-purple-600 font-semibold">Cong: {nb('congele')}</span>}
+                              <span className="text-gray-700 font-bold">Total: {s.length}</span>
+                              <span className="text-gray-400 font-mono ml-auto">{e.visa_expediteur}</span>
+                            </div>
+                          </div>
                         );
                       })}
-                    </tbody>
-                  </table>
+                    </div>
+                    {/* Desktop : tableau */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="sticky top-0 bg-gray-50 z-10">
+                          <tr className="border-b border-gray-200">
+                            <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600 whitespace-nowrap">Heure</th>
+                            <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">Destinataire</th>
+                            <th className="text-center px-3 py-2 text-xs font-semibold text-orange-600">Amb</th>
+                            <th className="text-center px-3 py-2 text-xs font-semibold text-blue-600">+5°C</th>
+                            <th className="text-center px-3 py-2 text-xs font-semibold text-purple-600">Cong</th>
+                            <th className="text-center px-3 py-2 text-xs font-semibold text-gray-600">Total</th>
+                            <th className="text-left px-3 py-2 text-xs font-semibold text-gray-600">Visa</th>
+                            <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">Statut</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {historique.map((e) => {
+                            const s = e.sachets ?? [];
+                            const nb = (t: TemperatureTransport) => s.filter((x) => x.temperature === t).length;
+                            const isActive = envoi?.id === e.id;
+                            return (
+                              <tr
+                                key={e.id}
+                                onClick={() => window.open(`/transport/${e.id}`, '_blank')}
+                                className={`border-b border-gray-100 cursor-pointer transition-colors ${
+                                  isActive ? 'bg-teal-50' : 'hover:bg-gray-50'
+                                }`}
+                              >
+                                <td className="px-4 py-2.5 text-xs text-gray-500 whitespace-nowrap font-mono">{fmtTime(e.created_at)}</td>
+                                <td className="px-4 py-2.5 text-gray-800 font-medium">
+                                  {e.dest_nom}
+                                  {isActive && <span className="ml-1 text-xs text-teal-600 font-normal">(en cours)</span>}
+                                </td>
+                                <td className="px-3 py-2.5 text-center"><span className={`text-xs font-semibold ${nb('ambiant') > 0 ? 'text-orange-600' : 'text-gray-300'}`}>{nb('ambiant')}</span></td>
+                                <td className="px-3 py-2.5 text-center"><span className={`text-xs font-semibold ${nb('plus4') > 0 ? 'text-blue-600' : 'text-gray-300'}`}>{nb('plus4')}</span></td>
+                                <td className="px-3 py-2.5 text-center"><span className={`text-xs font-semibold ${nb('congele') > 0 ? 'text-purple-600' : 'text-gray-300'}`}>{nb('congele')}</span></td>
+                                <td className="px-3 py-2.5 text-center"><span className="text-xs font-bold text-gray-700">{s.length}</span></td>
+                                <td className="px-3 py-2.5 text-xs font-mono text-gray-600">{e.visa_expediteur}</td>
+                                <td className="px-4 py-2.5">{statutBadge(e.statut)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
               </div>
             </div>

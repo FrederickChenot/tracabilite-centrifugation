@@ -113,7 +113,7 @@ export default function LandingPage() {
 
       {/* ── FONCTIONNALITES ── */}
       <section id="fonctionnalites" className="bg-gray-50 py-24">
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
           <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">Tout ce dont votre labo a besoin</h2>
           <p className="text-gray-500 text-center mb-12 max-w-xl mx-auto">
             Une seule plateforme pour toute votre traçabilité, accessible depuis n&apos;importe quel poste.
@@ -153,7 +153,7 @@ export default function LandingPage() {
 
       {/* ── POUR QUI ── */}
       <section id="pourqui" className="py-24 bg-white">
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
           <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">Conçu pour les professionnels du labo</h2>
           <p className="text-gray-500 text-center mb-12 max-w-xl mx-auto">
             Adapté à la réalité du terrain des laboratoires hospitaliers.
@@ -188,7 +188,7 @@ export default function LandingPage() {
 
       {/* ── TARIFS ── */}
       <section id="tarifs" className="py-24 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
           <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">Tarifs simples et transparents</h2>
           <p className="text-gray-500 text-center mb-12">Essai gratuit 30 jours, sans carte bancaire</p>
           <div className="grid md:grid-cols-3 gap-6 items-start">
@@ -260,7 +260,7 @@ export default function LandingPage() {
 
       {/* ── CONTACT ── */}
       <section id="contact" className="py-24 bg-white">
-        <div className="max-w-2xl mx-auto px-6">
+        <div className="max-w-2xl mx-auto px-4 md:px-6">
           <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">Intéressé ? Parlons-en</h2>
           <p className="text-gray-500 text-center mb-2">
             Répondons à vos questions, organisons une démonstration
@@ -282,7 +282,7 @@ export default function LandingPage() {
                   <input
                     type="text" required value={form.nom}
                     onChange={(e) => setForm((p) => ({ ...p, nom: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-teal-500"
                     placeholder="Marie Dupont"
                   />
                 </div>
@@ -291,7 +291,7 @@ export default function LandingPage() {
                   <input
                     type="email" required value={form.email}
                     onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-teal-500"
                     placeholder="m.dupont@ch-exemple.fr"
                   />
                 </div>
@@ -302,7 +302,7 @@ export default function LandingPage() {
                   <input
                     type="text" required value={form.etablissement}
                     onChange={(e) => setForm((p) => ({ ...p, etablissement: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-teal-500"
                     placeholder="CH de Exemple"
                   />
                 </div>
@@ -311,7 +311,7 @@ export default function LandingPage() {
                   <input
                     type="number" min={1} value={form.nb_sites}
                     onChange={(e) => setForm((p) => ({ ...p, nb_sites: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-teal-500"
                     placeholder="1"
                   />
                 </div>
@@ -321,7 +321,7 @@ export default function LandingPage() {
                 <textarea
                   rows={4} value={form.message}
                   onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                   placeholder="Votre question ou besoin..."
                 />
               </div>
@@ -341,7 +341,7 @@ export default function LandingPage() {
 
       {/* ── FOOTER ── */}
       <footer style={{ backgroundColor: '#085041' }} className="text-white py-12">
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
           <div className="grid md:grid-cols-3 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-3">
