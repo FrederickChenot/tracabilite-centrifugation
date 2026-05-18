@@ -32,6 +32,80 @@ interface NewUserForm {
 
 const EMPTY_FORM: NewUserForm = { email: '', password: '', nom: '', prenom: '', site_id: '', role: 'technicien' };
 
+function UserTable({
+  users,
+  onToggle,
+  onReset,
+}: {
+  users: User[];
+  onToggle: (u: User) => void;
+  onReset: (u: User) => void;
+}) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      {users.length === 0 ? (
+        <p className="px-4 py-4 text-sm text-gray-400 text-center">Aucun utilisateur</p>
+      ) : (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 bg-gray-50">
+              <th className="text-left py-2 px-4 text-xs font-semibold text-gray-600">Prénom</th>
+              <th className="text-left py-2 px-4 text-xs font-semibold text-gray-600">Nom</th>
+              <th className="text-left py-2 px-4 text-xs font-semibold text-gray-600">Email</th>
+              <th className="text-left py-2 px-4 text-xs font-semibold text-gray-600">Rôle</th>
+              <th className="text-left py-2 px-4 text-xs font-semibold text-gray-600">Statut</th>
+              <th className="py-2 px-4" />
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.id} className={`border-b border-gray-100 hover:bg-gray-50 last:border-0 ${!u.actif ? 'opacity-60' : ''}`}>
+                <td className="py-2.5 px-4 text-gray-700">{u.prenom ?? '—'}</td>
+                <td className="py-2.5 px-4 font-medium text-gray-800">{u.nom ?? '—'}</td>
+                <td className="py-2.5 px-4 text-gray-500 font-mono text-xs">{u.email}</td>
+                <td className="py-2.5 px-4">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {u.role}
+                  </span>
+                </td>
+                <td className="py-2.5 px-4">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    u.actif ? 'bg-teal-100 text-teal-700' : 'bg-red-100 text-red-600'
+                  }`}>
+                    {u.actif ? 'Actif' : 'Inactif'}
+                  </span>
+                </td>
+                <td className="py-2.5 px-4">
+                  <div className="flex gap-1 justify-end">
+                    <button
+                      onClick={() => onReset(u)}
+                      className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap"
+                    >
+                      Réinitialiser mdp
+                    </button>
+                    <button
+                      onClick={() => onToggle(u)}
+                      className={`text-xs px-2 py-1 rounded font-medium transition-colors whitespace-nowrap ${
+                        u.actif
+                          ? 'text-red-600 hover:bg-red-50 border border-red-200'
+                          : 'text-teal-600 hover:bg-teal-50 border border-teal-200'
+                      }`}
+                    >
+                      {u.actif ? 'Désactiver' : 'Réactiver'}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
 export default function ConfigTab() {
   const { toast, showToast } = useToast();
 
@@ -52,8 +126,6 @@ export default function ConfigTab() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newUser, setNewUser] = useState<NewUserForm>(EMPTY_FORM);
   const [addingUser, setAddingUser] = useState(false);
-  const [resetPwdResult, setResetPwdResult] = useState<{ userId: number; pass: string } | null>(null);
-  const [userSiteFilter, setUserSiteFilter] = useState<'all' | number | 'none'>('all');
 
   const loadConfig = useCallback(async () => {
     setConfigLoading(true);
@@ -179,20 +251,12 @@ export default function ConfigTab() {
 
   async function resetPassword(user: User) {
     const res = await fetch(`/api/admin/users/${user.id}/reset-password`, { method: 'POST' });
-    const data = await res.json();
     if (res.ok) {
-      setResetPwdResult({ userId: user.id, pass: data.tempPassword });
+      showToast(`Email de réinitialisation envoyé à ${user.email}`);
     } else {
       showToast('Erreur lors de la réinitialisation', 'error');
     }
   }
-
-  /* ── Filtrage utilisateurs ── */
-  const filteredUsers = userSiteFilter === 'all'
-    ? users
-    : userSiteFilter === 'none'
-      ? users.filter((u) => !u.site_id || u.role === 'admin')
-      : users.filter((u) => u.site_id === userSiteFilter);
 
   const activeSites = sites.filter((s) => s.actif);
 
@@ -324,18 +388,11 @@ export default function ConfigTab() {
 
         {/* ── Gestion des utilisateurs ── */}
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-bold text-gray-600 uppercase tracking-wider">Gestion des utilisateurs</h2>
-            <button
-              onClick={() => setShowAddForm((v) => !v)}
-              className="px-3 py-1.5 bg-teal-600 text-white rounded-lg text-xs font-semibold hover:bg-teal-700 transition-colors"
-            >
-              + Ajouter un utilisateur
-            </button>
-          </div>
+          <h2 className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4">Gestion des utilisateurs</h2>
 
+          {/* Formulaire d'ajout (partagé) */}
           {showAddForm && (
-            <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 mb-4">
+            <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 mb-6">
               <h3 className="text-sm font-semibold text-teal-800 mb-3">Nouvel utilisateur</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -416,122 +473,56 @@ export default function ConfigTab() {
             </div>
           )}
 
-          {resetPwdResult && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex items-start gap-3">
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-amber-800 mb-2">Mot de passe temporaire — visible une seule fois</p>
-                <code className="text-lg font-mono font-bold text-amber-900 tracking-widest">{resetPwdResult.pass}</code>
-                <div className="mt-3">
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(resetPwdResult.pass);
-                      showToast('Copié dans le presse-papier');
-                    }}
-                    className="px-3 py-1.5 bg-amber-600 text-white rounded text-xs font-semibold hover:bg-amber-700 transition-colors"
-                  >
-                    Copier
-                  </button>
-                </div>
-                <p className="mt-2 text-xs text-amber-700">L&apos;utilisateur devra changer ce mot de passe à la prochaine connexion.</p>
-              </div>
-              <button
-                onClick={() => setResetPwdResult(null)}
-                className="text-amber-600 hover:text-amber-800 text-xl leading-none mt-0.5"
-              >
-                ✕
-              </button>
+          {usersLoading ? (
+            <div className="p-8 text-center text-sm text-gray-400">Chargement...</div>
+          ) : (
+            <div className="space-y-6">
+              {/* Groupe par site */}
+              {activeSites.map((site) => {
+                const siteUsers = users.filter((u) => u.site_id === site.id);
+                return (
+                  <div key={site.id}>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-semibold text-gray-700">{site.nom}</h3>
+                      <button
+                        onClick={() => {
+                          setNewUser({ ...EMPTY_FORM, site_id: String(site.id) });
+                          setShowAddForm(true);
+                        }}
+                        className="px-3 py-1 bg-teal-600 text-white rounded-lg text-xs font-semibold hover:bg-teal-700 transition-colors"
+                      >
+                        + Ajouter
+                      </button>
+                    </div>
+                    <UserTable users={siteUsers} onToggle={toggleUser} onReset={resetPassword} />
+                  </div>
+                );
+              })}
+
+              {/* Administrateurs / Sans site */}
+              {(() => {
+                const activeSiteIds = new Set(activeSites.map((s) => s.id));
+                const noSiteUsers = users.filter((u) => !u.site_id || !activeSiteIds.has(u.site_id));
+                return (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-semibold text-gray-700">Administrateurs / Sans site</h3>
+                      <button
+                        onClick={() => {
+                          setNewUser({ ...EMPTY_FORM, role: 'admin' });
+                          setShowAddForm(true);
+                        }}
+                        className="px-3 py-1 bg-teal-600 text-white rounded-lg text-xs font-semibold hover:bg-teal-700 transition-colors"
+                      >
+                        + Ajouter
+                      </button>
+                    </div>
+                    <UserTable users={noSiteUsers} onToggle={toggleUser} onReset={resetPassword} />
+                  </div>
+                );
+              })()}
             </div>
           )}
-
-          {/* Filtre par site */}
-          <div className="flex gap-2 mb-3 flex-wrap">
-            {([
-              { key: 'all' as const, label: 'Tous les sites' },
-              ...activeSites.map((s) => ({ key: s.id as number | 'all' | 'none', label: s.nom })),
-              { key: 'none' as const, label: 'Sans site / Admin' },
-            ]).map((f) => (
-              <button
-                key={String(f.key)}
-                onClick={() => setUserSiteFilter(f.key)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                  userSiteFilter === f.key
-                    ? 'bg-teal-600 text-white'
-                    : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            {usersLoading ? (
-              <div className="p-8 text-center text-sm text-gray-400">Chargement...</div>
-            ) : filteredUsers.length === 0 ? (
-              <div className="p-8 text-center text-sm text-gray-400">Aucun utilisateur</div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="text-left py-2 px-4 text-xs font-semibold text-gray-600">Prénom</th>
-                    <th className="text-left py-2 px-4 text-xs font-semibold text-gray-600">Nom</th>
-                    <th className="text-left py-2 px-4 text-xs font-semibold text-gray-600">Email</th>
-                    <th className="text-left py-2 px-4 text-xs font-semibold text-gray-600">Site</th>
-                    <th className="text-left py-2 px-4 text-xs font-semibold text-gray-600">Rôle</th>
-                    <th className="text-left py-2 px-4 text-xs font-semibold text-gray-600">Statut</th>
-                    <th className="py-2 px-4" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUsers.map((u) => (
-                    <tr
-                      key={u.id}
-                      className={`border-b border-gray-100 hover:bg-gray-50 ${!u.actif ? 'opacity-60' : ''}`}
-                    >
-                      <td className="py-2.5 px-4 text-gray-700">{u.prenom ?? '—'}</td>
-                      <td className="py-2.5 px-4 font-medium text-gray-800">{u.nom ?? '—'}</td>
-                      <td className="py-2.5 px-4 text-gray-500 font-mono text-xs">{u.email}</td>
-                      <td className="py-2.5 px-4 text-gray-600">{u.site_nom ?? '—'}</td>
-                      <td className="py-2.5 px-4">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                          u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-4">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                          u.actif ? 'bg-teal-100 text-teal-700' : 'bg-red-100 text-red-600'
-                        }`}>
-                          {u.actif ? 'Actif' : 'Inactif'}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-4">
-                        <div className="flex gap-1 justify-end">
-                          <button
-                            onClick={() => resetPassword(u)}
-                            className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap"
-                          >
-                            Réinitialiser mdp
-                          </button>
-                          <button
-                            onClick={() => toggleUser(u)}
-                            className={`text-xs px-2 py-1 rounded font-medium transition-colors whitespace-nowrap ${
-                              u.actif
-                                ? 'text-red-600 hover:bg-red-50 border border-red-200'
-                                : 'text-teal-600 hover:bg-teal-50 border border-teal-200'
-                            }`}
-                          >
-                            {u.actif ? 'Désactiver' : 'Réactiver'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
         </section>
       </div>
     </div>
