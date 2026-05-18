@@ -4,14 +4,21 @@ import { NextResponse } from 'next/server';
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
+  // Redirige les utilisateurs déjà connectés qui tentent d'accéder à /login
+  if (pathname === '/login' && req.auth) {
+    return NextResponse.redirect(new URL('/outils/centrifugation', req.url));
+  }
+
   if (
+    pathname === '/' ||
+    pathname === '/mentions-legales' ||
+    pathname === '/cgu' ||
     pathname.startsWith('/login') ||
     pathname.startsWith('/api/auth/') ||
+    pathname.startsWith('/api/contact') ||
     pathname.startsWith('/transport/') ||
     pathname.startsWith('/api/transport/') ||
-    pathname.startsWith('/recherche') ||
-    pathname.startsWith('/_next/') ||
-    pathname === '/favicon.ico'
+    pathname.startsWith('/api/public/')
   ) {
     return NextResponse.next();
   }
@@ -31,10 +38,6 @@ export default auth((req) => {
     (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) &&
     role !== 'admin'
   ) {
-    return NextResponse.redirect(new URL('/outils/centrifugation', req.url));
-  }
-
-  if (pathname === '/' && role !== 'admin') {
     return NextResponse.redirect(new URL('/outils/centrifugation', req.url));
   }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, Suspense } from 'react';
+import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -122,9 +123,9 @@ function LoginForm() {
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
           <div className="text-center">
-            <a href="/login/forgot-password" className="text-xs text-gray-400 hover:text-teal-600 transition-colors">
+            <Link href="/login/forgot-password" className="text-xs text-gray-400 hover:text-teal-600 transition-colors">
               Mot de passe oublié ?
-            </a>
+            </Link>
           </div>
         </form>
       </div>
