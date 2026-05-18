@@ -7,10 +7,10 @@ interface HistoriqueTableProps {
   currentSessionId: string | null;
 }
 
-const stockageBadge: Record<string, string> = {
-  'ambiant': 'bg-amber-100 text-amber-700',
-  '+5': 'bg-blue-100 text-blue-700',
-  '-20': 'bg-gray-100 text-gray-600',
+const stockageBadgeStyle: Record<string, React.CSSProperties> = {
+  ambiant: { background: '#FFF3E0', color: '#E65100', border: '1px solid #FF9800' },
+  '+5': { background: '#E3F2FD', color: '#0D47A1', border: '1px solid #2196F3' },
+  '-20': { background: '#EDE7F6', color: '#311B92', border: '1px solid #673AB7' },
 };
 
 function formatHeure(dateStr: string): string {
@@ -32,7 +32,7 @@ export default function HistoriqueTable({ sessions, currentSessionId }: Historiq
   if (sessions.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-        Aucun passage aujourd&apos;hui
+        Aucun scan aujourd&apos;hui
       </div>
     );
   }
@@ -75,11 +75,19 @@ export default function HistoriqueTable({ sessions, currentSessionId }: Historiq
                   <span className="font-bold text-gray-700">Pgm {session.prog_numero}</span>
                   {' '}{session.prog_libelle}
                 </span>
-                <span className={`px-1.5 py-0.5 rounded font-medium ${stockageBadge[session.stockage] ?? ''}`}>
+                <span
+                  className="px-1.5 py-0.5 rounded font-medium"
+                  style={stockageBadgeStyle[session.stockage] ?? {}}
+                >
                   {session.stockage}
                 </span>
                 <span className="font-mono font-bold text-gray-700">Visa : {session.visa}</span>
-                <span className="font-bold text-gray-700">{session.tubes.length} tube{session.tubes.length !== 1 ? 's' : ''}</span>
+                <span
+                  className="flex items-center justify-center rounded-full text-white font-bold"
+                  style={{ background: '#0F6E56', width: 22, height: 22, fontSize: 11 }}
+                >
+                  {session.tubes.length}
+                </span>
               </div>
 
               {session.tubes.length > 0 && (
@@ -135,9 +143,9 @@ export default function HistoriqueTable({ sessions, currentSessionId }: Historiq
                 }`}
               >
                 <td className="py-2 px-3 font-mono text-gray-500">
-                  {formatHeureShort(session.opened_at)}
+                  {formatHeure(session.opened_at)}
                   {session.closed_at && (
-                    <span className="block text-gray-400">→ {formatHeureShort(session.closed_at)}</span>
+                    <span className="block text-gray-400">→ {formatHeure(session.closed_at)}</span>
                   )}
                 </td>
                 <td className="py-2 px-3 font-medium text-gray-800">
@@ -150,15 +158,23 @@ export default function HistoriqueTable({ sessions, currentSessionId }: Historiq
                   </span>
                 </td>
                 <td className="py-2 px-3">
-                  <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${stockageBadge[session.stockage] ?? ''}`}>
+                  <span
+                    className="px-1.5 py-0.5 rounded text-xs font-medium"
+                    style={stockageBadgeStyle[session.stockage] ?? {}}
+                  >
                     {session.stockage}
                   </span>
                 </td>
                 <td className="py-2 px-3 font-mono font-bold text-gray-700">
                   {session.visa}
                 </td>
-                <td className="py-2 px-3 text-center font-bold text-gray-700">
-                  {session.tubes.length}
+                <td className="py-2 px-3 text-center">
+                  <span
+                    className="inline-flex items-center justify-center rounded-full text-white font-bold"
+                    style={{ background: '#0F6E56', width: 22, height: 22, fontSize: 11 }}
+                  >
+                    {session.tubes.length}
+                  </span>
                 </td>
                 <td className="py-2 px-3">
                   <div className="flex flex-wrap gap-1 max-w-xs">

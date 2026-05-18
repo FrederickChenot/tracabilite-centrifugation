@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState } from 'react';
+import { IconBarcode, IconLock, IconPlayerPlay } from '@tabler/icons-react';
 import { Tube } from '@/lib/schemas';
 import TubeItem from './TubeItem';
 
@@ -66,32 +67,64 @@ export default function ScanZone({
         <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">
           Scan tube
         </label>
-        <input
-          ref={inputRef}
-          type="text"
-          inputMode="text"
-          value={scanValue}
-          onChange={(e) => setScanValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={!sessionActive || scanning}
-          placeholder={sessionActive ? 'Scanner ou saisir...' : "Configurer d'abord le passage"}
-          autoFocus={sessionActive}
-          className={`w-full text-base border rounded px-3 font-mono focus:outline-none focus:ring-2 transition-colors ${
-            sessionActive
-              ? 'border-teal-400 focus:ring-teal-500 bg-white'
-              : 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-          }`}
-          style={{ minHeight: '48px', fontSize: '16px' }}
-        />
+        <div className="relative">
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none z-10">
+            {sessionActive ? (
+              <IconBarcode
+                size={17}
+                className="text-teal-500"
+                style={{ animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite' }}
+              />
+            ) : (
+              <IconLock size={16} className="text-gray-400" />
+            )}
+          </span>
+          <input
+            ref={inputRef}
+            type="text"
+            inputMode="text"
+            value={scanValue}
+            onChange={(e) => setScanValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={!sessionActive || scanning}
+            placeholder={
+              sessionActive
+                ? 'Scanner ou saisir le code-barres...'
+                : 'Configurez d\'abord la centrifugeuse, le programme et le stockage'
+            }
+            autoFocus={sessionActive}
+            className="w-full font-mono focus:outline-none transition-colors"
+            style={{
+              minHeight: 48,
+              fontSize: 16,
+              paddingLeft: 34,
+              paddingRight: 12,
+              borderRadius: 6,
+              border: sessionActive
+                ? '2px dashed #0F6E56'
+                : '1px solid #e5e7eb',
+              background: sessionActive ? '#fff' : '#f9fafb',
+              color: sessionActive ? '#111827' : '#9ca3af',
+              cursor: sessionActive ? 'text' : 'not-allowed',
+            }}
+          />
+        </div>
+        {sessionActive ? (
+          <p className="text-xs text-gray-400 mt-1">Appuyez sur Entrée après chaque scan</p>
+        ) : (
+          <p className="text-xs text-gray-400 mt-1 leading-snug">
+            Configurez d&apos;abord la centrifugeuse, le programme et le stockage
+          </p>
+        )}
         {scanning && (
-          <p className="text-xs text-teal-600 mt-1">Enregistrement...</p>
+          <p className="text-xs text-teal-600 mt-0.5">Enregistrement...</p>
         )}
       </div>
 
       <div
         ref={listRef}
         className="flex-1 overflow-y-auto flex flex-col gap-1 min-h-0"
-        style={{ maxHeight: '260px' }}
+        style={{ maxHeight: 260 }}
       >
         {tubes.length === 0 ? (
           <p className="text-xs text-gray-400 text-center py-4">
@@ -120,12 +153,15 @@ export default function ScanZone({
           <button
             onClick={handleStartClick}
             disabled={!canStart}
-            className={`w-full py-3 rounded text-sm font-semibold transition-colors ${
+            title={!canStart ? 'Complétez la configuration pour démarrer' : undefined}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded text-sm font-semibold transition-colors"
+            style={
               canStart
-                ? 'bg-teal-600 text-white hover:bg-teal-700'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            }`}
+                ? { background: '#0F6E56', color: '#fff' }
+                : { background: '#e5e7eb', color: '#9ca3af', cursor: 'not-allowed' }
+            }
           >
+            <IconPlayerPlay size={16} />
             Nouveau scan
           </button>
         )}
