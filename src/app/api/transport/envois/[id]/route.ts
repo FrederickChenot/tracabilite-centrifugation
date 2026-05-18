@@ -1,28 +1,44 @@
-import { NextRequest, NextResponse } from 'next/server';
-import sql from '@/lib/db';
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { neon } from '@neondatabase/serverless'
+const sql = neon(process.env.DATABASE_URL!)
 
 export async function GET(
-  _req: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    const rows = await sql`
-      SELECT e.*, s.nom AS site_nom, l.nom AS dest_nom, l.email_reception AS dest_email
+    const { id } = await params
+    const result = await sql`
+      SELECT
+        e.*,
+        s.nom AS site_nom,
+        d.nom AS dest_nom,
+        d.email_reception,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', sa.id,
+              'temperature', sa.temperature,
+              'code_barre', sa.code_barre,
+              'ordre', sa.ordre,
+              'created_at', sa.created_at
+            ) ORDER BY sa.ordre
+          ) FILTER (WHERE sa.id IS NOT NULL),
+          '[]'
+        ) AS sachets
       FROM envois_transport e
-      JOIN sites s ON s.id = e.site_id
-      JOIN laboratoires_dest l ON l.id = e.dest_id
+      JOIN sites s ON e.site_id = s.id
+      JOIN laboratoires_dest d ON e.dest_id = d.id
+      LEFT JOIN envoi_sachets sa ON sa.envoi_id = e.id
       WHERE e.id = ${id}
-      LIMIT 1
-    `;
-    if (rows.length === 0) return NextResponse.json({ error: 'Introuvable' }, { status: 404 });
-    const sachets = await sql`
-      SELECT id, envoi_id, temperature, code_barre, ordre, scanned_at, created_at
-      FROM envoi_sachets WHERE envoi_id = ${id} ORDER BY temperature, ordre
-    `;
-    return NextResponse.json({ envoi: { ...rows[0], sachets } });
-  } catch (err) {
-    console.error('[GET /api/transport/envois/[id]]', err);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+      GROUP BY e.id, s.nom, d.nom, d.email_reception
+    `
+    if (result.length === 0) {
+      return NextResponse.json({ error: 'Envoi non trouvé' }, { status: 404 })
+    }
+    return NextResponse.json(result[0])
+  } catch (error) {
+    console.error('[envois GET id]', error)
+    return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }

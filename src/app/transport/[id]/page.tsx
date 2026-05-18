@@ -1,528 +1,358 @@
-'use client';
+﻿'use client'
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import { EnvoiTransport, EnvoiSachet, TemperatureTransport } from '@/lib/schemas';
+type Sachet = {
+  id: string
+  temperature: 'ambiant' | 'plus4' | 'congele'
+  code_barre: string
+  ordre: number
+  created_at: string
+}
 
-/* ─── Helpers ────────────────────────────────────────────────── */
+type Envoi = {
+  id: string
+  statut: 'en_preparation' | 'valide' | 'envoye' | 'receptionne'
+  site_nom: string
+  dest_nom: string
+  visa_expediteur: string
+  created_at: string
+  envoye_at: string | null
+  receptionne_at: string | null
+  nom_transporteur: string | null
+  visa_transporteur: string | null
+  nom_receptionnaire: string | null
+  visa_receptionnaire: string | null
+  sachets: Sachet[]
+}
 
-function bonNum(id: string) { return id.slice(0, 6).toUpperCase(); }
-
-function fmtDateTime(iso: string | null | undefined) {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return '—';
-  return d.toLocaleString('fr-FR', {
+function fmt(d: string | null) {
+  if (!d) return '—'
+  return new Date(d).toLocaleString('fr-FR', {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
-  });
+  })
 }
 
-function formatHeure(iso: string | null | undefined) {
-  if (!iso) return '--:--';
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return '--:--';
-  return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-}
-
-function statutBadge(statut: string) {
-  const map: Record<string, { label: string; cls: string }> = {
-    en_preparation: { label: 'En préparation',             cls: 'bg-gray-100 text-gray-600 border border-gray-200' },
-    valide:         { label: 'Validé — en attente du transporteur', cls: 'bg-orange-100 text-orange-700 border border-orange-200' },
-    envoye:         { label: 'Pris en charge',             cls: 'bg-blue-100 text-blue-700 border border-blue-200' },
-    receptionne:    { label: 'Réceptionné',                cls: 'bg-green-100 text-green-700 border border-green-200' },
-  };
-  const s = map[statut] ?? { label: statut, cls: 'bg-gray-100 text-gray-600 border border-gray-200' };
-  return (
-    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${s.cls}`}>
-      {s.label}
-    </span>
-  );
-}
-
-const TEMP_CONFIG: Record<TemperatureTransport, { label: string; icon: string; bg: string; badge: string; border: string }> = {
-  ambiant: { label: 'Ambiant (15-25°C)', icon: '☀', bg: 'bg-orange-50', badge: 'bg-orange-100 text-orange-700', border: 'border-orange-200' },
-  '+4':    { label: '+4°C (2-8°C)',      icon: '❄', bg: 'bg-blue-50',   badge: 'bg-blue-100 text-blue-700',     border: 'border-blue-200'   },
-  congele: { label: 'Congelé (≤ -15°C)', icon: '🧊', bg: 'bg-purple-50', badge: 'bg-purple-100 text-purple-700', border: 'border-purple-200' },
-};
-
-const TEMPS: TemperatureTransport[] = ['ambiant', '+4', 'congele'];
-
-/* ─── Vérification compteurs ─────────────────────────────────── */
-
-function CounterVerifier({
-  sachets,
-  onChange,
+function Counter({
+  label, expected, value, onChange,
 }: {
-  sachets: EnvoiSachet[];
-  onChange: (allOk: boolean) => void;
+  label: string
+  expected: number
+  value: number
+  onChange: (v: number) => void
 }) {
-  const expected = (t: TemperatureTransport) => sachets.filter((s) => s.temperature === t).length;
-  const [counts, setCounts] = useState<Record<TemperatureTransport, number>>({ ambiant: 0, '+4': 0, congele: 0 });
-
-  const visibleTemps = TEMPS.filter((t) => expected(t) > 0);
-
-  useEffect(() => {
-    const allOk = visibleTemps.length > 0
-      ? visibleTemps.every((t) => counts[t] === expected(t))
-      : false;
-    onChange(allOk);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [counts]);
-
-  function adjust(t: TemperatureTransport, delta: number) {
-    setCounts((prev) => ({ ...prev, [t]: Math.max(0, prev[t] + delta) }));
-  }
-
-  if (visibleTemps.length === 0) {
-    return <p className="text-sm text-gray-400 mb-4">Aucun sachet enregistré</p>;
-  }
-
+  const ok = value === expected
   return (
-    <div className="mb-4 space-y-2">
-      <p className="text-xs text-gray-500 font-medium">Vérifiez le nombre de sachets reçus :</p>
-      {visibleTemps.map((t) => {
-        const exp = expected(t);
-        const count = counts[t];
-        const ok = count === exp;
-        const tc = TEMP_CONFIG[t];
-        return (
-          <div key={t} className={`flex items-center gap-3 p-2.5 rounded-lg border ${tc.border} ${tc.bg}`}>
-            <span className="flex-1 text-sm text-gray-700 font-medium">{tc.icon} {tc.label}</span>
-            <span className="text-xs text-gray-500">attendu : <strong>{exp}</strong></span>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => adjust(t, -1)}
-                className="w-7 h-7 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 text-base flex items-center justify-center leading-none"
-              >−</button>
-              <span className="w-8 text-center text-sm font-mono font-bold text-gray-800">{count}</span>
-              <button
-                type="button"
-                onClick={() => adjust(t, 1)}
-                className="w-7 h-7 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 text-base flex items-center justify-center leading-none"
-              >+</button>
-            </div>
-            <span className={`text-base font-bold w-5 text-center ${ok ? 'text-green-600' : 'text-red-500'}`}>
-              {ok ? '✓' : '✗'}
-            </span>
-          </div>
-        );
-      })}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+      <span style={{ flex: 1, fontSize: 14 }}>{label}</span>
+      <button
+        onClick={() => onChange(Math.max(0, value - 1))}
+        style={btnSmall}
+      >−</button>
+      <span style={{ width: 32, textAlign: 'center', fontWeight: 700 }}>{value}</span>
+      <button
+        onClick={() => onChange(value + 1)}
+        style={btnSmall}
+      >+</button>
+      <span style={{ fontSize: 18, color: ok ? '#16a34a' : '#dc2626', width: 24, textAlign: 'center' }}>
+        {ok ? '✓' : '✗'}
+      </span>
+      <span style={{ fontSize: 12, color: '#6b7280' }}>/{expected}</span>
     </div>
-  );
+  )
 }
 
-/* ─── Formulaire transporteur ────────────────────────────────── */
+const btnSmall: React.CSSProperties = {
+  width: 28, height: 28, border: '1px solid #d1d5db',
+  borderRadius: 4, background: '#f9fafb', cursor: 'pointer', fontSize: 16,
+}
 
-function FormulaireTransporteur({
-  envoiId, sachets, onSuccess,
-}: {
-  envoiId: string; sachets: EnvoiSachet[]; onSuccess: () => void;
-}) {
-  const [nom, setNom] = useState('');
-  const [visa, setVisa] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [allOk, setAllOk] = useState(false);
+const teal = '#0F6E56'
 
-  const canSubmit = nom.trim() && visa.trim() && allOk;
+export default function TransportPublicPage() {
+  const { id } = useParams<{ id: string }>()
+  const [envoi, setEnvoi] = useState<Envoi | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!canSubmit) return;
-    setLoading(true);
-    setError('');
+  // Prise en charge
+  const [nomTransporteur, setNomTransporteur] = useState('')
+  const [visaTransporteur, setVisaTransporteur] = useState('')
+  const [countAmbiantT, setCountAmbiantT] = useState(0)
+  const [countPlus4T, setCountPlus4T] = useState(0)
+  const [countCongeleT, setCountCongeleT] = useState(0)
+
+  // Réception
+  const [nomReceptionnaire, setNomReceptionnaire] = useState('')
+  const [visaReceptionnaire, setVisaReceptionnaire] = useState('')
+  const [countAmbiantR, setCountAmbiantR] = useState(0)
+  const [countPlus4R, setCountPlus4R] = useState(0)
+  const [countCongeleR, setCountCongeleR] = useState(0)
+
+  async function load() {
+    setLoading(true)
+    setError('')
     try {
-      const res = await fetch(`/api/transport/envois/${envoiId}/envoyer`, {
+      const res = await fetch(`/api/transport/envois/${id}`)
+      if (!res.ok) throw new Error('Envoi introuvable')
+      const data: Envoi = await res.json()
+      setEnvoi(data)
+      const nb4 = data.sachets.filter(s => s.temperature === 'plus4').length
+      const nbA = data.sachets.filter(s => s.temperature === 'ambiant').length
+      const nbC = data.sachets.filter(s => s.temperature === 'congele').length
+      setCountAmbiantT(nbA); setCountPlus4T(nb4); setCountCongeleT(nbC)
+      setCountAmbiantR(nbA); setCountPlus4R(nb4); setCountCongeleR(nbC)
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { load() }, [id])
+
+  async function handleEnvoyer() {
+    if (!envoi) return
+    setSubmitting(true)
+    try {
+      await fetch(`/api/transport/envois/${id}/envoyer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nom_transporteur: nom.trim(), visa_transporteur: visa.trim().toUpperCase() }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error ?? 'Erreur');
-        return;
-      }
-      onSuccess();
+        body: JSON.stringify({ nom_transporteur: nomTransporteur, visa_transporteur: visaTransporteur }),
+      })
+      await load()
     } finally {
-      setLoading(false);
+      setSubmitting(false)
     }
   }
 
-  return (
-    <div className="bg-white rounded-xl border border-purple-200 shadow-sm p-5">
-      <h3 className="text-base font-bold text-gray-900 mb-1">Prise en charge — Transporteur</h3>
-      <p className="text-sm text-gray-500 mb-4">
-        Comptez les sachets reçus, confirmez les totaux puis signez.
-      </p>
-      {error && (
-        <div className="mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>
-      )}
-
-      <CounterVerifier sachets={sachets} onChange={setAllOk} />
-
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Nom du transporteur</label>
-          <input
-            type="text"
-            value={nom}
-            onChange={(e) => setNom(e.target.value)}
-            placeholder="Nom Prénom"
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Initiales / Visa</label>
-          <input
-            type="text"
-            value={visa}
-            onChange={(e) => setVisa(e.target.value.toUpperCase().slice(0, 4))}
-            placeholder="Ex: JD"
-            maxLength={4}
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 uppercase"
-            required
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading || !canSubmit}
-          className="w-full py-2.5 rounded-lg text-sm font-semibold bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          {loading ? 'Confirmation...' : 'Confirmer la prise en charge'}
-        </button>
-        {!allOk && nom.trim() && visa.trim() && (
-          <p className="text-xs text-center text-red-500">Tous les compteurs doivent être confirmés (✓)</p>
-        )}
-      </form>
-    </div>
-  );
-}
-
-/* ─── Formulaire réceptionneur ───────────────────────────────── */
-
-function FormulaireReceptionnaire({
-  envoiId, sachets, onSuccess,
-}: {
-  envoiId: string; sachets: EnvoiSachet[]; onSuccess: () => void;
-}) {
-  const [nom, setNom] = useState('');
-  const [visa, setVisa] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [allOk, setAllOk] = useState(false);
-
-  const canSubmit = nom.trim() && visa.trim() && allOk;
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!canSubmit) return;
-    setLoading(true);
-    setError('');
+  async function handleReceptionner() {
+    if (!envoi) return
+    setSubmitting(true)
     try {
-      const res = await fetch(`/api/transport/envois/${envoiId}/receptionner`, {
+      await fetch(`/api/transport/envois/${id}/receptionner`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nom_receptionnaire: nom.trim(), visa_receptionnaire: visa.trim().toUpperCase() }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error ?? 'Erreur');
-        return;
-      }
-      onSuccess();
+        body: JSON.stringify({ nom_receptionnaire: nomReceptionnaire, visa_receptionnaire: visaReceptionnaire }),
+      })
+      await load()
     } finally {
-      setLoading(false);
+      setSubmitting(false)
     }
   }
 
+  if (loading) return <div style={pageStyle}><p style={{ textAlign: 'center', color: '#6b7280' }}>Chargement…</p></div>
+  if (error || !envoi) return <div style={pageStyle}><p style={{ textAlign: 'center', color: '#dc2626' }}>{error || 'Envoi introuvable'}</p></div>
+
+  const sachets = envoi.sachets
+  const nbAmbiant = sachets.filter(s => s.temperature === 'ambiant').length
+  const nbPlus4 = sachets.filter(s => s.temperature === 'plus4').length
+  const nbCongele = sachets.filter(s => s.temperature === 'congele').length
+  const nbTotal = sachets.length
+
+  const codesFor = (temp: Sachet['temperature']) =>
+    sachets.filter(s => s.temperature === temp).map(s => s.code_barre).join(', ') || '—'
+
+  const bonNum = envoi.id.replace(/-/g, '').slice(0, 6).toUpperCase()
+
+  const allOkT = countAmbiantT === nbAmbiant && countPlus4T === nbPlus4 && countCongeleT === nbCongele
+  const canEnvoyer = allOkT && nomTransporteur.trim() && visaTransporteur.trim()
+
+  const allOkR = countAmbiantR === nbAmbiant && countPlus4R === nbPlus4 && countCongeleR === nbCongele
+  const canReceptionner = allOkR && nomReceptionnaire.trim() && visaReceptionnaire.trim()
+
   return (
-    <div className="bg-white rounded-xl border border-green-200 shadow-sm p-5">
-      <h3 className="text-base font-bold text-gray-900 mb-1">Réception — Laboratoire destinataire</h3>
-      <p className="text-sm text-gray-500 mb-4">
-        Vérifiez les sachets reçus, confirmez les totaux puis signez.
-      </p>
-      {error && (
-        <div className="mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>
+    <div style={pageStyle}>
+      {/* EN-TÊTE */}
+      <div style={{ textAlign: 'center', marginBottom: 24 }}>
+        <div style={{ fontSize: 22, fontWeight: 800, color: teal, letterSpacing: 1 }}>GCS Bio Med</div>
+        <div style={{ fontSize: 15, color: '#374151', marginTop: 2 }}>Bon de transport numérique</div>
+        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>N° {bonNum}</div>
+      </div>
+
+      <div style={card}>
+        <Row label="Expéditeur" value={envoi.site_nom} />
+        <Row label="Destinataire" value={envoi.dest_nom} />
+        <Row label="Opérateur" value={envoi.visa_expediteur} />
+        <Row label="Date création" value={fmt(envoi.created_at)} />
+      </div>
+
+      {/* TABLEAU SACHETS */}
+      <div style={{ ...card, marginTop: 16 }}>
+        <div style={sectionTitle}>Sachets</div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: '#f0fdf4' }}>
+              <Th>Température</Th><Th>Nb</Th><Th>Codes-barres</Th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><Td>Ambiant (15-25°C)</Td><Td>{nbAmbiant}</Td><Td style={{ fontSize: 11 }}>{codesFor('ambiant')}</Td></tr>
+            <tr style={{ background: '#f9fafb' }}><Td>+4°C (2-8°C)</Td><Td>{nbPlus4}</Td><Td style={{ fontSize: 11 }}>{codesFor('plus4')}</Td></tr>
+            <tr><Td>Congelé (≤-15°C)</Td><Td>{nbCongele}</Td><Td style={{ fontSize: 11 }}>{codesFor('congele')}</Td></tr>
+            <tr style={{ background: '#f0fdf4', fontWeight: 700 }}><Td>TOTAL</Td><Td>{nbTotal}</Td><Td></Td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* PRISE EN CHARGE */}
+      {envoi.statut === 'valide' && (
+        <div style={{ ...card, marginTop: 16 }}>
+          <div style={sectionTitle}>Confirmation prise en charge — Transporteur</div>
+          <p style={{ fontSize: 13, color: '#374151', marginBottom: 12 }}>
+            Vérifiez le nombre de sachets pris en charge :
+          </p>
+          {nbAmbiant > 0 && <Counter label="Ambiant (15-25°C)" expected={nbAmbiant} value={countAmbiantT} onChange={setCountAmbiantT} />}
+          {nbPlus4 > 0 && <Counter label="+4°C (2-8°C)" expected={nbPlus4} value={countPlus4T} onChange={setCountPlus4T} />}
+          {nbCongele > 0 && <Counter label="Congelé (≤-15°C)" expected={nbCongele} value={countCongeleT} onChange={setCountCongeleT} />}
+          <div style={{ marginTop: 16 }}>
+            <input
+              placeholder="Votre nom complet"
+              value={nomTransporteur}
+              onChange={e => setNomTransporteur(e.target.value)}
+              style={inputStyle}
+            />
+            <input
+              placeholder="Vos initiales"
+              value={visaTransporteur}
+              onChange={e => setVisaTransporteur(e.target.value)}
+              maxLength={5}
+              style={{ ...inputStyle, marginTop: 8 }}
+            />
+          </div>
+          <button
+            disabled={!canEnvoyer || submitting}
+            onClick={handleEnvoyer}
+            style={{ ...btnPrimary, marginTop: 16, opacity: !canEnvoyer || submitting ? 0.5 : 1 }}
+          >
+            {submitting ? 'Envoi…' : 'Confirmer la prise en charge'}
+          </button>
+        </div>
       )}
 
-      <CounterVerifier sachets={sachets} onChange={setAllOk} />
-
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Nom du réceptionnaire</label>
-          <input
-            type="text"
-            value={nom}
-            onChange={(e) => setNom(e.target.value)}
-            placeholder="Nom Prénom"
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-            required
-          />
+      {/* RÉCEPTION */}
+      {envoi.statut === 'envoye' && (
+        <div style={{ ...card, marginTop: 16 }}>
+          <div style={sectionTitle}>Confirmation réception — Laboratoire destinataire</div>
+          <p style={{ fontSize: 13, color: '#374151', marginBottom: 12 }}>
+            Vérifiez le nombre de sachets reçus :
+          </p>
+          {nbAmbiant > 0 && <Counter label="Ambiant (15-25°C)" expected={nbAmbiant} value={countAmbiantR} onChange={setCountAmbiantR} />}
+          {nbPlus4 > 0 && <Counter label="+4°C (2-8°C)" expected={nbPlus4} value={countPlus4R} onChange={setCountPlus4R} />}
+          {nbCongele > 0 && <Counter label="Congelé (≤-15°C)" expected={nbCongele} value={countCongeleR} onChange={setCountCongeleR} />}
+          <div style={{ marginTop: 16 }}>
+            <input
+              placeholder="Nom du réceptionnaire"
+              value={nomReceptionnaire}
+              onChange={e => setNomReceptionnaire(e.target.value)}
+              style={inputStyle}
+            />
+            <input
+              placeholder="Initiales"
+              value={visaReceptionnaire}
+              onChange={e => setVisaReceptionnaire(e.target.value)}
+              maxLength={5}
+              style={{ ...inputStyle, marginTop: 8 }}
+            />
+          </div>
+          <button
+            disabled={!canReceptionner || submitting}
+            onClick={handleReceptionner}
+            style={{ ...btnPrimary, marginTop: 16, opacity: !canReceptionner || submitting ? 0.5 : 1 }}
+          >
+            {submitting ? 'Envoi…' : 'Confirmer la réception'}
+          </button>
         </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Initiales / Visa</label>
-          <input
-            type="text"
-            value={visa}
-            onChange={(e) => setVisa(e.target.value.toUpperCase().slice(0, 4))}
-            placeholder="Ex: JD"
-            maxLength={4}
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 uppercase"
-            required
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading || !canSubmit}
-          className="w-full py-2.5 rounded-lg text-sm font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          {loading ? 'Confirmation...' : 'Confirmer la réception'}
-        </button>
-        {!allOk && nom.trim() && visa.trim() && (
-          <p className="text-xs text-center text-red-500">Tous les compteurs doivent être confirmés (✓)</p>
-        )}
-      </form>
-    </div>
-  );
-}
+      )}
 
-/* ─── Page principale ────────────────────────────────────────── */
-
-export default function TransportBonPage() {
-  const params = useParams();
-  const id = params.id as string;
-
-  const [envoi, setEnvoi] = useState<EnvoiTransport | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  async function loadEnvoi() {
-    try {
-      const res = await fetch(`/api/transport/envois/${id}`);
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error ?? 'Introuvable');
-        return;
-      }
-      const data = await res.json();
-      setEnvoi(data.envoi as EnvoiTransport);
-    } catch {
-      setError('Erreur réseau');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    loadEnvoi();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500 text-sm">Chargement...</div>
-      </div>
-    );
-  }
-
-  if (error || !envoi) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 font-semibold text-lg mb-2">Bon introuvable</p>
-          <p className="text-gray-500 text-sm">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  const sachets = envoi.sachets ?? [];
-  const num = bonNum(envoi.id);
-
-  return (
-    <div className="min-h-screen bg-gray-50 print:bg-white">
-      {/* Header */}
-      <div className="bg-teal-700 text-white print:bg-teal-700 print:text-white">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-teal-200 uppercase tracking-wider">GCS Bio Med</p>
-            <h1 className="text-lg font-bold">Bon de transport N°{num}</h1>
+      {/* TRANSPORT COMPLÉTÉ */}
+      {envoi.statut === 'receptionne' && (
+        <div style={{ ...card, marginTop: 16 }}>
+          <div style={{ textAlign: 'center', marginBottom: 16 }}>
+            <span style={{
+              background: '#dcfce7', color: '#16a34a',
+              padding: '6px 16px', borderRadius: 20, fontWeight: 700, fontSize: 15,
+            }}>✓ Transport complété</span>
           </div>
-          <div className="print:hidden">
-            {statutBadge(envoi.statut)}
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
-
-        {/* Badge transport complété */}
-        {envoi.statut === 'receptionne' && (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-            <span className="inline-flex items-center gap-2 text-green-800 font-bold text-base">
-              <span className="text-xl">✓</span>
-              Transport complété
-            </span>
-            <p className="text-green-700 text-sm mt-1">
-              Prélèvements réceptionnés au laboratoire {envoi.dest_nom}.
-            </p>
-          </div>
-        )}
-
-        {/* Informations générales */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Informations</h2>
-          </div>
-          <div className="px-4 py-4 grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-gray-500 mb-0.5">Expéditeur</p>
-              <p className="text-sm font-semibold text-gray-900">CH {envoi.site_nom ?? '—'}</p>
-              <p className="text-xs text-gray-500">Laboratoire de Biologie Médicale</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 mb-0.5">Destinataire</p>
-              <p className="text-sm font-semibold text-gray-900">{envoi.dest_nom ?? '—'}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 mb-0.5">Date de création</p>
-              <p className="text-sm font-medium text-gray-800">{fmtDateTime(envoi.created_at)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 mb-0.5">Opérateur expéditeur</p>
-              <p className="text-sm font-mono font-bold text-gray-900">{envoi.visa_expediteur}</p>
-            </div>
-            <div className="col-span-2 print:hidden">
-              <p className="text-xs text-gray-500 mb-1">Statut</p>
-              {statutBadge(envoi.statut)}
-            </div>
-          </div>
-        </div>
-
-        {/* Table sachets */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Prélèvements</h2>
-            <span className="text-sm font-bold text-teal-700">
-              {sachets.length} sachet{sachets.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-
-          {(['ambiant', '+4', 'congele'] as TemperatureTransport[]).map((temp) => {
-            const tc = TEMP_CONFIG[temp];
-            const ts = sachets.filter((s) => s.temperature === temp);
-            if (ts.length === 0) return null;
-            return (
-              <div key={temp} className={`border-b last:border-b-0 border-gray-100 ${tc.bg}`}>
-                <div className={`px-4 py-2 border-b ${tc.border} flex items-center justify-between`}>
-                  <span className="text-xs font-semibold text-gray-700">{tc.icon} {tc.label}</span>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${tc.badge}`}>{ts.length}</span>
-                </div>
-                <ul className="divide-y divide-gray-100">
-                  {ts.map((s, i) => (
-                    <li key={s.id} className="flex items-center gap-3 px-4 py-2 bg-white">
-                      <span className="text-xs text-gray-400 w-5">{i + 1}.</span>
-                      <span className="flex-1 text-sm font-mono text-gray-800">{s.code_barre}</span>
-                      <span className="text-xs text-gray-400">
-                        {formatHeure(s.created_at ?? s.scanned_at)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-
-          {sachets.length === 0 && (
-            <div className="px-4 py-6 text-center text-sm text-gray-400">Aucun sachet enregistré</div>
-          )}
-        </div>
-
-        {/* Recap prise en charge */}
-        {(envoi.statut === 'envoye' || envoi.statut === 'receptionne') && envoi.nom_transporteur && (
-          <div className="bg-white rounded-xl border border-blue-200 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 bg-blue-50 border-b border-blue-200">
-              <h2 className="text-sm font-bold text-blue-800 uppercase tracking-wider">Prise en charge</h2>
-            </div>
-            <div className="px-4 py-4 grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-gray-500 mb-0.5">Transporteur</p>
-                <p className="text-sm font-semibold text-gray-900">{envoi.nom_transporteur}</p>
-                <p className="text-xs font-mono text-gray-500">{envoi.visa_transporteur}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 mb-0.5">Heure de prise en charge</p>
-                <p className="text-sm font-medium text-gray-800">{fmtDateTime(envoi.envoye_at)}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Recap réception */}
-        {envoi.statut === 'receptionne' && envoi.nom_receptionnaire && (
-          <div className="bg-white rounded-xl border border-green-200 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 bg-green-50 border-b border-green-200">
-              <h2 className="text-sm font-bold text-green-800 uppercase tracking-wider">Réception</h2>
-            </div>
-            <div className="px-4 py-4 grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-gray-500 mb-0.5">Réceptionné par</p>
-                <p className="text-sm font-semibold text-gray-900">{envoi.nom_receptionnaire}</p>
-                <p className="text-xs font-mono text-gray-500">{envoi.visa_receptionnaire}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 mb-0.5">Heure de réception</p>
-                <p className="text-sm font-medium text-gray-800">{fmtDateTime(envoi.receptionne_at)}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Formulaire transporteur — statut = valide */}
-        {envoi.statut === 'valide' && (
-          <FormulaireTransporteur
-            envoiId={envoi.id}
-            sachets={sachets}
-            onSuccess={() => {
-              setLoading(true);
-              loadEnvoi();
-            }}
-          />
-        )}
-
-        {/* Formulaire réceptionnaire — statut = envoye */}
-        {envoi.statut === 'envoye' && (
-          <FormulaireReceptionnaire
-            envoiId={envoi.id}
-            sachets={sachets}
-            onSuccess={() => {
-              setLoading(true);
-              loadEnvoi();
-            }}
-          />
-        )}
-
-        {/* Bouton impression */}
-        <div className="flex justify-center print:hidden">
+          <Row label="Pris en charge par" value={`${envoi.nom_transporteur} (${envoi.visa_transporteur})`} />
+          <Row label="Le" value={fmt(envoi.envoye_at)} />
+          <div style={{ borderTop: '1px solid #e5e7eb', margin: '12px 0' }} />
+          <Row label="Réceptionné par" value={`${envoi.nom_receptionnaire} (${envoi.visa_receptionnaire})`} />
+          <Row label="Le" value={fmt(envoi.receptionne_at)} />
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
+            style={{ ...btnPrimary, marginTop: 20, background: '#6b7280' }}
           >
-            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-            </svg>
             Imprimer
           </button>
         </div>
-
-        <div className="text-center text-xs text-gray-400 pb-4">
-          BioTools — tracabilite-centrifugation.vercel.app · Bon N°{num}
-        </div>
-      </div>
+      )}
     </div>
-  );
+  )
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: 13, borderBottom: '1px solid #f3f4f6' }}>
+      <span style={{ color: '#6b7280' }}>{label}</span>
+      <span style={{ fontWeight: 600, color: '#111827', textAlign: 'right', maxWidth: '60%' }}>{value}</span>
+    </div>
+  )
+}
+
+function Th({ children }: { children: React.ReactNode }) {
+  return <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 700, color: '#374151', borderBottom: '1px solid #d1d5db' }}>{children}</th>
+}
+
+function Td({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return <td style={{ padding: '6px 8px', borderBottom: '1px solid #f3f4f6', ...style }}>{children}</td>
+}
+
+const pageStyle: React.CSSProperties = {
+  maxWidth: 600,
+  margin: '0 auto',
+  padding: '20px 16px 40px',
+  fontFamily: 'system-ui, sans-serif',
+  background: '#fff',
+  minHeight: '100vh',
+}
+
+const card: React.CSSProperties = {
+  background: '#fff',
+  border: '1px solid #e5e7eb',
+  borderRadius: 10,
+  padding: '16px',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+}
+
+const sectionTitle: React.CSSProperties = {
+  fontSize: 15,
+  fontWeight: 700,
+  color: '#0F6E56',
+  marginBottom: 12,
+  paddingBottom: 8,
+  borderBottom: '2px solid #d1fae5',
+}
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '10px 12px',
+  border: '1px solid #d1d5db',
+  borderRadius: 6,
+  fontSize: 14,
+  boxSizing: 'border-box',
+}
+
+const btnPrimary: React.CSSProperties = {
+  width: '100%',
+  padding: '12px',
+  background: '#0F6E56',
+  color: '#fff',
+  border: 'none',
+  borderRadius: 8,
+  fontSize: 15,
+  fontWeight: 700,
+  cursor: 'pointer',
 }

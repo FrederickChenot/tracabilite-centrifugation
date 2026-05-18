@@ -24,7 +24,8 @@
       "Bash(npx next *)",
       "Bash(node *)",
       "Bash(mkdir -p \"C:\\\\Dev\\\\tracabilite-centrifugation\\\\src\\\\app\\\\api\\\\admin\\\\config\\\\[cle]\")",
-      "Bash(mkdir -p \"C:\\\\Dev\\\\tracabilite-centrifugation\\\\src\\\\app\\\\api\\\\admin\\\\users\\\\[id]\\\\reset-password\")"
+      "Bash(mkdir -p \"C:\\\\Dev\\\\tracabilite-centrifugation\\\\src\\\\app\\\\api\\\\admin\\\\users\\\\[id]\\\\reset-password\")",
+      "Bash(powershell *)"
     ]
   },
   "hooks": {
