@@ -153,14 +153,15 @@ export default function TransportPage() {
     loadHistorique(siteId);
   }, [siteId, loadHistorique]);
 
-  /* Pré-remplir visa depuis la session */
+  /* Pré-remplir visa depuis la session (une seule fois au chargement) */
   useEffect(() => {
-    if (session?.user?.name && !visa) {
+    if (session?.user?.name) {
       const parts = session.user.name.split(' ');
       const initials = parts.map((p) => p[0] ?? '').join('').toUpperCase().slice(0, 4);
-      if (initials) setVisa(initials);
+      if (initials) setVisa((prev) => prev || initials);
     }
-  }, [session, visa]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
 
   /* ── Actions ── */
 
@@ -364,7 +365,7 @@ export default function TransportPage() {
                     value={visa}
                     onChange={(e) => setVisa(e.target.value.toUpperCase().slice(0, 4))}
                     disabled={!!envoi}
-                    placeholder="Ex: JD"
+                    placeholder="Ex: FD"
                     maxLength={4}
                     className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:bg-gray-50 disabled:text-gray-400 uppercase"
                   />
