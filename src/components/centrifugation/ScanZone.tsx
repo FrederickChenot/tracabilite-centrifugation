@@ -65,7 +65,7 @@ export default function ScanZone({
     <div className="flex flex-col flex-1 min-h-0 px-3 pb-3">
       <div className="mb-2">
         <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">
-          Scan tube
+          Scanner un tube
         </label>
         <div className="relative">
           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none z-10">

@@ -113,11 +113,6 @@ export default function TransportPublicPage() {
       const json = await res.json()
       const data: Envoi = json.envoi
       setEnvoi(data)
-      const nb4 = data.sachets.filter(s => s.temperature === 'plus4').length
-      const nbA = data.sachets.filter(s => s.temperature === 'ambiant').length
-      const nbC = data.sachets.filter(s => s.temperature === 'congele').length
-      setCountAmbiantT(nbA); setCountPlus4T(nb4); setCountCongeleT(nbC)
-      setCountAmbiantR(nbA); setCountPlus4R(nb4); setCountCongeleR(nbC)
     } catch (e) {
       setError(String(e))
     } finally {

@@ -126,6 +126,20 @@ export default function CentrifugationPage() {
     await loadHistorique();
   }
 
+  async function handleAnnuler() {
+    if (!sessionId) return;
+    if (!confirm('Annuler ce scan ?\nLes tubes déjà scannés seront supprimés.')) return;
+    await fetch(`/api/centri/sessions/${sessionId}`, { method: 'DELETE' });
+    setSessionActive(false);
+    setSessionId(null);
+    setTubes([]);
+    setSelectedCentri(null);
+    setSelectedProg(null);
+    setStockage(null);
+    setVisa('');
+    await loadHistorique();
+  }
+
   async function handleExportPdf() {
     await exportTracabiliteJour(
       historique,
@@ -149,7 +163,6 @@ export default function CentrifugationPage() {
         <Topbar
           sessionActive={sessionActive}
           tubeCount={tubes.length}
-          onCloturer={handleCloturer}
           onExportPdf={handleExportPdf}
           onOpenSidebar={() => setSidebarOpen(true)}
         />
@@ -187,9 +200,27 @@ export default function CentrifugationPage() {
                 )}
               </div>
 
+              {/* Boutons Terminer / Annuler — sticky top sur mobile */}
+              {sessionActive && (
+                <div className="sticky top-0 z-20 bg-white border-b border-gray-200 px-3 py-2 flex gap-2">
+                  <button
+                    onClick={handleCloturer}
+                    className="flex-1 py-2 rounded text-sm font-semibold bg-teal-600 text-white hover:bg-teal-700 transition-colors"
+                  >
+                    Terminer
+                  </button>
+                  <button
+                    onClick={handleAnnuler}
+                    className="flex-1 py-2 rounded text-sm font-semibold bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 transition-colors"
+                  >
+                    ✕ Annuler
+                  </button>
+                </div>
+              )}
+
               <div className="px-3 py-2 bg-gray-50 border-b border-gray-200">
                 <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Scan tubes
+                  Tubes scannés
                 </h2>
               </div>
 
@@ -230,9 +261,6 @@ export default function CentrifugationPage() {
             </div>
           </div>
         </div>
-
-        {/* Padding bottom mobile pour le bouton sticky */}
-        {sessionActive && <div className="md:hidden h-14" />}
       </div>
     </div>
   );
