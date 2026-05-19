@@ -108,6 +108,7 @@ export default function CentrifugationPage() {
   }
 
   async function handleDeleteTube(id: string) {
+    if (!confirm('Supprimer ce tube ?')) return;
     await fetch(`/api/centri/tubes/${id}`, { method: 'DELETE' });
     setTubes((prev) => prev.filter((t) => t.id !== id));
     await loadHistorique();
@@ -126,18 +127,31 @@ export default function CentrifugationPage() {
     await loadHistorique();
   }
 
-  async function handleAnnuler() {
+  async function handleCloturerById(id: string) {
+    await fetch(`/api/centri/sessions/${id}/cloturer`, { method: 'PATCH' });
+    await loadHistorique();
+  }
+
+  function handleAnnuler() {
     if (!sessionId) return;
-    if (!confirm('Annuler ce scan ?\nLes tubes déjà scannés seront supprimés.')) return;
-    await fetch(`/api/centri/sessions/${sessionId}`, { method: 'DELETE' });
+    if (!confirm('Mettre ce scan en pause ?\nVous pourrez le reprendre depuis l\'historique.')) return;
     setSessionActive(false);
     setSessionId(null);
     setTubes([]);
-    setSelectedCentri(null);
-    setSelectedProg(null);
-    setStockage(null);
-    setVisa('');
-    await loadHistorique();
+  }
+
+  async function handleReprendre(id: string) {
+    const res = await fetch(`/api/centri/sessions/${id}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const s = data.session;
+    setSelectedCentri(s.centri_id);
+    setSelectedProg(s.prog_id);
+    setStockage(s.stockage);
+    setVisa(s.visa);
+    setSessionId(s.id);
+    setTubes((s.tubes ?? []) as Tube[]);
+    setSessionActive(true);
   }
 
   async function handleExportPdf() {
@@ -148,6 +162,11 @@ export default function CentrifugationPage() {
       visa || undefined,
     );
   }
+
+  /* Sessions en pause (ouvertes mais pas actives dans l'UI) */
+  const openSessions = historique.filter(
+    (s) => s.statut === 'ouverte' && s.id !== sessionId
+  );
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
@@ -166,6 +185,28 @@ export default function CentrifugationPage() {
           onExportPdf={handleExportPdf}
           onOpenSidebar={() => setSidebarOpen(true)}
         />
+
+        {/* Bandeau session(s) en pause */}
+        {!sessionActive && openSessions.length > 0 && (
+          <div className="shrink-0 bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-3 text-sm">
+            <span className="text-amber-600 font-semibold shrink-0">⏸ Scan en pause</span>
+            <span className="text-amber-800 flex-1 truncate min-w-0">
+              {openSessions[0].centri_nom} · Pgm {openSessions[0].prog_numero}
+            </span>
+            <button
+              onClick={() => handleReprendre(openSessions[0].id)}
+              className="shrink-0 px-3 py-1 bg-teal-600 text-white rounded text-xs font-semibold hover:bg-teal-700 transition-colors"
+            >
+              Reprendre →
+            </button>
+            <button
+              onClick={() => handleCloturerById(openSessions[0].id)}
+              className="shrink-0 px-3 py-1 bg-white text-gray-700 rounded text-xs font-semibold border border-gray-300 hover:bg-gray-50 transition-colors"
+            >
+              Terminer →
+            </button>
+          </div>
+        )}
 
         {/* Layout responsive : 1 col mobile, 2 col + historique desktop */}
         <div className="flex-1 min-h-0 overflow-auto md:overflow-hidden">
@@ -256,7 +297,11 @@ export default function CentrifugationPage() {
                 </span>
               </div>
               <div className="flex-1 md:min-h-0 md:overflow-auto">
-                <HistoriqueTable sessions={historique} currentSessionId={sessionId} />
+                <HistoriqueTable
+                  sessions={historique}
+                  currentSessionId={sessionId}
+                  onReprendre={handleReprendre}
+                />
               </div>
             </div>
           </div>

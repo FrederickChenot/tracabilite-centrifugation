@@ -6,6 +6,7 @@ import { HistoriqueSession } from '@/lib/schemas';
 interface HistoriqueTableProps {
   sessions: HistoriqueSession[];
   currentSessionId: string | null;
+  onReprendre?: (sessionId: string) => void;
 }
 
 const stockageBadgeStyle: Record<string, CSSProperties> = {
@@ -29,7 +30,22 @@ function formatHeureShort(dateStr: string): string {
   });
 }
 
-export default function HistoriqueTable({ sessions, currentSessionId }: HistoriqueTableProps) {
+function StatutBadge({ statut }: { statut: string }) {
+  if (statut === 'ouverte') {
+    return (
+      <span className="px-2 py-0.5 rounded-full text-xs font-medium shrink-0 bg-orange-100 text-orange-700">
+        En cours
+      </span>
+    );
+  }
+  return (
+    <span className="px-2 py-0.5 rounded-full text-xs font-medium shrink-0 bg-gray-200 text-gray-500">
+      Clôturé
+    </span>
+  );
+}
+
+export default function HistoriqueTable({ sessions, currentSessionId, onReprendre }: HistoriqueTableProps) {
   if (sessions.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-gray-400 text-sm">
@@ -44,6 +60,7 @@ export default function HistoriqueTable({ sessions, currentSessionId }: Historiq
       <div className="md:hidden flex flex-col gap-3 p-3">
         {sessions.map((session) => {
           const isCurrent = session.id === currentSessionId;
+          const canReprendre = session.statut === 'ouverte' && !isCurrent && onReprendre;
           return (
             <div
               key={session.id}
@@ -51,7 +68,6 @@ export default function HistoriqueTable({ sessions, currentSessionId }: Historiq
                 isCurrent ? 'border-teal-400 bg-teal-50' : 'border-gray-200 bg-white'
               }`}
             >
-              {/* Header card */}
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div>
                   <p className="text-xs font-mono text-gray-500">
@@ -60,15 +76,7 @@ export default function HistoriqueTable({ sessions, currentSessionId }: Historiq
                   </p>
                   <p className="font-medium text-gray-800 text-sm mt-0.5">{session.centri_nom}</p>
                 </div>
-                <span
-                  className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${
-                    session.statut === 'ouverte'
-                      ? 'bg-teal-100 text-teal-700'
-                      : 'bg-gray-200 text-gray-500'
-                  }`}
-                >
-                  {session.statut === 'ouverte' ? 'En cours' : 'Clôturé'}
-                </span>
+                <StatutBadge statut={session.statut} />
               </div>
 
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600 mb-2">
@@ -92,7 +100,7 @@ export default function HistoriqueTable({ sessions, currentSessionId }: Historiq
               </div>
 
               {session.tubes.length > 0 && (
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-1 mb-2">
                   {session.tubes.map((tube) => (
                     <span
                       key={tube.id}
@@ -107,6 +115,15 @@ export default function HistoriqueTable({ sessions, currentSessionId }: Historiq
                     </span>
                   ))}
                 </div>
+              )}
+
+              {canReprendre && (
+                <button
+                  onClick={() => onReprendre(session.id)}
+                  className="mt-1 px-3 py-1 bg-teal-600 text-white text-xs font-semibold rounded hover:bg-teal-700 transition-colors"
+                >
+                  Reprendre →
+                </button>
               )}
             </div>
           );
@@ -124,12 +141,13 @@ export default function HistoriqueTable({ sessions, currentSessionId }: Historiq
             <th className="text-left py-2 px-3 font-semibold text-gray-600 w-12">Visa</th>
             <th className="text-left py-2 px-3 font-semibold text-gray-600 w-12">Tubes</th>
             <th className="text-left py-2 px-3 font-semibold text-gray-600">Échantillons</th>
-            <th className="text-left py-2 px-3 font-semibold text-gray-600 w-20">Statut</th>
+            <th className="text-left py-2 px-3 font-semibold text-gray-600 w-32">Statut</th>
           </tr>
         </thead>
         <tbody>
           {sessions.map((session, idx) => {
             const isCurrent = session.id === currentSessionId;
+            const canReprendre = session.statut === 'ouverte' && !isCurrent && onReprendre;
             const rowBg = isCurrent
               ? 'bg-teal-50'
               : idx % 2 === 0
@@ -195,15 +213,17 @@ export default function HistoriqueTable({ sessions, currentSessionId }: Historiq
                   </div>
                 </td>
                 <td className="py-2 px-3">
-                  <span
-                    className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
-                      session.statut === 'ouverte'
-                        ? 'bg-teal-100 text-teal-700'
-                        : 'bg-gray-200 text-gray-500'
-                    }`}
-                  >
-                    {session.statut === 'ouverte' ? 'En cours' : 'Clôturé'}
-                  </span>
+                  <div className="flex flex-col gap-1 items-start">
+                    <StatutBadge statut={session.statut} />
+                    {canReprendre && (
+                      <button
+                        onClick={() => onReprendre(session.id)}
+                        className="px-2 py-0.5 bg-teal-600 text-white text-xs font-semibold rounded hover:bg-teal-700 transition-colors whitespace-nowrap"
+                      >
+                        Reprendre →
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             );

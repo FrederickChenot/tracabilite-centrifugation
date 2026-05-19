@@ -33,7 +33,7 @@ export default function TubeItem({ tube, index, onDelete }: TubeItemProps) {
       <button
         onClick={() => onDelete(tube.id)}
         title="Supprimer ce tube"
-        className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-opacity text-base leading-none px-0.5 font-bold"
+        className="opacity-60 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-opacity text-base leading-none px-0.5 font-bold"
       >
         ×
       </button>

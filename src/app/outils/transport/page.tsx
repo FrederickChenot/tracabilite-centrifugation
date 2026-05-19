@@ -378,24 +378,30 @@ export default function TransportPage() {
 
       {/* Modal bon de transport */}
       {modalEnvoiId && (
-        <div className="fixed inset-0 z-40 flex flex-col bg-white">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-white shrink-0">
-            <span className="text-sm font-semibold text-gray-700">Bon de transport</span>
-            <button
-              onClick={() => setModalEnvoiId(null)}
-              className="p-1.5 rounded hover:bg-gray-100 text-gray-500"
-              aria-label="Fermer"
-            >
-              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setModalEnvoiId(null); }}
+        >
+          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b border-gray-200">
+              <h2 className="font-semibold text-gray-800">Bon de transport</h2>
+              <button
+                onClick={() => setModalEnvoiId(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500"
+                aria-label="Fermer"
+              >
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <iframe
+              src={`/transport/${modalEnvoiId}`}
+              className="w-full border-0 flex-1"
+              style={{ minHeight: '60vh' }}
+              title="Bon de transport"
+            />
           </div>
-          <iframe
-            src={`/transport/${modalEnvoiId}`}
-            className="flex-1 w-full border-0"
-            title="Bon de transport"
-          />
         </div>
       )}
 
@@ -440,12 +446,12 @@ export default function TransportPage() {
           </button>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-auto md:overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-auto overflow-x-hidden md:overflow-hidden">
           {activeTab === 'envoi' ? (
             <div className="flex flex-col md:flex-row md:h-full gap-0">
 
               {/* ── Panneau gauche ── */}
-              <div className="md:w-[300px] md:shrink-0 bg-white border-b md:border-b-0 md:border-r border-gray-200 flex flex-col overflow-y-auto">
+              <div className="md:w-[300px] md:shrink-0 bg-white border-b md:border-b-0 md:border-r border-gray-200 flex flex-col overflow-y-auto overflow-x-hidden">
 
                 <div className="px-3 py-2 bg-gray-50 border-b border-gray-200">
                   <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
@@ -559,7 +565,7 @@ export default function TransportPage() {
                                   }}
                                   placeholder="Scanner ou saisir..."
                                   disabled={scanning[temp]}
-                                  className="flex-1 text-base border border-gray-300 bg-white rounded px-2 py-2.5 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-50"
+                                  className="flex-1 min-w-0 text-base border border-gray-300 bg-white rounded px-2 py-2.5 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-50"
                                 />
                                 <button
                                   onClick={() => handleScan(temp)}
