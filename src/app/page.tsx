@@ -193,68 +193,89 @@ export default function LandingPage() {
           <p className="text-gray-500 text-center mb-12">Essai gratuit 30 jours, sans carte bancaire</p>
           <div className="grid md:grid-cols-3 gap-6 items-start">
 
+            {/* STARTER */}
             <div className="bg-white rounded-2xl border border-gray-200 p-8">
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">STARTER</h3>
               <div className="flex items-baseline gap-1 mb-6">
-                <span className="text-4xl font-extrabold text-gray-900">49€</span>
+                <span className="text-4xl font-extrabold text-gray-900">149€</span>
                 <span className="text-gray-400 text-sm">/mois HT</span>
               </div>
               <ul className="space-y-2.5 mb-8">
-                {['1 site laboratoire', 'Module Centrifugation', 'Module Transport', 'Export PDF audit', 'Support email', 'Essai gratuit 30 jours'].map((f) => (
+                {[
+                  '1 site laboratoire',
+                  'Module Centrifugation',
+                  'Module Transport',
+                  'Export PDF audit COFRAC',
+                  'Support email 48h',
+                ].map((f) => (
                   <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
                     <span className="text-teal-500 font-bold text-xs">✓</span> {f}
                   </li>
                 ))}
               </ul>
-              <a href="#contact" className="block text-center px-4 py-3 border-2 border-teal-600 text-teal-600 rounded-xl font-semibold text-sm hover:bg-teal-50 transition-colors">
+              <Link href="/login" className="block text-center px-4 py-3 border-2 border-teal-600 text-teal-600 rounded-xl font-semibold text-sm hover:bg-teal-50 transition-colors">
                 Démarrer l&apos;essai gratuit →
-              </a>
+              </Link>
             </div>
 
+            {/* GCS */}
             <div className="bg-teal-600 rounded-2xl p-8 text-white relative shadow-lg">
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-white text-teal-700 text-xs font-bold px-4 py-1 rounded-full shadow">
                 Le plus populaire
               </div>
               <h3 className="text-xs font-bold text-teal-200 uppercase tracking-wider mb-2">GCS</h3>
               <div className="flex items-baseline gap-1 mb-6">
-                <span className="text-4xl font-extrabold">129€</span>
+                <span className="text-4xl font-extrabold">299€</span>
                 <span className="text-teal-200 text-sm">/mois HT</span>
               </div>
               <ul className="space-y-2.5 mb-8">
-                {["Jusqu'à 5 sites", 'Tous les modules', 'Recherche inter-sites', 'Dashboard administration', 'Gestion multi-utilisateurs', 'Support prioritaire', 'Essai gratuit 30 jours'].map((f) => (
+                {[
+                  "Jusqu'à 5 sites",
+                  'Tous les modules',
+                  'Recherche inter-sites GCS',
+                  'Dashboard administration',
+                  'Gestion multi-utilisateurs',
+                  'Support prioritaire 24h',
+                ].map((f) => (
                   <li key={f} className="flex items-center gap-2 text-sm text-white/90">
                     <span className="font-bold text-xs">✓</span> {f}
                   </li>
                 ))}
               </ul>
-              <a href="#contact" className="block text-center px-4 py-3 bg-white text-teal-700 rounded-xl font-semibold text-sm hover:bg-teal-50 transition-colors">
+              <Link href="/login" className="block text-center px-4 py-3 bg-white text-teal-700 rounded-xl font-semibold text-sm hover:bg-teal-50 transition-colors">
                 Démarrer l&apos;essai gratuit →
-              </a>
+              </Link>
             </div>
 
+            {/* SUR MESURE */}
             <div className="bg-white rounded-2xl border border-gray-200 p-8">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">RÉSEAU</h3>
-              <div className="flex items-baseline gap-1 mb-2">
-                <span className="text-2xl font-extrabold text-gray-900">À partir de 300€</span>
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">SUR MESURE</h3>
+              <div className="mb-6">
+                <span className="text-2xl font-extrabold text-gray-900">Sur devis</span>
               </div>
-              <p className="text-gray-400 text-sm mb-6">/mois HT</p>
               <ul className="space-y-2.5 mb-8">
-                {['Sites illimités', 'GHT et réseaux régionaux', 'Branding personnalisé', 'Formation incluse', 'SLA garanti', 'Intégration SIL'].map((f) => (
+                {[
+                  'Réseaux, GHT, besoins spécifiques',
+                  'Solution adaptée à votre structure',
+                  'Accompagnement personnalisé',
+                ].map((f) => (
                   <li key={f} className="flex items-center gap-2 text-sm text-gray-600">
                     <span className="text-teal-500 font-bold text-xs">✓</span> {f}
                   </li>
                 ))}
               </ul>
               <a href="#contact" className="block text-center px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-colors">
-                Demander un devis →
+                Nous contacter →
               </a>
             </div>
           </div>
-          <p className="text-center text-gray-500 text-sm mt-8 space-x-4">
+
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-10 text-sm text-gray-500">
             <span>✓ Sans engagement</span>
             <span>✓ Résiliable à tout moment</span>
             <span>✓ Données hébergées en Europe</span>
-          </p>
+            <span>✓ Essai gratuit 30 jours sans carte bancaire</span>
+          </div>
         </div>
       </section>
 
