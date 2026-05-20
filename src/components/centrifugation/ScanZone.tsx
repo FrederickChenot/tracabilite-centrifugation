@@ -12,6 +12,7 @@ interface ScanZoneProps {
   canStart: boolean;
   onScan: (numEchant: string) => Promise<void>;
   onDelete: (id: string) => void;
+  onStockageChange: (id: string, stockage: 'ambiant' | '+5' | '-20') => void;
   onStartSession: () => Promise<void>;
 }
 
@@ -22,6 +23,7 @@ export default function ScanZone({
   canStart,
   onScan,
   onDelete,
+  onStockageChange,
   onStartSession,
 }: ScanZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -132,7 +134,7 @@ export default function ScanZone({
           </p>
         ) : (
           tubes.map((tube, i) => (
-            <TubeItem key={tube.id} tube={tube} index={i + 1} onDelete={onDelete} />
+            <TubeItem key={tube.id} tube={tube} index={i + 1} onDelete={onDelete} onStockageChange={onStockageChange} />
           ))
         )}
       </div>

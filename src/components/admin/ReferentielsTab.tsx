@@ -3,6 +3,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Site, Centrifugeuse, Programme, LaboratoireDest } from '@/lib/schemas';
 import Toast, { useToast } from './Toast';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 type ReferentielsSubTab = 'centrifugation' | 'destinataires';
 
@@ -63,6 +78,41 @@ function InlineInput({
       placeholder={placeholder}
       className={`border border-teal-400 rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 ${className}`}
     />
+  );
+}
+
+/* ─── Drag handle ────────────────────────────────────────────── */
+
+function DragHandle(props: React.HTMLAttributes<HTMLSpanElement>) {
+  return (
+    <span
+      {...props}
+      className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 select-none px-1 py-1 text-base leading-none"
+      title="Déplacer"
+    >
+      ⠿
+    </span>
+  );
+}
+
+interface SortableRowProps {
+  id: string;
+  children: (dragHandleProps: React.HTMLAttributes<HTMLSpanElement>) => React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+}
+
+function SortableRow({ id, children, className = '', onClick }: SortableRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <tr ref={setNodeRef} style={style} className={className} onClick={onClick}>
+      {children({ ...attributes, ...listeners })}
+    </tr>
   );
 }
 
@@ -389,6 +439,30 @@ export default function ReferentielsTab() {
     }
   }
 
+  /* ── Drag & drop ── */
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = centrifugeuses.findIndex((c) => String(c.id) === active.id);
+    const newIndex = centrifugeuses.findIndex((c) => String(c.id) === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(centrifugeuses, oldIndex, newIndex);
+    setCentrifugeuses(reordered);
+    try {
+      await fetch('/api/admin/centrifugeuses/ordre', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: reordered.map((c) => c.id) }),
+      });
+      showToast('Ordre mis à jour');
+    } catch {
+      showToast('Erreur lors de la mise à jour de l\'ordre', 'error');
+    }
+  }
+
   /* ── Render ── */
 
   const selectedSite = sites.find((s) => s.id === selectedSiteId);
@@ -616,6 +690,7 @@ export default function ReferentielsTab() {
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-gray-50 z-10">
                   <tr className="border-b border-gray-200">
+                    <th className="w-7 px-1 py-2" />
                     <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">Nom</th>
                     <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">Modèle</th>
                     <th className="text-left px-4 py-2 text-xs font-semibold text-gray-600">Type</th>
@@ -623,86 +698,98 @@ export default function ReferentielsTab() {
                     <th className="px-4 py-2" />
                   </tr>
                 </thead>
-                <tbody>
-                  {showAddCentri && (
-                    <tr className="border-b border-teal-100 bg-teal-50">
-                      <td className="px-3 py-2">
-                        <InlineInput value={newCentri.nom} onChange={(v) => setNewCentri((p) => ({ ...p, nom: v }))} placeholder="Nom" className="w-full" />
-                      </td>
-                      <td className="px-3 py-2">
-                        <InlineInput value={newCentri.modele} onChange={(v) => setNewCentri((p) => ({ ...p, modele: v }))} placeholder="Modèle" className="w-full" />
-                      </td>
-                      <td className="px-3 py-2">
-                        <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer">
-                          <input type="checkbox" checked={newCentri.est_backup} onChange={(e) => setNewCentri((p) => ({ ...p, est_backup: e.target.checked }))} className="accent-teal-600" />
-                          Backup
-                        </label>
-                      </td>
-                      <td />
-                      <td className="px-3 py-2 flex gap-1">
-                        <Btn variant="teal" onClick={handleAddCentri} disabled={!newCentri.nom.trim() || !newCentri.modele.trim()}>✓ Ajouter</Btn>
-                        <Btn variant="ghost" onClick={() => { setShowAddCentri(false); setNewCentri({ nom: '', modele: '', est_backup: false }); }}>Annuler</Btn>
-                      </td>
-                    </tr>
-                  )}
-                  {centrifugeuses.length === 0 && !showAddCentri && (
-                    <tr><td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-400">Aucune centrifugeuse</td></tr>
-                  )}
-                  {centrifugeuses.map((c) => (
-                    <tr
-                      key={c.id}
-                      className={`border-b border-gray-100 group transition-colors cursor-pointer ${
-                        selectedCentriId === c.id ? 'bg-teal-50' : 'hover:bg-gray-50'
-                      } ${!c.actif ? 'opacity-50' : ''}`}
-                      onClick={() => setSelectedCentriId(c.actif && editingCentriId !== c.id ? c.id : selectedCentriId)}
-                    >
-                      {editingCentriId === c.id ? (
-                        <>
-                          <td className="px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
-                            <InlineInput value={editingCentri.nom} onChange={(v) => setEditingCentri((p) => ({ ...p, nom: v }))} className="w-full" />
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={centrifugeuses.map((c) => String(c.id))} strategy={verticalListSortingStrategy}>
+                    <tbody>
+                      {showAddCentri && (
+                        <tr className="border-b border-teal-100 bg-teal-50">
+                          <td />
+                          <td className="px-3 py-2">
+                            <InlineInput value={newCentri.nom} onChange={(v) => setNewCentri((p) => ({ ...p, nom: v }))} placeholder="Nom" className="w-full" />
                           </td>
-                          <td className="px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
-                            <InlineInput value={editingCentri.modele} onChange={(v) => setEditingCentri((p) => ({ ...p, modele: v }))} className="w-full" />
+                          <td className="px-3 py-2">
+                            <InlineInput value={newCentri.modele} onChange={(v) => setNewCentri((p) => ({ ...p, modele: v }))} placeholder="Modèle" className="w-full" />
                           </td>
-                          <td className="px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
+                          <td className="px-3 py-2">
                             <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer">
-                              <input type="checkbox" checked={editingCentri.est_backup} onChange={(e) => setEditingCentri((p) => ({ ...p, est_backup: e.target.checked }))} className="accent-teal-600" />
+                              <input type="checkbox" checked={newCentri.est_backup} onChange={(e) => setNewCentri((p) => ({ ...p, est_backup: e.target.checked }))} className="accent-teal-600" />
                               Backup
                             </label>
                           </td>
                           <td />
-                          <td className="px-3 py-1.5 flex gap-1" onClick={(e) => e.stopPropagation()}>
-                            <Btn variant="teal" onClick={() => handleSaveCentri(c.id)}>✓</Btn>
-                            <Btn variant="ghost" onClick={() => setEditingCentriId(null)}>✕</Btn>
+                          <td className="px-3 py-2 flex gap-1">
+                            <Btn variant="teal" onClick={handleAddCentri} disabled={!newCentri.nom.trim() || !newCentri.modele.trim()}>✓ Ajouter</Btn>
+                            <Btn variant="ghost" onClick={() => { setShowAddCentri(false); setNewCentri({ nom: '', modele: '', est_backup: false }); }}>Annuler</Btn>
                           </td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="px-4 py-2.5 font-medium text-gray-800">{c.nom}</td>
-                          <td className="px-4 py-2.5 text-gray-500">{c.modele}</td>
-                          <td className="px-4 py-2.5">
-                            {c.est_backup
-                              ? <Badge label="Backup" color="bg-amber-100 text-amber-700" />
-                              : <Badge label="Principal" color="bg-teal-100 text-teal-700" />
-                            }
-                          </td>
-                          <td className="px-4 py-2.5">
-                            {!c.actif && <Badge label="Inactif" color="bg-gray-100 text-gray-500" />}
-                          </td>
-                          <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
-                            <div className="opacity-0 group-hover:opacity-100 flex gap-1 justify-end">
-                              <Btn variant="ghost" onClick={() => { setEditingCentriId(c.id); setEditingCentri({ nom: c.nom, modele: c.modele, est_backup: c.est_backup }); }}>✎ Modifier</Btn>
-                              {c.actif
-                                ? <Btn variant="red" onClick={() => handleDisableCentri(c)}>⊗ Désactiver</Btn>
-                                : <Btn variant="ghost" onClick={() => handleEnableCentri(c)}>↺ Réactiver</Btn>
-                              }
-                            </div>
-                          </td>
-                        </>
+                        </tr>
                       )}
-                    </tr>
-                  ))}
-                </tbody>
+                      {centrifugeuses.length === 0 && !showAddCentri && (
+                        <tr><td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-400">Aucune centrifugeuse</td></tr>
+                      )}
+                      {centrifugeuses.map((c) => (
+                        <SortableRow
+                          key={c.id}
+                          id={String(c.id)}
+                          className={`border-b border-gray-100 group transition-colors cursor-pointer ${
+                            selectedCentriId === c.id ? 'bg-teal-50' : 'hover:bg-gray-50'
+                          } ${!c.actif ? 'opacity-50' : ''}`}
+                          onClick={() => setSelectedCentriId(c.actif && editingCentriId !== c.id ? c.id : selectedCentriId)}
+                        >
+                          {(dragHandleProps) =>
+                            editingCentriId === c.id ? (
+                              <>
+                                <td className="px-1" />
+                                <td className="px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
+                                  <InlineInput value={editingCentri.nom} onChange={(v) => setEditingCentri((p) => ({ ...p, nom: v }))} className="w-full" />
+                                </td>
+                                <td className="px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
+                                  <InlineInput value={editingCentri.modele} onChange={(v) => setEditingCentri((p) => ({ ...p, modele: v }))} className="w-full" />
+                                </td>
+                                <td className="px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
+                                  <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer">
+                                    <input type="checkbox" checked={editingCentri.est_backup} onChange={(e) => setEditingCentri((p) => ({ ...p, est_backup: e.target.checked }))} className="accent-teal-600" />
+                                    Backup
+                                  </label>
+                                </td>
+                                <td />
+                                <td className="px-3 py-1.5 flex gap-1" onClick={(e) => e.stopPropagation()}>
+                                  <Btn variant="teal" onClick={() => handleSaveCentri(c.id)}>✓</Btn>
+                                  <Btn variant="ghost" onClick={() => setEditingCentriId(null)}>✕</Btn>
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td className="px-1 py-2.5" onClick={(e) => e.stopPropagation()}>
+                                  <DragHandle {...dragHandleProps} />
+                                </td>
+                                <td className="px-4 py-2.5 font-medium text-gray-800">{c.nom}</td>
+                                <td className="px-4 py-2.5 text-gray-500">{c.modele}</td>
+                                <td className="px-4 py-2.5">
+                                  {c.est_backup
+                                    ? <Badge label="Backup" color="bg-amber-100 text-amber-700" />
+                                    : <Badge label="Principal" color="bg-teal-100 text-teal-700" />
+                                  }
+                                </td>
+                                <td className="px-4 py-2.5">
+                                  {!c.actif && <Badge label="Inactif" color="bg-gray-100 text-gray-500" />}
+                                </td>
+                                <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                                  <div className="opacity-0 group-hover:opacity-100 flex gap-1 justify-end">
+                                    <Btn variant="ghost" onClick={() => { setEditingCentriId(c.id); setEditingCentri({ nom: c.nom, modele: c.modele, est_backup: c.est_backup }); }}>✎ Modifier</Btn>
+                                    {c.actif
+                                      ? <Btn variant="red" onClick={() => handleDisableCentri(c)}>⊗ Désactiver</Btn>
+                                      : <Btn variant="ghost" onClick={() => handleEnableCentri(c)}>↺ Réactiver</Btn>
+                                    }
+                                  </div>
+                                </td>
+                              </>
+                            )
+                          }
+                        </SortableRow>
+                      ))}
+                    </tbody>
+                  </SortableContext>
+                </DndContext>
               </table>
             </div>
           )}

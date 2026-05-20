@@ -27,10 +27,10 @@ export async function GET(request: NextRequest) {
 
     await ensureCentrifugeusesActif();
     const rows = await sql`
-      SELECT id, site_id, nom, modele, est_backup, actif
+      SELECT id, site_id, nom, modele, est_backup, actif, COALESCE(ordre, 0) AS ordre
       FROM centrifugeuses
       WHERE site_id = ${Number(site_id)}
-      ORDER BY est_backup ASC, nom ASC
+      ORDER BY COALESCE(ordre, 0) ASC, est_backup ASC, nom ASC
     `;
     return NextResponse.json({ centrifugeuses: rows });
   } catch (err) {

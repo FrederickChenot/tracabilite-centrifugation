@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
   `;
 
   const tubes = await sql`
-    SELECT t.id, t.session_id, t.num_echant, t.scanned_at
+    SELECT t.id, t.session_id, t.num_echant, t.scanned_at, t.stockage
     FROM tubes_centri t
     INNER JOIN sessions_centri s ON s.id = t.session_id
     WHERE s.site_id = ${Number(site_id)}
@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
       session_id: t.session_id,
       num_echant: t.num_echant,
       scanned_at: t.scanned_at,
+      stockage: t.stockage ?? null,
     })),
   }));
 

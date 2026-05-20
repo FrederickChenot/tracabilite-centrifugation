@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
   const result = await sql`
     INSERT INTO sessions_centri (site_id, centri_id, prog_id, stockage, visa)
-    VALUES (${site_id}, ${centri_id}, ${prog_id}, ${stockage}, ${visa})
+    VALUES (${site_id}, ${centri_id}, ${prog_id}, ${stockage ?? null}, ${visa})
     RETURNING id
   `;
 

@@ -1,12 +1,9 @@
 'use client';
 
-import type { CSSProperties, ReactNode } from 'react';
 import {
   IconRotateClockwise2,
   IconChevronDown,
   IconCheck,
-  IconSun,
-  IconSnowflake,
   IconUser,
 } from '@tabler/icons-react';
 import { CentrifugeusesAvecProgrammes } from '@/lib/schemas';
@@ -15,55 +12,21 @@ interface SessionConfigProps {
   centrifugeuses: CentrifugeusesAvecProgrammes[];
   selectedCentri: number | null;
   selectedProg: number | null;
-  stockage: 'ambiant' | '+5' | '-20' | null;
   visa: string;
   sessionActive: boolean;
   onCentriChange: (id: number) => void;
   onProgChange: (id: number) => void;
-  onStockageChange: (s: 'ambiant' | '+5' | '-20') => void;
   onVisaChange: (v: string) => void;
 }
-
-type StockageValue = 'ambiant' | '+5' | '-20';
-
-interface StockageOption {
-  value: StockageValue;
-  label: string;
-  activeStyle: CSSProperties;
-  icon: ReactNode;
-}
-
-const stockageOptions: StockageOption[] = [
-  {
-    value: 'ambiant',
-    label: 'Ambiant',
-    activeStyle: { background: '#FFF3E0', border: '1.5px solid #FF9800', color: '#E65100' },
-    icon: <IconSun size={16} />,
-  },
-  {
-    value: '+5',
-    label: '+5°C',
-    activeStyle: { background: '#E3F2FD', border: '1.5px solid #2196F3', color: '#0D47A1' },
-    icon: <IconSnowflake size={16} />,
-  },
-  {
-    value: '-20',
-    label: '-20°C',
-    activeStyle: { background: '#EDE7F6', border: '1.5px solid #673AB7', color: '#311B92' },
-    icon: <IconSnowflake size={16} />,
-  },
-];
 
 export default function SessionConfig({
   centrifugeuses,
   selectedCentri,
   selectedProg,
-  stockage,
   visa,
   sessionActive,
   onCentriChange,
   onProgChange,
-  onStockageChange,
   onVisaChange,
 }: SessionConfigProps) {
   const normales = centrifugeuses.filter((c) => !c.est_backup);
@@ -164,39 +127,6 @@ export default function SessionConfig({
               );
             })
           )}
-        </div>
-      </div>
-
-      {/* Stockage — boutons avec couleurs températures */}
-      <div>
-        <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">
-          Stockage
-        </label>
-        <div className="flex flex-col gap-1.5">
-          {stockageOptions.map((opt) => {
-            const selected = stockage === opt.value;
-            return (
-              <button
-                key={opt.value}
-                onClick={() => onStockageChange(opt.value)}
-                disabled={sessionActive}
-                className="w-full flex items-center justify-center gap-2 rounded font-medium text-sm transition-all duration-150 disabled:cursor-not-allowed"
-                style={
-                  selected
-                    ? { ...opt.activeStyle, height: 44 }
-                    : {
-                        height: 44,
-                        background: '#fff',
-                        border: '1.5px solid #d1d5db',
-                        color: '#6b7280',
-                      }
-                }
-              >
-                {opt.icon}
-                {opt.label}
-              </button>
-            );
-          })}
         </div>
       </div>
 

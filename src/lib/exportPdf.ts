@@ -103,10 +103,17 @@ export async function exportTracabiliteJour(
   let startY = 57;
 
   for (const session of sessions) {
+    const tubeStockages = [...new Set(session.tubes.map((t) => t.stockage ?? session.stockage).filter(Boolean))];
+    const stockageLabel = tubeStockages.length === 1
+      ? (STOCKAGE_LABEL[tubeStockages[0]!] ?? tubeStockages[0])
+      : tubeStockages.length > 1
+        ? 'Multi-stockage'
+        : (session.stockage ? (STOCKAGE_LABEL[session.stockage] ?? session.stockage) : '');
+
     const scanLine1 = [
       `Scan — ${session.centri_nom ?? ''}`,
       session.prog_numero ? `Pgm ${session.prog_numero}${session.prog_libelle ? ' ' + session.prog_libelle : ''}` : '',
-      STOCKAGE_LABEL[session.stockage] ?? session.stockage,
+      stockageLabel,
       `Visa : ${session.visa}`,
     ]
       .filter(Boolean)
@@ -116,13 +123,16 @@ export async function exportTracabiliteJour(
       `${session.tubes.length} tube${session.tubes.length !== 1 ? 's' : ''}`,
     ].join('  ·  ');
 
-    const body = session.tubes.map((tube, i) => [
-      String(i + 1),
-      tube.num_echant,
-      fmtTime(tube.scanned_at),
-      STOCKAGE_LABEL[session.stockage] ?? session.stockage,
-      (tube as { remarque?: string }).remarque ?? '',
-    ]);
+    const body = session.tubes.map((tube, i) => {
+      const effectiveStockage = tube.stockage ?? session.stockage ?? '';
+      return [
+        String(i + 1),
+        tube.num_echant,
+        fmtTime(tube.scanned_at),
+        STOCKAGE_LABEL[effectiveStockage] ?? effectiveStockage,
+        (tube as { remarque?: string }).remarque ?? '',
+      ];
+    });
 
     if (body.length === 0) {
       body.push(['—', '(aucun tube)', '', '', '']);

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     FROM centrifugeuses c
     LEFT JOIN programmes p ON p.centrifugeuse_id = c.id
     WHERE c.site_id = ${Number(site_id)} AND c.actif = true
-    ORDER BY c.est_backup ASC, c.nom ASC, p.numero ASC
+    ORDER BY COALESCE(c.ordre, 0) ASC, c.est_backup ASC, c.nom ASC, p.numero ASC
   `;
 
   const centriMap = new Map<number, CentrifugeusesAvecProgrammes>();

@@ -305,8 +305,8 @@ export default function TransportPage() {
       }
 
       showToast('Envoi validé — bon exporté');
-      setEnvoi(null);
       setScanValues({ ambiant: '', plus4: '', congele: '' });
+      setEnvoi((prev) => prev ? { ...prev, statut: 'valide' } : null);
       await loadHistorique(siteId);
     } finally {
       setValidating(false);
@@ -316,6 +316,20 @@ export default function TransportPage() {
   function handlePrevisualiser() {
     if (!envoi) return;
     setModalEnvoiId(envoi.id);
+  }
+
+  async function handleRegeneratePdf() {
+    if (!envoi) return;
+    setExporting(true);
+    try {
+      const res = await fetch(`/api/transport/envois/${envoi.id}`);
+      const data = await res.json();
+      if (data.envoi) await exportTransportPdf(data.envoi);
+    } catch {
+      showToast('Erreur export PDF', 'error');
+    } finally {
+      setExporting(false);
+    }
   }
 
   async function handleSearchHistorique() {
@@ -523,12 +537,34 @@ export default function TransportPage() {
                   )}
                 </div>
 
+                {/* ── Bannière retardataires (statut 'valide') ── */}
+                {envoi?.statut === 'valide' && (
+                  <div className="px-3 py-3 bg-green-50 border-t border-green-200 flex flex-col gap-2">
+                    <p className="text-xs font-semibold text-green-700">✓ Bon validé et exporté</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleRegeneratePdf}
+                        disabled={exporting}
+                        className="flex-1 py-1.5 rounded text-xs font-semibold border border-green-400 text-green-700 hover:bg-green-100 disabled:opacity-40 transition-colors"
+                      >
+                        {exporting ? 'Export...' : 'Regénérer le PDF'}
+                      </button>
+                      <button
+                        onClick={() => { setEnvoi(null); setScanValues({ ambiant: '', plus4: '', congele: '' }); }}
+                        className="flex-1 py-1.5 rounded text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                      >
+                        Nouveau bon →
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* ── Zones de scan ── */}
                 {envoi && (
                   <>
                     <div className="px-3 py-2 bg-gray-50 border-t border-b border-gray-200">
                       <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        Scan sachets
+                        {envoi.statut === 'valide' ? 'Sachets retardataires' : 'Scan sachets'}
                       </h2>
                     </div>
 
@@ -610,13 +646,15 @@ export default function TransportPage() {
                         >
                           Prévisualiser le bon
                         </button>
-                        <button
-                          onClick={handleValider}
-                          disabled={!canValider || validating || exporting}
-                          className="w-full py-2 rounded text-sm font-semibold bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                        >
-                          {validating ? 'Validation...' : exporting ? 'Export PDF...' : `Valider et exporter (${totalSachets} sachet${totalSachets > 1 ? 's' : ''})`}
-                        </button>
+                        {envoi?.statut !== 'valide' && (
+                          <button
+                            onClick={handleValider}
+                            disabled={!canValider || validating || exporting}
+                            className="w-full py-2 rounded text-sm font-semibold bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {validating ? 'Validation...' : exporting ? 'Export PDF...' : `Valider et exporter (${totalSachets} sachet${totalSachets > 1 ? 's' : ''})`}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </>
@@ -928,20 +966,40 @@ export default function TransportPage() {
         {envoi && activeTab === 'envoi' && <div className="md:hidden h-16" />}
       </div>
 
-      {/* Bouton Valider sticky mobile */}
+      {/* Bouton sticky mobile */}
       {envoi && activeTab === 'envoi' && (
         <div
           className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-white border-t border-gray-200"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
-          <button
-            onClick={handleValider}
-            disabled={!canValider || validating || exporting}
-            className="w-full bg-teal-600 text-white font-semibold text-base disabled:opacity-40"
-            style={{ height: '56px' }}
-          >
-            {validating ? 'Validation...' : exporting ? 'Export PDF...' : `Valider (${totalSachets} sachet${totalSachets > 1 ? 's' : ''})`}
-          </button>
+          {envoi.statut === 'valide' ? (
+            <div className="flex">
+              <button
+                onClick={handleRegeneratePdf}
+                disabled={exporting}
+                className="flex-1 bg-green-600 text-white font-semibold text-sm disabled:opacity-40"
+                style={{ height: '56px' }}
+              >
+                {exporting ? 'Export...' : 'Regénérer PDF'}
+              </button>
+              <button
+                onClick={() => { setEnvoi(null); setScanValues({ ambiant: '', plus4: '', congele: '' }); }}
+                className="flex-1 bg-gray-100 text-gray-700 font-semibold text-sm"
+                style={{ height: '56px' }}
+              >
+                Nouveau bon →
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleValider}
+              disabled={!canValider || validating || exporting}
+              className="w-full bg-teal-600 text-white font-semibold text-base disabled:opacity-40"
+              style={{ height: '56px' }}
+            >
+              {validating ? 'Validation...' : exporting ? 'Export PDF...' : `Valider (${totalSachets} sachet${totalSachets > 1 ? 's' : ''})`}
+            </button>
+          )}
         </div>
       )}
     </div>

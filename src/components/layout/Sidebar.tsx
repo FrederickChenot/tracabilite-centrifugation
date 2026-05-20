@@ -17,6 +17,11 @@ const navItems = [
   { href: '/recherche',             label: 'Recherche',       icon: '⌕' },
 ];
 
+const archiveItems = [
+  { href: '/archives/centrifugation', label: 'Centrifugation' },
+  { href: '/archives/transport',      label: 'Transport' },
+];
+
 export default function Sidebar({ siteId, onSiteChange, mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
@@ -76,6 +81,28 @@ export default function Sidebar({ siteId, onSiteChange, mobileOpen, onMobileClos
                 }`}
               >
                 <span className="text-base">{item.icon}</span>
+                {item.label}
+              </Link>
+            );
+          })}
+          <div className="border-t border-gray-700 mx-4 my-2" />
+          <p className="px-4 text-xs text-gray-500 uppercase tracking-wider mb-1">Archives</p>
+          {archiveItems.map((item) => {
+            const active = pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onMobileClose}
+                className={`flex items-center gap-2 px-4 py-2 text-sm transition-colors ${
+                  active
+                    ? 'bg-teal-700 text-white font-medium'
+                    : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                }`}
+              >
+                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8" />
+                </svg>
                 {item.label}
               </Link>
             );

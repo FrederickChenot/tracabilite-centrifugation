@@ -34,7 +34,8 @@
       "Bash(xargs grep -n \"Ouvr\\\\|Scan\\\\|tube\\\\|scan\")",
       "Bash(sed -i \"s|signOut\\({ callbackUrl: '/login?disconnected=true' }\\)|signOut\\({ callbackUrl: '/' }\\)|g\" src/components/layout/Sidebar.tsx src/components/InactivityGuard.tsx src/app/profil/page.tsx)",
       "Bash(sed -i \"s|signOut\\({ callbackUrl: '/login?changed=true' }\\)|signOut\\({ callbackUrl: '/' }\\)|g\" src/app/profil/page.tsx)",
-      "Bash(sed -i \"s|signOut\\({ callbackUrl: '/login' }\\)|signOut\\({ callbackUrl: '/' }\\)|g\" src/app/admin/page.tsx)"
+      "Bash(sed -i \"s|signOut\\({ callbackUrl: '/login' }\\)|signOut\\({ callbackUrl: '/' }\\)|g\" src/app/admin/page.tsx)",
+      "Bash(git diff *)"
     ]
   },
   "hooks": {

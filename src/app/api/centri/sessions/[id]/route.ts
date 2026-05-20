@@ -23,7 +23,8 @@ export async function GET(
             'id',         t.id,
             'session_id', t.session_id,
             'num_echant', t.num_echant,
-            'scanned_at', t.scanned_at
+            'scanned_at', t.scanned_at,
+            'stockage',   t.stockage
           ) ORDER BY t.scanned_at
         ) FILTER (WHERE t.id IS NOT NULL),
         '[]'::json

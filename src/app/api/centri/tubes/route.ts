@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { session_id, num_echant } = parsed.data;
+  const { session_id, num_echant, stockage } = parsed.data;
 
   const sessionCheck = await sql`
     SELECT id, statut FROM sessions_centri WHERE id = ${session_id}
@@ -30,9 +30,9 @@ export async function POST(request: NextRequest) {
   }
 
   const result = await sql`
-    INSERT INTO tubes_centri (session_id, num_echant)
-    VALUES (${session_id}, ${num_echant})
-    RETURNING id, session_id, num_echant, scanned_at
+    INSERT INTO tubes_centri (session_id, num_echant, stockage)
+    VALUES (${session_id}, ${num_echant}, ${stockage ?? null})
+    RETURNING id, session_id, num_echant, scanned_at, stockage
   `;
 
   return NextResponse.json(result[0], { status: 201 });
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
   }
 
   const tubes = await sql`
-    SELECT id, session_id, num_echant, scanned_at
+    SELECT id, session_id, num_echant, scanned_at, stockage
     FROM tubes_centri
     WHERE session_id = ${session_id}
     ORDER BY scanned_at ASC

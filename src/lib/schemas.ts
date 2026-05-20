@@ -4,13 +4,14 @@ export const CreateSessionSchema = z.object({
   site_id: z.number().int().positive(),
   centri_id: z.number().int().positive(),
   prog_id: z.number().int().positive(),
-  stockage: z.enum(['ambiant', '+5', '-20']),
+  stockage: z.enum(['ambiant', '+5', '-20']).optional().nullable(),
   visa: z.string().min(1).max(5),
 });
 
 export const AddTubeSchema = z.object({
   session_id: z.string().uuid(),
   num_echant: z.string().min(1).max(50),
+  stockage: z.enum(['ambiant', '+5', '-20']).optional().nullable(),
 });
 
 export type CreateSessionInput = z.infer<typeof CreateSessionSchema>;
@@ -30,6 +31,7 @@ export interface Centrifugeuse {
   modele: string;
   est_backup: boolean;
   actif: boolean;
+  ordre?: number;
 }
 
 export interface Programme {
@@ -48,6 +50,7 @@ export interface Tube {
   session_id: string;
   num_echant: string;
   scanned_at: string;
+  stockage?: 'ambiant' | '+5' | '-20' | null;
 }
 
 export interface Session {
@@ -55,7 +58,7 @@ export interface Session {
   site_id: number;
   centri_id: number;
   prog_id: number;
-  stockage: 'ambiant' | '+5' | '-20';
+  stockage: 'ambiant' | '+5' | '-20' | null;
   visa: string;
   opened_at: string;
   closed_at: string | null;
@@ -95,7 +98,7 @@ export interface FilterState {
   date_debut: string;
   date_fin: string;
   visa: string;
-  stockage: '' | 'ambiant' | '+5' | '-20';
+  stockage: ('ambiant' | '+5' | '-20')[];
   avec_remarque: boolean;
 }
 

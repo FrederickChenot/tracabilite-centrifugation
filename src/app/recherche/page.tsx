@@ -13,7 +13,7 @@ const EMPTY_FILTERS: FilterState = {
   date_debut: '',
   date_fin: '',
   visa: '',
-  stockage: '',
+  stockage: [],
   avec_remarque: false,
 };
 
@@ -37,13 +37,13 @@ function buildParams(q: string, f: FilterState): URLSearchParams {
   if (f.date_debut)    p.set('date_debut',   f.date_debut);
   if (f.date_fin)      p.set('date_fin',     f.date_fin);
   if (f.visa.trim())   p.set('visa',         f.visa.trim());
-  if (f.stockage)      p.set('stockage',     f.stockage);
+  f.stockage.forEach((s) => p.append('stockage', s));
   if (f.avec_remarque) p.set('avec_remarque','true');
   return p;
 }
 
 function hasActiveFilter(f: FilterState): boolean {
-  return !!(f.site_id || f.centri_id || f.date_debut || f.date_fin || f.visa || f.stockage || f.avec_remarque);
+  return !!(f.site_id || f.centri_id || f.date_debut || f.date_fin || f.visa || f.stockage.length > 0 || f.avec_remarque);
 }
 
 function hasDateFilter(f: FilterState): boolean {
@@ -345,7 +345,7 @@ export default function RecherchePage() {
 
   const activeFilterCount = [
     filters.site_id, filters.centri_id, filters.date_debut, filters.date_fin,
-    filters.visa, filters.stockage, filters.avec_remarque,
+    filters.visa, filters.stockage.length > 0, filters.avec_remarque,
   ].filter(Boolean).length;
 
   return (
@@ -498,24 +498,35 @@ export default function RecherchePage() {
                   />
                 </div>
 
-                {/* Stockage */}
+                {/* Stockage — multi-sélection */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Stockage</label>
                   <div className="flex gap-1">
-                    {STOCKAGE_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => setFilter('stockage', filters.stockage === opt.value ? '' : opt.value)}
-                        className={`flex-1 text-xs py-1.5 rounded border font-medium transition-all ${
-                          filters.stockage === opt.value
-                            ? opt.cls + ' ring-2 ring-offset-1 ring-current'
-                            : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
+                    {STOCKAGE_OPTIONS.map((opt) => {
+                      const checked = filters.stockage.includes(opt.value);
+                      return (
+                        <button
+                          key={opt.value}
+                          onClick={() => {
+                            const next = checked
+                              ? filters.stockage.filter((s) => s !== opt.value)
+                              : [...filters.stockage, opt.value];
+                            setFilter('stockage', next as FilterState['stockage']);
+                          }}
+                          className={`flex-1 text-xs py-1.5 rounded border font-medium transition-all ${
+                            checked
+                              ? opt.cls + ' ring-2 ring-offset-1 ring-current'
+                              : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {checked ? '✓ ' : ''}{opt.label}
+                        </button>
+                      );
+                    })}
                   </div>
+                  {filters.stockage.length > 1 && (
+                    <p className="text-xs text-teal-600 mt-1">Multi-sélection active</p>
+                  )}
                 </div>
 
                 {/* Avec remarque */}

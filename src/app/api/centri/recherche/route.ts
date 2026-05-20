@@ -17,10 +17,10 @@ export async function GET(request: NextRequest) {
   const date_debut = searchParams.get('date_debut') || null;
   const date_fin   = searchParams.get('date_fin')   || null;
   const visa       = searchParams.get('visa')?.trim() || null;
-  const stockage   = searchParams.get('stockage')   || null;
+  const stockageArr = searchParams.getAll('stockage').filter((s) => ['ambiant', '+5', '-20'].includes(s));
   const avec_remarque = searchParams.get('avec_remarque') === 'true';
 
-  if (!q && !site_id && !centri_id && !date_debut && !date_fin && !visa && !stockage && !avec_remarque) {
+  if (!q && !site_id && !centri_id && !date_debut && !date_fin && !visa && stockageArr.length === 0 && !avec_remarque) {
     return NextResponse.json({ results: [] });
   }
 
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       s.opened_at,
       s.closed_at,
       s.statut,
-      s.stockage,
+      COALESCE(t.stockage, s.stockage) AS stockage,
       s.visa,
       c.nom  AS centrifugeuse,
       c.est_backup,
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       AND ${date_debut ? sql`t.scanned_at::date >= ${date_debut}::date` : sql`TRUE`}
       AND ${date_fin   ? sql`t.scanned_at::date <= ${date_fin}::date`   : sql`TRUE`}
       AND ${visa    ? sql`s.visa ILIKE ${visa}`                         : sql`TRUE`}
-      AND ${stockage ? sql`s.stockage = ${stockage}`                    : sql`TRUE`}
+      AND ${stockageArr.length > 0 ? sql`COALESCE(t.stockage, s.stockage) = ANY(${stockageArr})` : sql`TRUE`}
       AND ${avec_remarque ? sql`(t.remarque IS NOT NULL AND t.remarque != '')` : sql`TRUE`}
     ORDER BY t.scanned_at DESC
     LIMIT 500
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     opened_at:    r.opened_at,
     closed_at:    r.closed_at ?? null,
     statut:       r.statut,
-    stockage:     r.stockage,
+    stockage:     r.stockage ?? null,
     visa:         r.visa,
     centrifugeuse: r.centrifugeuse,
     est_backup:   r.est_backup,

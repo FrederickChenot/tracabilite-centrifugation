@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS centrifugeuses (
   nom VARCHAR(50) NOT NULL,
   modele VARCHAR(50),
   est_backup BOOLEAN DEFAULT false,
-  actif BOOLEAN DEFAULT true
+  actif BOOLEAN DEFAULT true,
+  ordre INT
 );
 
 CREATE TABLE IF NOT EXISTS programmes (
@@ -25,7 +26,7 @@ CREATE TABLE IF NOT EXISTS sessions_centri (
   site_id INT REFERENCES sites(id),
   centri_id INT REFERENCES centrifugeuses(id),
   prog_id INT REFERENCES programmes(id),
-  stockage VARCHAR(10) CHECK (stockage IN ('ambiant','+5','-20')) NOT NULL,
+  stockage VARCHAR(10) CHECK (stockage IN ('ambiant','+5','-20')),
   visa VARCHAR(5) NOT NULL,
   opened_at TIMESTAMPTZ DEFAULT NOW(),
   closed_at TIMESTAMPTZ,
@@ -36,7 +37,8 @@ CREATE TABLE IF NOT EXISTS tubes_centri (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id UUID REFERENCES sessions_centri(id) ON DELETE CASCADE,
   num_echant VARCHAR(50) NOT NULL,
-  scanned_at TIMESTAMPTZ DEFAULT NOW()
+  scanned_at TIMESTAMPTZ DEFAULT NOW(),
+  stockage VARCHAR(10) CHECK (stockage IN ('ambiant','+5','-20'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_tubes_session ON tubes_centri(session_id);
