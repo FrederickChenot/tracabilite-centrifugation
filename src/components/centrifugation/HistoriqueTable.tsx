@@ -99,12 +99,14 @@ export default function HistoriqueTable({ sessions, currentSessionId, onReprendr
                   <span className="font-bold text-gray-700">Pgm {session.prog_numero}</span>
                   {' '}{session.prog_libelle}
                 </span>
-                <span
-                  className="px-1.5 py-0.5 rounded font-medium"
-                  style={stockageBadgeStyle[session.stockage] ?? {}}
-                >
-                  {session.stockage}
-                </span>
+                {session.stockage && (
+                  <span
+                    className="px-1.5 py-0.5 rounded font-medium"
+                    style={stockageBadgeStyle[session.stockage] ?? {}}
+                  >
+                    {session.stockage}
+                  </span>
+                )}
                 <span className="font-mono font-bold text-gray-700">Visa : {session.visa}</span>
                 <span
                   className="flex items-center justify-center rounded-full text-white font-bold"
