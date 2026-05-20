@@ -192,16 +192,6 @@ export default function TransportPage() {
     loadHistorique(siteId, true);
   }, [siteId, loadHistorique]);
 
-  /* Pré-remplir visa depuis la session (une seule fois au chargement) */
-  useEffect(() => {
-    if (session?.user?.name) {
-      const parts = session.user.name.split(' ');
-      const initials = parts.map((p) => p[0] ?? '').join('').toUpperCase().slice(0, 4);
-      if (initials) setVisa((prev) => prev || initials);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session]);
-
   /* ── Actions ── */
 
   async function handleNouvelEnvoi() {

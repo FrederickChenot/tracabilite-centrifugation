@@ -15,21 +15,6 @@ const stockageBadgeStyle: Record<string, CSSProperties> = {
   '-20': { background: '#EDE7F6', color: '#311B92', border: '1px solid #673AB7' },
 };
 
-function StockageDot({ stockage }: { stockage?: string | null }) {
-  if (!stockage) return null;
-  const colors: Record<string, string> = {
-    ambiant: 'bg-orange-300',
-    '+5': 'bg-blue-400',
-    '-20': 'bg-purple-400',
-  };
-  return (
-    <span
-      className={`inline-block w-2 h-2 rounded-full shrink-0 ${colors[stockage] ?? 'bg-gray-300'}`}
-      title={stockage}
-    />
-  );
-}
-
 function formatHeure(dateStr: string): string {
   return new Date(dateStr).toLocaleTimeString('fr-FR', {
     hour: '2-digit',
@@ -99,14 +84,12 @@ export default function HistoriqueTable({ sessions, currentSessionId, onReprendr
                   <span className="font-bold text-gray-700">Pgm {session.prog_numero}</span>
                   {' '}{session.prog_libelle}
                 </span>
-                {session.stockage && (
-                  <span
-                    className="px-1.5 py-0.5 rounded font-medium"
-                    style={stockageBadgeStyle[session.stockage] ?? {}}
-                  >
-                    {session.stockage}
-                  </span>
-                )}
+                <span
+                  className="px-1.5 py-0.5 rounded font-medium"
+                  style={session.stockage ? (stockageBadgeStyle[session.stockage] ?? {}) : {}}
+                >
+                  {session.stockage ?? '—'}
+                </span>
                 <span className="font-mono font-bold text-gray-700">Visa : {session.visa}</span>
                 <span
                   className="flex items-center justify-center rounded-full text-white font-bold"
@@ -121,14 +104,13 @@ export default function HistoriqueTable({ sessions, currentSessionId, onReprendr
                   {session.tubes.map((tube) => (
                     <span
                       key={tube.id}
-                      title={`${formatHeure(tube.scanned_at)}${tube.stockage ? ' · ' + tube.stockage : ''}`}
-                      className={`inline-flex items-center gap-1 font-mono px-1.5 py-0.5 rounded text-xs ${
+                      title={formatHeure(tube.scanned_at)}
+                      className={`font-mono px-1.5 py-0.5 rounded text-xs ${
                         isCurrent
                           ? 'bg-teal-100 text-teal-800'
                           : 'bg-gray-100 text-gray-600'
                       }`}
                     >
-                      <StockageDot stockage={tube.stockage} />
                       {tube.num_echant}
                     </span>
                   ))}
@@ -195,20 +177,12 @@ export default function HistoriqueTable({ sessions, currentSessionId, onReprendr
                   </span>
                 </td>
                 <td className="py-2 px-3">
-                  {(() => {
-                    const tubeStockages = [...new Set(session.tubes.map((t) => t.stockage).filter(Boolean))];
-                    if (tubeStockages.length === 1) {
-                      const s = tubeStockages[0]!;
-                      return <span className="px-1.5 py-0.5 rounded text-xs font-medium" style={stockageBadgeStyle[s] ?? {}}>{s}</span>;
-                    }
-                    if (tubeStockages.length > 1) {
-                      return <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">Multi</span>;
-                    }
-                    if (session.stockage) {
-                      return <span className="px-1.5 py-0.5 rounded text-xs font-medium" style={stockageBadgeStyle[session.stockage] ?? {}}>{session.stockage}</span>;
-                    }
-                    return <span className="text-xs text-gray-400">—</span>;
-                  })()}
+                  <span
+                    className="px-1.5 py-0.5 rounded text-xs font-medium"
+                    style={session.stockage ? (stockageBadgeStyle[session.stockage] ?? {}) : {}}
+                  >
+                    {session.stockage ?? '—'}
+                  </span>
                 </td>
                 <td className="py-2 px-3 font-mono font-bold text-gray-700">
                   {session.visa}
@@ -226,14 +200,13 @@ export default function HistoriqueTable({ sessions, currentSessionId, onReprendr
                     {session.tubes.map((tube) => (
                       <span
                         key={tube.id}
-                        title={`${formatHeure(tube.scanned_at)}${tube.stockage ? ' · ' + tube.stockage : ''}`}
-                        className={`inline-flex items-center gap-0.5 font-mono px-1 py-0.5 rounded text-xs ${
+                        title={formatHeure(tube.scanned_at)}
+                        className={`font-mono px-1 py-0.5 rounded text-xs ${
                           isCurrent
                             ? 'bg-teal-100 text-teal-800'
                             : 'bg-gray-100 text-gray-600'
                         }`}
                       >
-                        <StockageDot stockage={tube.stockage} />
                         {tube.num_echant}
                       </span>
                     ))}

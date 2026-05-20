@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       s.opened_at,
       s.closed_at,
       s.statut,
-      COALESCE(t.stockage, s.stockage) AS stockage,
+      s.stockage,
       s.visa,
       c.nom  AS centrifugeuse,
       c.est_backup,
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       AND ${date_debut ? sql`t.scanned_at::date >= ${date_debut}::date` : sql`TRUE`}
       AND ${date_fin   ? sql`t.scanned_at::date <= ${date_fin}::date`   : sql`TRUE`}
       AND ${visa    ? sql`s.visa ILIKE ${visa}`                         : sql`TRUE`}
-      AND ${stockageArr.length > 0 ? sql`COALESCE(t.stockage, s.stockage) = ANY(${stockageArr})` : sql`TRUE`}
+      AND ${stockageArr.length > 0 ? sql`s.stockage = ANY(${stockageArr})` : sql`TRUE`}
       AND ${avec_remarque ? sql`(t.remarque IS NOT NULL AND t.remarque != '')` : sql`TRUE`}
     ORDER BY t.scanned_at DESC
     LIMIT 500

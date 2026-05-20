@@ -26,6 +26,7 @@ export default function CentrifugationPage() {
 
   const [selectedCentri, setSelectedCentri] = useState<number | null>(null);
   const [selectedProg, setSelectedProg] = useState<number | null>(null);
+  const [stockage, setStockage] = useState<'ambiant' | '+5' | '-20' | null>(null);
   const [visa, setVisa] = useState('');
 
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -59,6 +60,7 @@ export default function CentrifugationPage() {
     loadHistorique();
     setSelectedCentri(null);
     setSelectedProg(null);
+    setStockage(null);
     setVisa('');
     setSessionId(null);
     setSessionActive(false);
@@ -68,7 +70,8 @@ export default function CentrifugationPage() {
   const canStart =
     selectedCentri !== null &&
     selectedProg !== null &&
-    visa.trim().length >= 1;
+    stockage !== null &&
+    visa.trim().length >= 2;
 
   async function handleStartSession() {
     if (!canStart) return;
@@ -79,6 +82,7 @@ export default function CentrifugationPage() {
         site_id: siteId,
         centri_id: selectedCentri,
         prog_id: selectedProg,
+        stockage,
         visa: visa.trim(),
       }),
     });
@@ -103,18 +107,6 @@ export default function CentrifugationPage() {
     await loadHistorique();
   }
 
-  async function handleTubeStockage(tubeId: string, stockage: 'ambiant' | '+5' | '-20') {
-    const res = await fetch(`/api/centri/tubes/${tubeId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stockage }),
-    });
-    if (!res.ok) return;
-    const data = await res.json();
-    setTubes((prev) => prev.map((t) => t.id === tubeId ? { ...t, stockage: data.stockage } : t));
-    await loadHistorique();
-  }
-
   async function handleDeleteTube(id: string) {
     if (!confirm('Supprimer ce tube ?')) return;
     await fetch(`/api/centri/tubes/${id}`, { method: 'DELETE' });
@@ -130,6 +122,7 @@ export default function CentrifugationPage() {
     setTubes([]);
     setSelectedCentri(null);
     setSelectedProg(null);
+    setStockage(null);
     setVisa('');
     await loadHistorique();
   }
@@ -154,6 +147,7 @@ export default function CentrifugationPage() {
     const s = data.session;
     setSelectedCentri(s.centri_id);
     setSelectedProg(s.prog_id);
+    setStockage(s.stockage);
     setVisa(s.visa);
     setSessionId(s.id);
     setTubes((s.tubes ?? []) as Tube[]);
@@ -233,6 +227,7 @@ export default function CentrifugationPage() {
                     centrifugeuses={centrifugeuses}
                     selectedCentri={selectedCentri}
                     selectedProg={selectedProg}
+                    stockage={stockage}
                     visa={visa}
                     sessionActive={sessionActive}
                     onCentriChange={(id) => {
@@ -240,6 +235,7 @@ export default function CentrifugationPage() {
                       setSelectedProg(null);
                     }}
                     onProgChange={setSelectedProg}
+                    onStockageChange={setStockage}
                     onVisaChange={setVisa}
                   />
                 )}
@@ -276,7 +272,6 @@ export default function CentrifugationPage() {
                 canStart={canStart}
                 onScan={handleScan}
                 onDelete={handleDeleteTube}
-                onStockageChange={handleTubeStockage}
                 onStartSession={handleStartSession}
               />
             </div>
