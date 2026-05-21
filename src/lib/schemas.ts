@@ -4,6 +4,7 @@ export const CreateSessionSchema = z.object({
   site_id: z.number().int().positive(),
   centri_id: z.number().int().positive(),
   prog_id: z.number().int().positive(),
+  stockages: z.array(z.string()).min(1),
   visa: z.string().min(1).max(5),
 });
 

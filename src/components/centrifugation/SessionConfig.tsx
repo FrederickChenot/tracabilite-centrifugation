@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   IconRotateClockwise2,
   IconChevronDown,
@@ -20,12 +21,12 @@ interface SessionConfigProps {
   centrifugeuses: CentrifugeusesAvecProgrammes[];
   selectedCentri: number | null;
   selectedProg: number | null;
-  stockage: string;
+  stockages: string[];
   visa: string;
   sessionActive: boolean;
   onCentriChange: (id: number) => void;
   onProgChange: (id: number) => void;
-  onStockageChange: (v: StockageValue) => void;
+  onToggleStockage: (v: StockageValue) => void;
   onVisaChange: (v: string) => void;
 }
 
@@ -33,17 +34,18 @@ export default function SessionConfig({
   centrifugeuses,
   selectedCentri,
   selectedProg,
-  stockage,
+  stockages,
   visa,
   sessionActive,
   onCentriChange,
   onProgChange,
-  onStockageChange,
+  onToggleStockage,
   onVisaChange,
 }: SessionConfigProps) {
   const normales = centrifugeuses.filter((c) => !c.est_backup);
   const backups = centrifugeuses.filter((c) => c.est_backup);
   const programmes = centrifugeuses.find((c) => c.id === selectedCentri)?.programmes ?? [];
+  const [progExpanded, setProgExpanded] = useState(true);
 
   return (
     <div className="flex flex-col gap-3 p-3">
@@ -94,7 +96,14 @@ export default function SessionConfig({
         <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">
           Programme
         </label>
-        <div className="border border-gray-200 rounded overflow-hidden" style={{ maxHeight: 200, overflowY: 'auto' }}>
+        <div
+          className="border border-gray-200 rounded overflow-hidden"
+          style={{
+            maxHeight: progExpanded ? 180 : 60,
+            overflowY: 'auto',
+            transition: 'max-height 0.2s ease',
+          }}
+        >
           {programmes.length === 0 ? (
             <p className="text-xs text-gray-400 p-3 text-center">Sélectionner une centrifugeuse</p>
           ) : (
@@ -103,7 +112,7 @@ export default function SessionConfig({
               return (
                 <button
                   key={p.id}
-                  onClick={() => onProgChange(p.id)}
+                  onClick={() => { onProgChange(p.id); setProgExpanded(false); }}
                   disabled={sessionActive}
                   className="w-full text-left flex items-center gap-2 px-2.5 py-2 border-b last:border-b-0 border-gray-100 transition-all duration-150 disabled:cursor-not-allowed"
                   style={selected ? { background: '#E1F5EE', borderColor: '#0F6E56' } : undefined}
@@ -137,11 +146,11 @@ export default function SessionConfig({
           {STOCKAGE_OPTS.map(({ v, label, active }) => (
             <button
               key={v}
-              onClick={() => onStockageChange(v)}
+              onClick={() => onToggleStockage(v)}
               disabled={sessionActive}
               className="w-full flex items-center justify-center rounded font-medium text-sm transition-all duration-150 disabled:cursor-not-allowed"
               style={
-                stockage === v
+                stockages.includes(v)
                   ? { ...active, border: '1.5px solid', height: 40, fontWeight: 600 }
                   : { height: 40, background: '#fff', border: '1.5px solid #d1d5db', color: '#6b7280' }
               }

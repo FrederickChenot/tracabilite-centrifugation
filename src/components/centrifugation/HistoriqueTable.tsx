@@ -15,6 +15,35 @@ const stockageBadgeStyle: Record<string, CSSProperties> = {
   '-20': { background: '#EDE7F6', color: '#311B92', border: '1px solid #673AB7' },
 };
 
+function parseStockages(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+    return [raw];
+  } catch {
+    return [raw];
+  }
+}
+
+function StockageBadges({ raw }: { raw: string | null | undefined }) {
+  const list = parseStockages(raw);
+  if (list.length === 0) return <span className="text-gray-400">—</span>;
+  return (
+    <div className="flex flex-wrap gap-1">
+      {list.map((s) => (
+        <span
+          key={s}
+          className="px-1.5 py-0.5 rounded text-xs font-medium"
+          style={stockageBadgeStyle[s] ?? {}}
+        >
+          {s}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function formatHeure(dateStr: string): string {
   return new Date(dateStr).toLocaleTimeString('fr-FR', {
     hour: '2-digit',
@@ -84,12 +113,7 @@ export default function HistoriqueTable({ sessions, currentSessionId, onReprendr
                   <span className="font-bold text-gray-700">Pgm {session.prog_numero}</span>
                   {' '}{session.prog_libelle}
                 </span>
-                <span
-                  className="px-1.5 py-0.5 rounded font-medium"
-                  style={session.stockage ? (stockageBadgeStyle[session.stockage] ?? {}) : {}}
-                >
-                  {session.stockage ?? '—'}
-                </span>
+                <StockageBadges raw={session.stockage} />
                 <span className="font-mono font-bold text-gray-700">Visa : {session.visa}</span>
                 <span
                   className="flex items-center justify-center rounded-full text-white font-bold"
@@ -177,12 +201,7 @@ export default function HistoriqueTable({ sessions, currentSessionId, onReprendr
                   </span>
                 </td>
                 <td className="py-2 px-3">
-                  <span
-                    className="px-1.5 py-0.5 rounded text-xs font-medium"
-                    style={session.stockage ? (stockageBadgeStyle[session.stockage] ?? {}) : {}}
-                  >
-                    {session.stockage ?? '—'}
-                  </span>
+                  <StockageBadges raw={session.stockage} />
                 </td>
                 <td className="py-2 px-3 font-mono font-bold text-gray-700">
                   {session.visa}
