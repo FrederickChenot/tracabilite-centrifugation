@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { IconPlayerPlay } from '@tabler/icons-react';
 import { Tube } from '@/lib/schemas';
 
@@ -50,11 +50,7 @@ export default function ScanZone({
     ambiant: null, plus5: null, moins20: null,
   });
 
-  useEffect(() => {
-    if (sessionActive) {
-      scanRefs.current.ambiant?.focus();
-    }
-  }, [sessionActive]);
+  // Pas de focus automatique — le technicien choisit sa zone
 
   const tubesByTemp = (temp: StockageCentri) =>
     tubes.filter((t) => t.stockage === temp);
@@ -68,13 +64,11 @@ export default function ScanZone({
       setScanValues((prev) => ({ ...prev, [temp]: '' }));
     } finally {
       setScanning(null);
-      setTimeout(() => scanRefs.current[temp]?.focus(), 50);
     }
   }
 
   async function handleStartClick() {
     await onStartSession();
-    setTimeout(() => scanRefs.current.ambiant?.focus(), 100);
   }
 
   return (
