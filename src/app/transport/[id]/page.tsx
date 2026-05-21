@@ -85,16 +85,12 @@ export default function TransportPublicPage() {
   // Prise en charge
   const [nomTransporteur, setNomTransporteur] = useState('')
   const [visaTransporteur, setVisaTransporteur] = useState('')
-  const [countAmbiantT, setCountAmbiantT] = useState(0)
-  const [countPlus4T, setCountPlus4T] = useState(0)
-  const [countCongeleT, setCountCongeleT] = useState(0)
+  const [countsT, setCountsT] = useState({ ambiant: 0, plus4: 0, congele: 0 })
 
   // Réception
   const [nomReceptionnaire, setNomReceptionnaire] = useState('')
   const [visaReceptionnaire, setVisaReceptionnaire] = useState('')
-  const [countAmbiantR, setCountAmbiantR] = useState(0)
-  const [countPlus4R, setCountPlus4R] = useState(0)
-  const [countCongeleR, setCountCongeleR] = useState(0)
+  const [countsR, setCountsR] = useState({ ambiant: 0, plus4: 0, congele: 0 })
 
   useEffect(() => {
     import('qrcode').then((QRCode) => {
@@ -294,10 +290,10 @@ export default function TransportPublicPage() {
 
   const bonNum = envoi.id.replace(/-/g, '').slice(0, 6).toUpperCase()
 
-  const allOkT = countAmbiantT === nbAmbiant && countPlus4T === nbPlus4 && countCongeleT === nbCongele
+  const allOkT = countsT.ambiant === nbAmbiant && countsT.plus4 === nbPlus4 && countsT.congele === nbCongele
   const canEnvoyer = allOkT && nomTransporteur.trim() && visaTransporteur.trim()
 
-  const allOkR = countAmbiantR === nbAmbiant && countPlus4R === nbPlus4 && countCongeleR === nbCongele
+  const allOkR = countsR.ambiant === nbAmbiant && countsR.plus4 === nbPlus4 && countsR.congele === nbCongele
   const canReceptionner = allOkR && nomReceptionnaire.trim() && visaReceptionnaire.trim()
 
   return (
@@ -349,9 +345,9 @@ export default function TransportPublicPage() {
           <p style={{ fontSize: 13, color: '#374151', marginBottom: 12 }}>
             Vérifiez le nombre de sachets pris en charge :
           </p>
-          {nbAmbiant > 0 && <Counter label={getTempLabel('ambiant')} expected={nbAmbiant} value={countAmbiantT} onChange={setCountAmbiantT} />}
-          {nbPlus4 > 0 && <Counter label={getTempLabel('plus4')} expected={nbPlus4} value={countPlus4T} onChange={setCountPlus4T} />}
-          {nbCongele > 0 && <Counter label={getTempLabel('congele')} expected={nbCongele} value={countCongeleT} onChange={setCountCongeleT} />}
+          {nbAmbiant > 0 && <Counter label={getTempLabel('ambiant')} expected={nbAmbiant} value={countsT.ambiant} onChange={v => setCountsT(p => ({ ...p, ambiant: v }))} />}
+          {nbPlus4 > 0 && <Counter label={getTempLabel('plus4')} expected={nbPlus4} value={countsT.plus4} onChange={v => setCountsT(p => ({ ...p, plus4: v }))} />}
+          {nbCongele > 0 && <Counter label={getTempLabel('congele')} expected={nbCongele} value={countsT.congele} onChange={v => setCountsT(p => ({ ...p, congele: v }))} />}
           <div style={{ marginTop: 16 }}>
             <input
               placeholder="Votre nom complet"
@@ -384,9 +380,9 @@ export default function TransportPublicPage() {
           <p style={{ fontSize: 13, color: '#374151', marginBottom: 12 }}>
             Vérifiez le nombre de sachets reçus :
           </p>
-          {nbAmbiant > 0 && <Counter label={getTempLabel('ambiant')} expected={nbAmbiant} value={countAmbiantR} onChange={setCountAmbiantR} />}
-          {nbPlus4 > 0 && <Counter label={getTempLabel('plus4')} expected={nbPlus4} value={countPlus4R} onChange={setCountPlus4R} />}
-          {nbCongele > 0 && <Counter label={getTempLabel('congele')} expected={nbCongele} value={countCongeleR} onChange={setCountCongeleR} />}
+          {nbAmbiant > 0 && <Counter label={getTempLabel('ambiant')} expected={nbAmbiant} value={countsR.ambiant} onChange={v => setCountsR(p => ({ ...p, ambiant: v }))} />}
+          {nbPlus4 > 0 && <Counter label={getTempLabel('plus4')} expected={nbPlus4} value={countsR.plus4} onChange={v => setCountsR(p => ({ ...p, plus4: v }))} />}
+          {nbCongele > 0 && <Counter label={getTempLabel('congele')} expected={nbCongele} value={countsR.congele} onChange={v => setCountsR(p => ({ ...p, congele: v }))} />}
           <div style={{ marginTop: 16 }}>
             <input
               placeholder="Nom du réceptionnaire"
