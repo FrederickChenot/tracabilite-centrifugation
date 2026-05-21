@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     const resetUrl = `${BASE_URL}/login/reset-password?token=${token}`
     await sendEmailForgotPassword({
-      email: user.email as string,
+      email: process.env.EMAIL_EXPEDITEUR ?? user.email as string,
       nom: user.nom as string | undefined,
       resetUrl,
     })
