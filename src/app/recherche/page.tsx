@@ -58,10 +58,12 @@ function fmtTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
-const stockageBadge: Record<string, string> = {
-  ambiant: 'bg-amber-100 text-amber-700',
-  '+5':    'bg-blue-100 text-blue-700',
-  '-20':   'bg-gray-100 text-gray-600',
+const stockageLabels: Record<string, { label: string; color: string }> = {
+  ambiant: { label: 'Ambiant', color: 'bg-orange-100 text-orange-700 border border-orange-200' },
+  plus5:   { label: '+5°C',   color: 'bg-blue-100 text-blue-700 border border-blue-200' },
+  moins20: { label: '-20°C',  color: 'bg-purple-100 text-purple-700 border border-purple-200' },
+  '+5':    { label: '+5°C',   color: 'bg-blue-100 text-blue-700 border border-blue-200' },
+  '-20':   { label: '-20°C',  color: 'bg-purple-100 text-purple-700 border border-purple-200' },
 };
 
 /* ─── Result card ────────────────────────────────────────── */
@@ -95,8 +97,8 @@ function ResultCard({ r }: { r: RechercheResult }) {
           )}
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
-          <span className={`px-2 py-0.5 rounded text-xs font-medium ${stockageBadge[r.stockage]}`}>
-            {r.stockage}
+          <span className={`px-2 py-0.5 rounded text-xs font-medium ${stockageLabels[r.stockage]?.color ?? 'bg-gray-100 text-gray-600'}`}>
+            {stockageLabels[r.stockage]?.label ?? r.stockage}
           </span>
           <span className="font-mono font-bold text-gray-700 text-xs">{r.visa}</span>
         </div>

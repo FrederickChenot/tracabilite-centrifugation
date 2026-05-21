@@ -37,11 +37,16 @@ function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
-const STOCKAGE_LABEL: Record<string, string> = { ambiant: 'Ambiant', '+5': '+5°C', '-20': '-20°C' };
+const STOCKAGE_LABEL: Record<string, string> = {
+  ambiant: 'Ambiant', plus5: '+5°C', moins20: '-20°C',
+  '+5': '+5°C', '-20': '-20°C',
+};
 const stockageBadgeCls: Record<string, string> = {
-  ambiant: 'bg-orange-100 text-orange-700',
-  '+5': 'bg-blue-100 text-blue-700',
-  '-20': 'bg-purple-100 text-purple-700',
+  ambiant: 'bg-orange-100 text-orange-700 border border-orange-200',
+  plus5:   'bg-blue-100 text-blue-700 border border-blue-200',
+  moins20: 'bg-purple-100 text-purple-700 border border-purple-200',
+  '+5':    'bg-blue-100 text-blue-700 border border-blue-200',
+  '-20':   'bg-purple-100 text-purple-700 border border-purple-200',
 };
 
 function exportCsv(sessions: ArchiveSession[]) {

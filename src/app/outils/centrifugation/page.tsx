@@ -127,6 +127,11 @@ export default function CentrifugationPage() {
     await loadHistorique();
   }
 
+  async function handleRouvrir(id: string) {
+    await fetch(`/api/centri/sessions/${id}/rouvrir`, { method: 'PATCH' });
+    await loadHistorique();
+  }
+
   async function handleReprendre(id: string) {
     const res = await fetch(`/api/centri/sessions/${id}`);
     if (!res.ok) return;
@@ -284,6 +289,7 @@ export default function CentrifugationPage() {
                   sessions={historique}
                   currentSessionId={sessionId}
                   onReprendre={handleReprendre}
+                  onRouvrir={handleRouvrir}
                 />
               </div>
             </div>
