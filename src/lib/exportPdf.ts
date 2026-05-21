@@ -26,10 +26,13 @@ function fmtDateTime(): string {
 }
 
 const STOCKAGE_LABEL: Record<string, string> = {
-  ambiant: 'Ambiant',
-  '+5': '+5°C',
-  '-20': '-20°C',
+  ambiant: 'Ambiant', plus5: '+5°C', moins20: '-20°C',
+  '+5': '+5°C', '-20': '-20°C',
 };
+
+function stockageLabel(s: string | null | undefined): string {
+  return s ? (STOCKAGE_LABEL[s] ?? s) : '';
+}
 
 export async function exportTracabiliteJour(
   sessions: HistoriqueSession[],
@@ -103,12 +106,15 @@ export async function exportTracabiliteJour(
   let startY = 57;
 
   for (const session of sessions) {
-    const stockageLabel = session.stockage ? (STOCKAGE_LABEL[session.stockage] ?? session.stockage) : '';
+    const stockagesDistincts = [...new Set(
+      session.tubes.filter((t) => t.stockage).map((t) => stockageLabel(t.stockage)),
+    )];
+    const stockagesStr = stockagesDistincts.length > 0 ? stockagesDistincts.join(' | ') : '—';
 
     const scanLine1 = [
       `Scan — ${session.centri_nom ?? ''}`,
       session.prog_numero ? `Pgm ${session.prog_numero}${session.prog_libelle ? ' ' + session.prog_libelle : ''}` : '',
-      stockageLabel,
+      stockagesStr,
       `Visa : ${session.visa}`,
     ]
       .filter(Boolean)
@@ -122,7 +128,7 @@ export async function exportTracabiliteJour(
       String(i + 1),
       tube.num_echant,
       fmtTime(tube.scanned_at),
-      stockageLabel,
+      stockageLabel(tube.stockage),
       (tube as { remarque?: string }).remarque ?? '',
     ]);
 
