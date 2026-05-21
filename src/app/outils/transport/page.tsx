@@ -302,6 +302,19 @@ export default function TransportPage() {
     }
   }
 
+  async function handleRouvrir() {
+    if (!envoi) return;
+    const res = await fetch(`/api/transport/envois/${envoi.id}/rouvrir`, { method: 'PATCH' });
+    if (!res.ok) {
+      const err = await res.json();
+      showToast(err.error ?? 'Erreur réouverture', 'error');
+      return;
+    }
+    setEnvoi((prev) => prev ? { ...prev, statut: 'en_preparation', valide_at: null } : null);
+    await loadHistorique(siteId);
+    showToast('Bon réouvert');
+  }
+
   function handlePrevisualiser() {
     if (!envoi) return;
     setModalEnvoiId(envoi.id);
@@ -537,6 +550,12 @@ export default function TransportPage() {
                         className="flex-1 py-1.5 rounded text-xs font-semibold border border-green-400 text-green-700 hover:bg-green-100 disabled:opacity-40 transition-colors"
                       >
                         {exporting ? 'Export...' : 'Regénérer le PDF'}
+                      </button>
+                      <button
+                        onClick={handleRouvrir}
+                        className="flex-1 py-1.5 rounded text-xs font-semibold border border-orange-400 text-orange-700 hover:bg-orange-50 transition-colors"
+                      >
+                        ↩ Rouvrir
                       </button>
                       <button
                         onClick={() => { setEnvoi(null); setScanValues({ ambiant: '', plus4: '', congele: '' }); }}
