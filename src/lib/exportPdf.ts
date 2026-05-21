@@ -1,9 +1,10 @@
 import type { HistoriqueSession } from '@/lib/schemas';
 
-const DAYS_FR = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
-const MONTHS_FR = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-
 function pad(n: number): string { return n.toString().padStart(2, '0'); }
+
+function fmtDate(d: Date): string {
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
 
 function fmtTime(iso: string): string {
   const d = new Date(iso);
@@ -15,14 +16,9 @@ function fmtTimeShort(iso: string): string {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function fmtDateLong(iso: string): string {
-  const d = new Date(iso);
-  return `${DAYS_FR[d.getDay()]} ${d.getDate()} ${MONTHS_FR[d.getMonth()]} ${d.getFullYear()}`;
-}
-
 function fmtDateTime(): string {
   const d = new Date();
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${fmtDate(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 const STOCKAGE_LABEL: Record<string, string> = {
@@ -83,7 +79,7 @@ export async function exportTracabiliteJour(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(40, 40, 40);
-  doc.text(`Date : ${fmtDateLong(date + 'T12:00:00')}`, marginL, 36);
+  doc.text(`Date : ${fmtDate(new Date(date + 'T12:00:00'))}`, marginL, 36);
   doc.text(`Site : ${site}`, marginL, 41);
 
   doc.setFont('helvetica', 'normal');
