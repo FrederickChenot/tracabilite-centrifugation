@@ -26,6 +26,7 @@ export default function CentrifugationPage() {
 
   const [selectedCentri, setSelectedCentri] = useState<number | null>(null);
   const [selectedProg, setSelectedProg] = useState<number | null>(null);
+  const [stockage, setStockage] = useState<'ambiant' | '+5' | '-20' | ''>('');
   const [visa, setVisa] = useState('');
 
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -59,6 +60,7 @@ export default function CentrifugationPage() {
     loadHistorique();
     setSelectedCentri(null);
     setSelectedProg(null);
+    setStockage('');
     setVisa('');
     setSessionId(null);
     setSessionActive(false);
@@ -68,6 +70,7 @@ export default function CentrifugationPage() {
   const canStart =
     selectedCentri !== null &&
     selectedProg !== null &&
+    stockage !== '' &&
     visa.trim().length >= 2;
 
   async function handleStartSession() {
@@ -90,12 +93,12 @@ export default function CentrifugationPage() {
     await loadHistorique();
   }
 
-  async function handleScan(numEchant: string, stockageTube: 'ambiant' | '+5' | '-20') {
+  async function handleScan(numEchant: string) {
     if (!sessionId) return;
     const res = await fetch('/api/centri/tubes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: sessionId, num_echant: numEchant, stockage: stockageTube }),
+      body: JSON.stringify({ session_id: sessionId, num_echant: numEchant, stockage }),
     });
     if (!res.ok) return;
     const tube: Tube = await res.json();
@@ -118,6 +121,7 @@ export default function CentrifugationPage() {
     setTubes([]);
     setSelectedCentri(null);
     setSelectedProg(null);
+    setStockage('');
     setVisa('');
     await loadHistorique();
   }
@@ -222,6 +226,7 @@ export default function CentrifugationPage() {
                     centrifugeuses={centrifugeuses}
                     selectedCentri={selectedCentri}
                     selectedProg={selectedProg}
+                    stockage={stockage}
                     visa={visa}
                     sessionActive={sessionActive}
                     onCentriChange={(id) => {
@@ -229,6 +234,7 @@ export default function CentrifugationPage() {
                       setSelectedProg(null);
                     }}
                     onProgChange={setSelectedProg}
+                    onStockageChange={setStockage}
                     onVisaChange={setVisa}
                   />
                 )}

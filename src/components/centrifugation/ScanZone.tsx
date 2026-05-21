@@ -5,30 +5,12 @@ import { IconBarcode, IconLock, IconPlayerPlay } from '@tabler/icons-react';
 import { Tube } from '@/lib/schemas';
 import TubeItem from './TubeItem';
 
-type Stockage = 'ambiant' | '+5' | '-20';
-
-const STOCKAGE_OPTS: { v: Stockage; label: string }[] = [
-  { v: 'ambiant', label: '☀ Amb' },
-  { v: '+5',      label: '❄ +5°C' },
-  { v: '-20',     label: '❄ -20°C' },
-];
-
-const STOCKAGE_ACTIVE: Record<Stockage, React.CSSProperties> = {
-  ambiant: { background: '#FFF3E0', borderColor: '#FF9800', color: '#E65100', fontWeight: 600 },
-  '+5':    { background: '#E3F2FD', borderColor: '#2196F3', color: '#0D47A1', fontWeight: 600 },
-  '-20':   { background: '#EDE7F6', borderColor: '#673AB7', color: '#311B92', fontWeight: 600 },
-};
-
-const STOCKAGE_INACTIVE: React.CSSProperties = {
-  background: '#fff', borderColor: '#d1d5db', color: '#6b7280',
-};
-
 interface ScanZoneProps {
   sessionId: string | null;
   tubes: Tube[];
   sessionActive: boolean;
   canStart: boolean;
-  onScan: (numEchant: string, stockage: Stockage) => Promise<void>;
+  onScan: (numEchant: string) => Promise<void>;
   onDelete: (id: string) => void;
   onStartSession: () => Promise<void>;
 }
@@ -46,7 +28,6 @@ export default function ScanZone({
   const listRef = useRef<HTMLDivElement>(null);
   const [scanValue, setScanValue] = useState('');
   const [scanning, setScanning] = useState(false);
-  const [stockageTube, setStockageTube] = useState<Stockage>('+5');
 
   useEffect(() => {
     if (sessionActive && inputRef.current) {
@@ -67,7 +48,7 @@ export default function ScanZone({
 
     setScanning(true);
     try {
-      await onScan(val, stockageTube);
+      await onScan(val);
       setScanValue('');
     } finally {
       setScanning(false);
@@ -82,27 +63,6 @@ export default function ScanZone({
 
   return (
     <div className="flex flex-col flex-1 min-h-0 px-3 pb-3 pt-2">
-
-      {/* Sélecteur de stockage — affiché uniquement en session active */}
-      {sessionActive && (
-        <div className="mb-2">
-          <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">
-            Stockage
-          </label>
-          <div className="flex gap-1">
-            {STOCKAGE_OPTS.map(({ v, label }) => (
-              <button
-                key={v}
-                onClick={() => setStockageTube(v)}
-                className="flex-1 py-1.5 text-xs rounded border transition-colors"
-                style={stockageTube === v ? STOCKAGE_ACTIVE[v] : STOCKAGE_INACTIVE}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Champ scan */}
       <div className="mb-2">

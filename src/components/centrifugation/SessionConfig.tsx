@@ -8,14 +8,24 @@ import {
 } from '@tabler/icons-react';
 import { CentrifugeusesAvecProgrammes } from '@/lib/schemas';
 
+type StockageValue = 'ambiant' | '+5' | '-20';
+
+const STOCKAGE_OPTS: { v: StockageValue; label: string; active: React.CSSProperties }[] = [
+  { v: 'ambiant', label: '☀ Ambiant',  active: { background: '#FFF3E0', borderColor: '#FF9800', color: '#E65100' } },
+  { v: '+5',      label: '❄ +5°C',    active: { background: '#E3F2FD', borderColor: '#2196F3', color: '#0D47A1' } },
+  { v: '-20',     label: '❄ -20°C',   active: { background: '#EDE7F6', borderColor: '#673AB7', color: '#311B92' } },
+];
+
 interface SessionConfigProps {
   centrifugeuses: CentrifugeusesAvecProgrammes[];
   selectedCentri: number | null;
   selectedProg: number | null;
+  stockage: string;
   visa: string;
   sessionActive: boolean;
   onCentriChange: (id: number) => void;
   onProgChange: (id: number) => void;
+  onStockageChange: (v: StockageValue) => void;
   onVisaChange: (v: string) => void;
 }
 
@@ -23,10 +33,12 @@ export default function SessionConfig({
   centrifugeuses,
   selectedCentri,
   selectedProg,
+  stockage,
   visa,
   sessionActive,
   onCentriChange,
   onProgChange,
+  onStockageChange,
   onVisaChange,
 }: SessionConfigProps) {
   const normales = centrifugeuses.filter((c) => !c.est_backup);
@@ -113,6 +125,30 @@ export default function SessionConfig({
               );
             })
           )}
+        </div>
+      </div>
+
+      {/* Stockage */}
+      <div>
+        <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">
+          Stockage
+        </label>
+        <div className="flex flex-col gap-1.5">
+          {STOCKAGE_OPTS.map(({ v, label, active }) => (
+            <button
+              key={v}
+              onClick={() => onStockageChange(v)}
+              disabled={sessionActive}
+              className="w-full flex items-center justify-center rounded font-medium text-sm transition-all duration-150 disabled:cursor-not-allowed"
+              style={
+                stockage === v
+                  ? { ...active, border: '1.5px solid', height: 40, fontWeight: 600 }
+                  : { height: 40, background: '#fff', border: '1.5px solid #d1d5db', color: '#6b7280' }
+              }
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
