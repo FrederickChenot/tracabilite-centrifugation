@@ -17,6 +17,7 @@ interface ArchiveSession {
   centri_id: number;
   prog_id: number;
   stockage: string | null;
+  stockages_tubes?: string[] | null;
   visa: string;
   opened_at: string;
   closed_at: string | null;
@@ -48,6 +49,17 @@ const stockageBadgeCls: Record<string, string> = {
   '+5':    'bg-blue-100 text-blue-700 border border-blue-200',
   '-20':   'bg-purple-100 text-purple-700 border border-purple-200',
 };
+
+function formatStockages(stockages: string | string[] | null | undefined): string {
+  if (!stockages || (Array.isArray(stockages) && stockages.length === 0)) return '—';
+  try {
+    const arr = Array.isArray(stockages) ? stockages : JSON.parse(stockages);
+    if (Array.isArray(arr)) return arr.map((s: string) => STOCKAGE_LABEL[s] ?? s).join(' | ');
+    return STOCKAGE_LABEL[stockages as string] ?? String(stockages);
+  } catch {
+    return STOCKAGE_LABEL[stockages as string] ?? String(stockages);
+  }
+}
 
 function exportCsv(sessions: ArchiveSession[]) {
   const headers = ['Date', 'Heure', 'Site', 'Centrifugeuse', 'Programme', 'Visa', 'Statut', 'Nb tubes', 'Échantillons'];
@@ -96,7 +108,7 @@ async function exportPdf(sessions: ArchiveSession[], siteName: string) {
       s.site_nom,
       s.centri_nom,
       `Pgm ${s.prog_numero} — ${s.prog_libelle}`,
-      s.stockage ? (STOCKAGE_LABEL[s.stockage] ?? s.stockage) : '—',
+      formatStockages(s.stockages_tubes ?? s.stockage),
       s.visa,
       s.statut === 'ouverte' ? 'En cours' : 'Clôturée',
       s.nb_tubes,

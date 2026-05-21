@@ -37,6 +37,10 @@ export async function GET(request: NextRequest) {
           ARRAY[]::text[]
         ) AS echantillons,
         COALESCE(
+          array_agg(DISTINCT t.stockage) FILTER (WHERE t.stockage IS NOT NULL),
+          ARRAY[]::text[]
+        ) AS stockages_tubes,
+        COALESCE(
           json_agg(
             json_build_object('id', t.id, 'num_echant', t.num_echant, 'scanned_at', t.scanned_at, 'stockage', t.stockage)
             ORDER BY t.scanned_at
