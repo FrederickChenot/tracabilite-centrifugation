@@ -9,6 +9,8 @@ export async function POST(req: NextRequest) {
   const always = NextResponse.json({ success: true })
   try {
     const { email } = await req.json()
+    console.log('[forgot-password] email reçu:', email)
+
     if (!email) return always
 
     const users = await sql`
@@ -16,7 +18,12 @@ export async function POST(req: NextRequest) {
       WHERE email = ${email as string} AND actif = true
       LIMIT 1
     `
-    if (!users[0]) return always
+    console.log('[forgot-password] users trouvés:', users.length)
+
+    if (!users[0]) {
+      console.log('[forgot-password] aucun user trouvé pour:', email)
+      return always
+    }
 
     const user = users[0]
     const token = randomBytes(32).toString('hex')
@@ -26,15 +33,20 @@ export async function POST(req: NextRequest) {
       VALUES (${user.id as number}, ${token}, NOW() + INTERVAL '1 hour')
       ON CONFLICT (token) DO NOTHING
     `
+    console.log('[forgot-password] token créé')
 
     const resetUrl = `${BASE_URL}/login/reset-password?token=${token}`
-    await sendEmailForgotPassword({
+    console.log('[forgot-password] resetUrl:', resetUrl)
+
+    const result = await sendEmailForgotPassword({
       email: process.env.EMAIL_EXPEDITEUR ?? user.email as string,
       nom: user.nom as string | undefined,
       resetUrl,
     })
+    console.log('[forgot-password] email envoyé:', result)
+
   } catch (err) {
-    console.error('[forgot-password]', err)
+    console.error('[forgot-password] ERREUR:', err)
   }
   return always
 }
