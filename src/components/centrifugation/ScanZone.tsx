@@ -14,10 +14,10 @@ const LABELS: Record<StockageCentri, string> = {
   moins20: '-20°C',
 };
 
-const COLORS: Record<StockageCentri, { border: string; header: string; badge: string }> = {
-  ambiant: { border: 'border-orange-200', header: 'bg-orange-50 border-orange-200', badge: 'bg-orange-100 text-orange-700' },
-  plus5:   { border: 'border-blue-200',   header: 'bg-blue-50 border-blue-200',     badge: 'bg-blue-100 text-blue-700' },
-  moins20: { border: 'border-purple-200', header: 'bg-purple-50 border-purple-200', badge: 'bg-purple-100 text-purple-700' },
+const COLORS: Record<StockageCentri, { zone: string; badge: string }> = {
+  ambiant: { zone: 'border-orange-200 bg-orange-50', badge: 'bg-orange-100 text-orange-700' },
+  plus5:   { zone: 'border-blue-200 bg-blue-50',     badge: 'bg-blue-100 text-blue-700' },
+  moins20: { zone: 'border-purple-200 bg-purple-50', badge: 'bg-purple-100 text-purple-700' },
 };
 
 function fmtTime(d: string) {
@@ -46,13 +46,13 @@ export default function ScanZone({
   const [scanValues, setScanValues] = useState({ ambiant: '', plus5: '', moins20: '' });
   const [scanning, setScanning] = useState<StockageCentri | null>(null);
 
-  const inputRefs = useRef<Record<StockageCentri, HTMLInputElement | null>>({
+  const scanRefs = useRef<Record<StockageCentri, HTMLInputElement | null>>({
     ambiant: null, plus5: null, moins20: null,
   });
 
   useEffect(() => {
     if (sessionActive) {
-      inputRefs.current.ambiant?.focus();
+      scanRefs.current.ambiant?.focus();
     }
   }, [sessionActive]);
 
@@ -68,85 +68,83 @@ export default function ScanZone({
       setScanValues((prev) => ({ ...prev, [temp]: '' }));
     } finally {
       setScanning(null);
-      setTimeout(() => inputRefs.current[temp]?.focus(), 50);
+      setTimeout(() => scanRefs.current[temp]?.focus(), 50);
     }
   }
 
   async function handleStartClick() {
     await onStartSession();
-    setTimeout(() => inputRefs.current.ambiant?.focus(), 100);
+    setTimeout(() => scanRefs.current.ambiant?.focus(), 100);
   }
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto px-3 pb-3 pt-2 gap-3">
+    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto px-3 pb-3 pt-2 gap-2">
 
       {TEMPS.map((temp) => {
         const cols = COLORS[temp];
         const tempTubes = tubesByTemp(temp);
-        const isScanning = scanning === temp;
 
         return (
-          <div key={temp} className={`border rounded-lg ${cols.border} overflow-hidden`}>
-            {/* En-tête zone */}
-            <div className={`${cols.header} px-3 py-2 flex items-center justify-between border-b`}>
+          <div key={temp} className={`border rounded-lg ${cols.zone}`}>
+
+            {/* Header */}
+            <div className="px-3 py-2 flex justify-between items-center">
               <span className="text-xs font-bold text-gray-700">{LABELS[temp]}</span>
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cols.badge}`}>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cols.badge}`}>
                 {tempTubes.length}
               </span>
             </div>
 
-            {/* Champ de scan */}
-            {sessionActive && (
-              <div className="px-3 py-2 flex gap-2">
-                <input
-                  ref={(el) => { inputRefs.current[temp] = el; }}
-                  type="text"
-                  inputMode="text"
-                  value={scanValues[temp]}
-                  onChange={(e) => setScanValues((prev) => ({ ...prev, [temp]: e.target.value }))}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleScan(temp); }}
-                  disabled={!!scanning}
-                  placeholder="Scanner ou saisir..."
-                  className="flex-1 min-w-0 border rounded px-2 py-2 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-gray-300 disabled:bg-gray-50"
-                  style={{ fontSize: 15 }}
-                />
-                <button
-                  onClick={() => handleScan(temp)}
-                  disabled={!!scanning || !scanValues[temp].trim()}
-                  className="px-3 py-2 rounded text-xs font-semibold bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-40 transition-colors"
-                >
-                  {isScanning ? '...' : 'OK'}
-                </button>
-              </div>
-            )}
+            {/* Input scan — toujours visible */}
+            <div className="px-3 pb-2 flex gap-1">
+              <input
+                ref={(el) => { scanRefs.current[temp] = el; }}
+                type="text"
+                inputMode="text"
+                value={scanValues[temp]}
+                onChange={(e) => setScanValues((prev) => ({ ...prev, [temp]: e.target.value }))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleScan(temp);
+                  }
+                }}
+                placeholder="Scanner ou saisir..."
+                disabled={!sessionActive || !!scanning}
+                className="flex-1 min-w-0 border border-gray-300 bg-white rounded px-2 py-2 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                style={{ fontSize: 16 }}
+              />
+              <button
+                onClick={() => handleScan(temp)}
+                disabled={!scanValues[temp].trim() || !sessionActive || !!scanning}
+                className="px-3 py-2 text-sm font-semibold bg-teal-600 text-white rounded disabled:opacity-40 transition-colors"
+              >
+                {scanning === temp ? '...' : 'OK'}
+              </button>
+            </div>
 
             {/* Liste des tubes */}
-            {tempTubes.length > 0 && (
-              <div className="divide-y divide-gray-100">
-                {tempTubes.map((tube) => (
-                  <div key={tube.id} className="flex items-center gap-2 px-3 py-1.5">
-                    <span className="flex-1 font-mono text-xs text-gray-800">{tube.num_echant}</span>
-                    <span className="text-xs text-gray-400">{fmtTime(tube.scanned_at)}</span>
-                    <button
-                      onClick={() => onDelete(tube.id)}
-                      className="text-gray-400 hover:text-red-500 text-base font-bold leading-none transition-colors"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+            {tempTubes.map((tube) => (
+              <div
+                key={tube.id}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white border-t border-gray-100"
+              >
+                <span className="flex-1 font-mono text-xs text-gray-800">{tube.num_echant}</span>
+                <span className="text-xs text-gray-400">{fmtTime(tube.scanned_at)}</span>
+                <button
+                  onClick={() => onDelete(tube.id)}
+                  className="text-red-400 hover:text-red-600 text-base font-bold leading-none transition-colors"
+                >
+                  ×
+                </button>
               </div>
-            )}
-
-            {sessionActive && tempTubes.length === 0 && (
-              <p className="text-xs text-gray-400 text-center py-2">Aucun tube</p>
-            )}
+            ))}
           </div>
         );
       })}
 
       {/* Pied de page */}
-      <div className="shrink-0 pt-2 border-t border-gray-200">
+      <div className="shrink-0 pt-2 border-t border-gray-200 mt-1">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-gray-500">
             {tubes.length} tube{tubes.length !== 1 ? 's' : ''} scannés
