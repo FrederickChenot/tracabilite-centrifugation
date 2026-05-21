@@ -84,9 +84,14 @@ function ResultCard({ r }: { r: RechercheResult }) {
               {r.centrifugeuse}
             </span>
             <span className="text-gray-300">·</span>
-            <span>
+            <span className="flex items-center gap-1 flex-wrap">
               <span className="font-bold text-gray-700">Pgm {r.prog_numero}</span>
-              <span className="ml-1 text-gray-500 truncate">{r.prog_libelle}</span>
+              <span className="text-gray-500 truncate">{r.prog_libelle}</span>
+              {r.stockage && stockageLabels[r.stockage] && (
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ml-1 ${stockageLabels[r.stockage].color}`}>
+                  {stockageLabels[r.stockage].label}
+                </span>
+              )}
             </span>
           </div>
           {r.remarque && (
@@ -97,9 +102,6 @@ function ResultCard({ r }: { r: RechercheResult }) {
           )}
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
-          <span className={`px-2 py-0.5 rounded text-xs font-medium ${stockageLabels[r.stockage]?.color ?? 'bg-gray-100 text-gray-600'}`}>
-            {stockageLabels[r.stockage]?.label ?? r.stockage}
-          </span>
           <span className="font-mono font-bold text-gray-700 text-xs">{r.visa}</span>
         </div>
       </div>
@@ -185,7 +187,7 @@ async function generateAuditPdf(results: RechercheResult[], filters: FilterState
         tube.num_echant,
         (tube.est_backup ? '[BK] ' : '') + tube.centrifugeuse,
         `${tube.prog_numero} — ${tube.prog_libelle}`,
-        tube.stockage,
+        tube.stockage ?? '',
         tube.visa,
         tube.remarque ?? '',
       ]);

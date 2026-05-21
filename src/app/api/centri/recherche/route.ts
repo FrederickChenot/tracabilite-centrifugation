@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   const date_debut = searchParams.get('date_debut') || null;
   const date_fin   = searchParams.get('date_fin')   || null;
   const visa       = searchParams.get('visa')?.trim() || null;
-  const stockageArr = searchParams.getAll('stockage').filter((s) => ['ambiant', '+5', '-20'].includes(s));
+  const stockageArr = searchParams.getAll('stockage').filter((s) => ['ambiant', '+5', '-20', 'plus5', 'moins20'].includes(s));
   const avec_remarque = searchParams.get('avec_remarque') === 'true';
 
   if (!q && !site_id && !centri_id && !date_debut && !date_fin && !visa && stockageArr.length === 0 && !avec_remarque) {
@@ -31,10 +31,10 @@ export async function GET(request: NextRequest) {
       t.num_echant,
       t.scanned_at,
       t.remarque,
+      t.stockage,
       s.opened_at,
       s.closed_at,
       s.statut,
-      s.stockage,
       s.visa,
       c.nom  AS centrifugeuse,
       c.est_backup,
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       AND ${date_debut ? sql`t.scanned_at::date >= ${date_debut}::date` : sql`TRUE`}
       AND ${date_fin   ? sql`t.scanned_at::date <= ${date_fin}::date`   : sql`TRUE`}
       AND ${visa    ? sql`s.visa ILIKE ${visa}`                         : sql`TRUE`}
-      AND ${stockageArr.length > 0 ? sql`s.stockage = ANY(${stockageArr})` : sql`TRUE`}
+      AND ${stockageArr.length > 0 ? sql`t.stockage = ANY(${stockageArr})` : sql`TRUE`}
       AND ${avec_remarque ? sql`(t.remarque IS NOT NULL AND t.remarque != '')` : sql`TRUE`}
     ORDER BY t.scanned_at DESC
     LIMIT 500

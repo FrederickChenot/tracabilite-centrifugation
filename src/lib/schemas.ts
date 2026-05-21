@@ -82,7 +82,7 @@ export interface RechercheResult {
   opened_at: string;
   closed_at: string | null;
   statut: string;
-  stockage: 'ambiant' | '+5' | '-20';
+  stockage: 'ambiant' | '+5' | '-20' | 'plus5' | 'moins20' | null;
   visa: string;
   centrifugeuse: string;
   est_backup: boolean;
