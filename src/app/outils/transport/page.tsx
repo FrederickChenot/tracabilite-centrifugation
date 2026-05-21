@@ -218,7 +218,6 @@ export default function TransportPage() {
         sachets: [],
       });
       await loadHistorique(siteId);
-      setTimeout(() => ambiantRef.current?.focus(), 100);
     } finally {
       setCreating(false);
     }
