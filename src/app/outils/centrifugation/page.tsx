@@ -26,7 +26,6 @@ export default function CentrifugationPage() {
 
   const [selectedCentri, setSelectedCentri] = useState<number | null>(null);
   const [selectedProg, setSelectedProg] = useState<number | null>(null);
-  const [stockage, setStockage] = useState<'ambiant' | '+5' | '-20' | null>(null);
   const [visa, setVisa] = useState('');
 
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -60,7 +59,6 @@ export default function CentrifugationPage() {
     loadHistorique();
     setSelectedCentri(null);
     setSelectedProg(null);
-    setStockage(null);
     setVisa('');
     setSessionId(null);
     setSessionActive(false);
@@ -70,7 +68,6 @@ export default function CentrifugationPage() {
   const canStart =
     selectedCentri !== null &&
     selectedProg !== null &&
-    stockage !== null &&
     visa.trim().length >= 2;
 
   async function handleStartSession() {
@@ -82,7 +79,6 @@ export default function CentrifugationPage() {
         site_id: siteId,
         centri_id: selectedCentri,
         prog_id: selectedProg,
-        stockage,
         visa: visa.trim(),
       }),
     });
@@ -94,12 +90,12 @@ export default function CentrifugationPage() {
     await loadHistorique();
   }
 
-  async function handleScan(numEchant: string) {
+  async function handleScan(numEchant: string, stockageTube: 'ambiant' | '+5' | '-20') {
     if (!sessionId) return;
     const res = await fetch('/api/centri/tubes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: sessionId, num_echant: numEchant }),
+      body: JSON.stringify({ session_id: sessionId, num_echant: numEchant, stockage: stockageTube }),
     });
     if (!res.ok) return;
     const tube: Tube = await res.json();
@@ -122,7 +118,6 @@ export default function CentrifugationPage() {
     setTubes([]);
     setSelectedCentri(null);
     setSelectedProg(null);
-    setStockage(null);
     setVisa('');
     await loadHistorique();
   }
@@ -147,7 +142,6 @@ export default function CentrifugationPage() {
     const s = data.session;
     setSelectedCentri(s.centri_id);
     setSelectedProg(s.prog_id);
-    setStockage(s.stockage);
     setVisa(s.visa);
     setSessionId(s.id);
     setTubes((s.tubes ?? []) as Tube[]);
@@ -163,7 +157,6 @@ export default function CentrifugationPage() {
     );
   }
 
-  /* Sessions en pause (ouvertes mais pas actives dans l'UI) */
   const openSessions = historique.filter(
     (s) => s.statut === 'ouverte' && s.id !== sessionId
   );
@@ -213,8 +206,10 @@ export default function CentrifugationPage() {
           <div className="flex flex-col md:flex-row md:h-full gap-0">
 
             {/* Panneau gauche : config + scan */}
-            <div className="md:w-[270px] md:shrink-0 bg-white border-b md:border-b-0 md:border-r border-gray-200 flex flex-col">
-              <div className="border-b border-gray-200">
+            <div className="md:w-[270px] md:shrink-0 bg-white border-b md:border-b-0 md:border-r border-gray-200 flex flex-col md:h-full md:overflow-hidden">
+
+              {/* Config — scrollable si trop grande, ne dépasse pas 55% */}
+              <div className="border-b border-gray-200 overflow-y-auto flex-shrink-0" style={{ maxHeight: '55%' }}>
                 <div className="px-3 py-2 bg-gray-50 border-b border-gray-200">
                   <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
                     Configuration
@@ -227,7 +222,6 @@ export default function CentrifugationPage() {
                     centrifugeuses={centrifugeuses}
                     selectedCentri={selectedCentri}
                     selectedProg={selectedProg}
-                    stockage={stockage}
                     visa={visa}
                     sessionActive={sessionActive}
                     onCentriChange={(id) => {
@@ -235,15 +229,14 @@ export default function CentrifugationPage() {
                       setSelectedProg(null);
                     }}
                     onProgChange={setSelectedProg}
-                    onStockageChange={setStockage}
                     onVisaChange={setVisa}
                   />
                 )}
               </div>
 
-              {/* Boutons Terminer / Annuler — sticky top sur mobile */}
+              {/* Boutons Terminer / Annuler */}
               {sessionActive && (
-                <div className="sticky top-0 z-20 bg-white border-b border-gray-200 px-3 py-2 flex gap-2">
+                <div className="shrink-0 bg-white border-b border-gray-200 px-3 py-2 flex gap-2">
                   <button
                     onClick={handleCloturer}
                     className="flex-1 py-2 rounded text-sm font-semibold bg-teal-600 text-white hover:bg-teal-700 transition-colors"
@@ -259,21 +252,25 @@ export default function CentrifugationPage() {
                 </div>
               )}
 
-              <div className="px-3 py-2 bg-gray-50 border-b border-gray-200">
+              {/* Titre Tubes scannés */}
+              <div className="shrink-0 px-3 py-2 bg-gray-50 border-b border-gray-200">
                 <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
                   Tubes scannés
                 </h2>
               </div>
 
-              <ScanZone
-                sessionId={sessionId}
-                tubes={tubes}
-                sessionActive={sessionActive}
-                canStart={canStart}
-                onScan={handleScan}
-                onDelete={handleDeleteTube}
-                onStartSession={handleStartSession}
-              />
+              {/* ScanZone — prend le reste de la hauteur */}
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <ScanZone
+                  sessionId={sessionId}
+                  tubes={tubes}
+                  sessionActive={sessionActive}
+                  canStart={canStart}
+                  onScan={handleScan}
+                  onDelete={handleDeleteTube}
+                  onStartSession={handleStartSession}
+                />
+              </div>
             </div>
 
             {/* Panneau droit : historique */}

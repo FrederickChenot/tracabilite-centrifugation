@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { site_id, centri_id, prog_id, stockage, visa } = parsed.data;
+  const { site_id, centri_id, prog_id, visa } = parsed.data;
 
   const user = session.user as { role?: string; site_id?: number | null };
   if (user.role !== 'admin' && user.site_id && user.site_id !== site_id) {
@@ -25,8 +25,8 @@ export async function POST(request: NextRequest) {
   }
 
   const result = await sql`
-    INSERT INTO sessions_centri (site_id, centri_id, prog_id, stockage, visa)
-    VALUES (${site_id}, ${centri_id}, ${prog_id}, ${stockage ?? null}, ${visa})
+    INSERT INTO sessions_centri (site_id, centri_id, prog_id, visa)
+    VALUES (${site_id}, ${centri_id}, ${prog_id}, ${visa})
     RETURNING id
   `;
 
