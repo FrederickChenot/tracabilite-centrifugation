@@ -11,8 +11,10 @@ interface HistoriqueTableProps {
 
 const stockageBadgeStyle: Record<string, CSSProperties> = {
   ambiant: { background: '#FFF3E0', color: '#E65100', border: '1px solid #FF9800' },
-  '+5': { background: '#E3F2FD', color: '#0D47A1', border: '1px solid #2196F3' },
-  '-20': { background: '#EDE7F6', color: '#311B92', border: '1px solid #673AB7' },
+  plus5:   { background: '#E3F2FD', color: '#0D47A1', border: '1px solid #2196F3' },
+  moins20: { background: '#EDE7F6', color: '#311B92', border: '1px solid #673AB7' },
+  '+5':    { background: '#E3F2FD', color: '#0D47A1', border: '1px solid #2196F3' },
+  '-20':   { background: '#EDE7F6', color: '#311B92', border: '1px solid #673AB7' },
 };
 
 function parseStockages(raw: string | null | undefined): string[] {
@@ -129,13 +131,19 @@ export default function HistoriqueTable({ sessions, currentSessionId, onReprendr
                     <span
                       key={tube.id}
                       title={formatHeure(tube.scanned_at)}
-                      className={`font-mono px-1.5 py-0.5 rounded text-xs ${
-                        isCurrent
-                          ? 'bg-teal-100 text-teal-800'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}
+                      className="flex items-center gap-1"
                     >
-                      {tube.num_echant}
+                      {tube.stockage && (
+                        <span
+                          className="inline-block w-2 h-2 rounded-full shrink-0"
+                          style={{ background: (stockageBadgeStyle[tube.stockage] as CSSProperties & { background: string })?.background }}
+                        />
+                      )}
+                      <span className={`font-mono px-1.5 py-0.5 rounded text-xs ${
+                        isCurrent ? 'bg-teal-100 text-teal-800' : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {tube.num_echant}
+                      </span>
                     </span>
                   ))}
                 </div>
@@ -217,16 +225,18 @@ export default function HistoriqueTable({ sessions, currentSessionId, onReprendr
                 <td className="py-2 px-3">
                   <div className="flex flex-wrap gap-1 max-w-xs">
                     {session.tubes.map((tube) => (
-                      <span
-                        key={tube.id}
-                        title={formatHeure(tube.scanned_at)}
-                        className={`font-mono px-1 py-0.5 rounded text-xs ${
-                          isCurrent
-                            ? 'bg-teal-100 text-teal-800'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}
-                      >
-                        {tube.num_echant}
+                      <span key={tube.id} title={formatHeure(tube.scanned_at)} className="flex items-center gap-0.5">
+                        {tube.stockage && (
+                          <span
+                            className="inline-block w-2 h-2 rounded-full shrink-0"
+                            style={{ background: (stockageBadgeStyle[tube.stockage] as CSSProperties & { background: string })?.background }}
+                          />
+                        )}
+                        <span className={`font-mono px-1 py-0.5 rounded text-xs ${
+                          isCurrent ? 'bg-teal-100 text-teal-800' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {tube.num_echant}
+                        </span>
                       </span>
                     ))}
                   </div>

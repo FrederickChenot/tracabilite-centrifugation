@@ -4,14 +4,13 @@ export const CreateSessionSchema = z.object({
   site_id: z.number().int().positive(),
   centri_id: z.number().int().positive(),
   prog_id: z.number().int().positive(),
-  stockages: z.array(z.string()).min(1),
   visa: z.string().min(1).max(5),
 });
 
 export const AddTubeSchema = z.object({
   session_id: z.string().uuid(),
   num_echant: z.string().min(1).max(50),
-  stockage: z.enum(['ambiant', '+5', '-20']).optional().nullable(),
+  stockage: z.string().optional().nullable(),
 });
 
 export type CreateSessionInput = z.infer<typeof CreateSessionSchema>;
@@ -50,7 +49,7 @@ export interface Tube {
   session_id: string;
   num_echant: string;
   scanned_at: string;
-  stockage?: 'ambiant' | '+5' | '-20' | null;
+  stockage?: string | null;
 }
 
 export interface Session {

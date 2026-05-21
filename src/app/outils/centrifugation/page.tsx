@@ -26,7 +26,6 @@ export default function CentrifugationPage() {
 
   const [selectedCentri, setSelectedCentri] = useState<number | null>(null);
   const [selectedProg, setSelectedProg] = useState<number | null>(null);
-  const [stockages, setStockages] = useState<string[]>([]);
   const [visa, setVisa] = useState('');
 
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -60,7 +59,6 @@ export default function CentrifugationPage() {
     loadHistorique();
     setSelectedCentri(null);
     setSelectedProg(null);
-    setStockages([]);
     setVisa('');
     setSessionId(null);
     setSessionActive(false);
@@ -70,14 +68,7 @@ export default function CentrifugationPage() {
   const canStart =
     selectedCentri !== null &&
     selectedProg !== null &&
-    stockages.length > 0 &&
     visa.trim().length >= 2;
-
-  function toggleStockage(s: string) {
-    setStockages((prev) =>
-      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
-    );
-  }
 
   async function handleStartSession() {
     if (!canStart) return;
@@ -88,7 +79,6 @@ export default function CentrifugationPage() {
         site_id: siteId,
         centri_id: selectedCentri,
         prog_id: selectedProg,
-        stockages,
         visa: visa.trim(),
       }),
     });
@@ -100,12 +90,12 @@ export default function CentrifugationPage() {
     await loadHistorique();
   }
 
-  async function handleScan(numEchant: string) {
+  async function handleScan(numEchant: string, stockage: string) {
     if (!sessionId) return;
     const res = await fetch('/api/centri/tubes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: sessionId, num_echant: numEchant }),
+      body: JSON.stringify({ session_id: sessionId, num_echant: numEchant, stockage }),
     });
     if (!res.ok) return;
     const tube: Tube = await res.json();
@@ -128,7 +118,6 @@ export default function CentrifugationPage() {
     setTubes([]);
     setSelectedCentri(null);
     setSelectedProg(null);
-    setStockages([]);
     setVisa('');
     await loadHistorique();
   }
@@ -136,14 +125,6 @@ export default function CentrifugationPage() {
   async function handleCloturerById(id: string) {
     await fetch(`/api/centri/sessions/${id}/cloturer`, { method: 'PATCH' });
     await loadHistorique();
-  }
-
-  function handleAnnuler() {
-    if (!sessionId) return;
-    if (!confirm('Mettre ce scan en pause ?\nVous pourrez le reprendre depuis l\'historique.')) return;
-    setSessionActive(false);
-    setSessionId(null);
-    setTubes([]);
   }
 
   async function handleReprendre(id: string) {
@@ -233,7 +214,6 @@ export default function CentrifugationPage() {
                     centrifugeuses={centrifugeuses}
                     selectedCentri={selectedCentri}
                     selectedProg={selectedProg}
-                    stockages={stockages}
                     visa={visa}
                     sessionActive={sessionActive}
                     onCentriChange={(id) => {
@@ -241,26 +221,19 @@ export default function CentrifugationPage() {
                       setSelectedProg(null);
                     }}
                     onProgChange={setSelectedProg}
-                    onToggleStockage={toggleStockage}
                     onVisaChange={setVisa}
                   />
                 )}
               </div>
 
-              {/* Boutons Terminer / Annuler */}
+              {/* Bouton Terminer */}
               {sessionActive && (
-                <div className="shrink-0 bg-white border-b border-gray-200 px-3 py-2 flex gap-2">
+                <div className="shrink-0 bg-white border-b border-gray-200 px-3 py-2">
                   <button
                     onClick={handleCloturer}
-                    className="flex-1 py-2 rounded text-sm font-semibold bg-teal-600 text-white hover:bg-teal-700 transition-colors"
+                    className="w-full py-2 rounded text-sm font-semibold bg-teal-600 text-white hover:bg-teal-700 transition-colors"
                   >
                     Terminer
-                  </button>
-                  <button
-                    onClick={handleAnnuler}
-                    className="flex-1 py-2 rounded text-sm font-semibold bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 transition-colors"
-                  >
-                    ✕ Annuler
                   </button>
                 </div>
               )}

@@ -1,16 +1,35 @@
 'use client';
 
 import { useRef, useEffect, useState } from 'react';
-import { IconBarcode, IconLock, IconPlayerPlay } from '@tabler/icons-react';
+import { IconPlayerPlay } from '@tabler/icons-react';
 import { Tube } from '@/lib/schemas';
-import TubeItem from './TubeItem';
+
+type StockageCentri = 'ambiant' | 'plus5' | 'moins20';
+
+const TEMPS: StockageCentri[] = ['ambiant', 'plus5', 'moins20'];
+
+const LABELS: Record<StockageCentri, string> = {
+  ambiant: 'Ambiant (15-25°C)',
+  plus5:   '+5°C (2-8°C)',
+  moins20: '-20°C',
+};
+
+const COLORS: Record<StockageCentri, { border: string; header: string; badge: string }> = {
+  ambiant: { border: 'border-orange-200', header: 'bg-orange-50 border-orange-200', badge: 'bg-orange-100 text-orange-700' },
+  plus5:   { border: 'border-blue-200',   header: 'bg-blue-50 border-blue-200',     badge: 'bg-blue-100 text-blue-700' },
+  moins20: { border: 'border-purple-200', header: 'bg-purple-50 border-purple-200', badge: 'bg-purple-100 text-purple-700' },
+};
+
+function fmtTime(d: string) {
+  return new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
 
 interface ScanZoneProps {
   sessionId: string | null;
   tubes: Tube[];
   sessionActive: boolean;
   canStart: boolean;
-  onScan: (numEchant: string) => Promise<void>;
+  onScan: (numEchant: string, stockage: string) => Promise<void>;
   onDelete: (id: string) => void;
   onStartSession: () => Promise<void>;
 }
@@ -24,120 +43,110 @@ export default function ScanZone({
   onDelete,
   onStartSession,
 }: ScanZoneProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-  const [scanValue, setScanValue] = useState('');
-  const [scanning, setScanning] = useState(false);
+  const [scanValues, setScanValues] = useState({ ambiant: '', plus5: '', moins20: '' });
+  const [scanning, setScanning] = useState<StockageCentri | null>(null);
+
+  const inputRefs = useRef<Record<StockageCentri, HTMLInputElement | null>>({
+    ambiant: null, plus5: null, moins20: null,
+  });
 
   useEffect(() => {
-    if (sessionActive && inputRef.current) {
-      inputRef.current.focus();
+    if (sessionActive) {
+      inputRefs.current.ambiant?.focus();
     }
-  }, [sessionActive, tubes.length]);
+  }, [sessionActive]);
 
-  useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
-    }
-  }, [tubes.length]);
+  const tubesByTemp = (temp: StockageCentri) =>
+    tubes.filter((t) => t.stockage === temp);
 
-  async function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key !== 'Enter') return;
-    const val = scanValue.trim();
-    if (!val || scanning) return;
-
-    setScanning(true);
+  async function handleScan(temp: StockageCentri) {
+    const code = scanValues[temp].trim();
+    if (!code || !sessionId || scanning) return;
+    setScanning(temp);
     try {
-      await onScan(val);
-      setScanValue('');
+      await onScan(code, temp);
+      setScanValues((prev) => ({ ...prev, [temp]: '' }));
     } finally {
-      setScanning(false);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      setScanning(null);
+      setTimeout(() => inputRefs.current[temp]?.focus(), 50);
     }
   }
 
   async function handleStartClick() {
     await onStartSession();
-    setTimeout(() => inputRef.current?.focus(), 100);
+    setTimeout(() => inputRefs.current.ambiant?.focus(), 100);
   }
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 px-3 pb-3 pt-2">
+    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto px-3 pb-3 pt-2 gap-3">
 
-      {/* Champ scan */}
-      <div className="mb-2">
-        <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">
-          Scanner un tube
-        </label>
-        <div className="relative">
-          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none z-10">
-            {sessionActive ? (
-              <IconBarcode
-                size={17}
-                className="text-teal-500"
-                style={{ animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite' }}
-              />
-            ) : (
-              <IconLock size={16} className="text-gray-400" />
+      {TEMPS.map((temp) => {
+        const cols = COLORS[temp];
+        const tempTubes = tubesByTemp(temp);
+        const isScanning = scanning === temp;
+
+        return (
+          <div key={temp} className={`border rounded-lg ${cols.border} overflow-hidden`}>
+            {/* En-tête zone */}
+            <div className={`${cols.header} px-3 py-2 flex items-center justify-between border-b`}>
+              <span className="text-xs font-bold text-gray-700">{LABELS[temp]}</span>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cols.badge}`}>
+                {tempTubes.length}
+              </span>
+            </div>
+
+            {/* Champ de scan */}
+            {sessionActive && (
+              <div className="px-3 py-2 flex gap-2">
+                <input
+                  ref={(el) => { inputRefs.current[temp] = el; }}
+                  type="text"
+                  inputMode="text"
+                  value={scanValues[temp]}
+                  onChange={(e) => setScanValues((prev) => ({ ...prev, [temp]: e.target.value }))}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleScan(temp); }}
+                  disabled={!!scanning}
+                  placeholder="Scanner ou saisir..."
+                  className="flex-1 min-w-0 border rounded px-2 py-2 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-gray-300 disabled:bg-gray-50"
+                  style={{ fontSize: 15 }}
+                />
+                <button
+                  onClick={() => handleScan(temp)}
+                  disabled={!!scanning || !scanValues[temp].trim()}
+                  className="px-3 py-2 rounded text-xs font-semibold bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-40 transition-colors"
+                >
+                  {isScanning ? '...' : 'OK'}
+                </button>
+              </div>
             )}
-          </span>
-          <input
-            ref={inputRef}
-            type="text"
-            inputMode="text"
-            value={scanValue}
-            onChange={(e) => setScanValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={!sessionActive || scanning}
-            placeholder={
-              sessionActive
-                ? 'Scanner ou saisir le code-barres...'
-                : 'Configurez centrifugeuse, programme et visa'
-            }
-            autoFocus={sessionActive}
-            className="w-full font-mono focus:outline-none transition-colors"
-            style={{
-              minHeight: 48,
-              fontSize: 16,
-              paddingLeft: 34,
-              paddingRight: 12,
-              borderRadius: 6,
-              border: sessionActive ? '2px dashed #0F6E56' : '1px solid #e5e7eb',
-              background: sessionActive ? '#fff' : '#f9fafb',
-              color: sessionActive ? '#111827' : '#9ca3af',
-              cursor: sessionActive ? 'text' : 'not-allowed',
-            }}
-          />
-        </div>
-        {sessionActive ? (
-          <p className="text-xs text-gray-400 mt-1">Appuyez sur Entrée après chaque scan</p>
-        ) : (
-          <p className="text-xs text-gray-400 mt-1 leading-snug">
-            Configurez centrifugeuse, programme et visa
-          </p>
-        )}
-        {scanning && (
-          <p className="text-xs text-teal-600 mt-0.5">Enregistrement...</p>
-        )}
-      </div>
 
-      {/* Liste des tubes — flex-1 sans maxHeight fixe */}
-      <div
-        ref={listRef}
-        className="flex-1 overflow-y-auto flex flex-col gap-1 min-h-0"
-      >
-        {tubes.length === 0 ? (
-          <p className="text-xs text-gray-400 text-center py-4">
-            {sessionActive ? 'Aucun tube scanné' : ''}
-          </p>
-        ) : (
-          tubes.map((tube, i) => (
-            <TubeItem key={tube.id} tube={tube} index={i + 1} onDelete={onDelete} />
-          ))
-        )}
-      </div>
+            {/* Liste des tubes */}
+            {tempTubes.length > 0 && (
+              <div className="divide-y divide-gray-100">
+                {tempTubes.map((tube) => (
+                  <div key={tube.id} className="flex items-center gap-2 px-3 py-1.5">
+                    <span className="flex-1 font-mono text-xs text-gray-800">{tube.num_echant}</span>
+                    <span className="text-xs text-gray-400">{fmtTime(tube.scanned_at)}</span>
+                    <button
+                      onClick={() => onDelete(tube.id)}
+                      className="text-gray-400 hover:text-red-500 text-base font-bold leading-none transition-colors"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
-      <div className="mt-2 pt-2 border-t border-gray-200 shrink-0">
+            {sessionActive && tempTubes.length === 0 && (
+              <p className="text-xs text-gray-400 text-center py-2">Aucun tube</p>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Pied de page */}
+      <div className="shrink-0 pt-2 border-t border-gray-200">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-gray-500">
             {tubes.length} tube{tubes.length !== 1 ? 's' : ''} scannés
