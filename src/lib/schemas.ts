@@ -57,7 +57,8 @@ export interface Session {
   site_id: number;
   centri_id: number;
   prog_id: number;
-  stockage: 'ambiant' | '+5' | '-20' | null;
+  stockage: string | null;
+  stockages_tubes?: string[] | null;
   visa: string;
   opened_at: string;
   closed_at: string | null;

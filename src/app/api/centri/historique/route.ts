@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
   `;
 
   const tubes = await sql`
-    SELECT t.id, t.session_id, t.num_echant, t.scanned_at
+    SELECT t.id, t.session_id, t.num_echant, t.scanned_at, t.stockage
     FROM tubes_centri t
     INNER JOIN sessions_centri s ON s.id = t.session_id
     WHERE s.site_id = ${Number(site_id)}
@@ -42,11 +42,18 @@ export async function GET(request: NextRequest) {
   `;
 
   const tubesBySession = new Map<string, typeof tubes>();
+  const stockagesBySession = new Map<string, Set<string>>();
   for (const tube of tubes) {
     if (!tubesBySession.has(tube.session_id)) {
       tubesBySession.set(tube.session_id, []);
     }
     tubesBySession.get(tube.session_id)!.push(tube);
+    if (tube.stockage) {
+      if (!stockagesBySession.has(tube.session_id)) {
+        stockagesBySession.set(tube.session_id, new Set());
+      }
+      stockagesBySession.get(tube.session_id)!.add(tube.stockage as string);
+    }
   }
 
   const result: HistoriqueSession[] = sessions.map((s) => ({
@@ -55,6 +62,7 @@ export async function GET(request: NextRequest) {
     centri_id: s.centri_id,
     prog_id: s.prog_id,
     stockage: s.stockage,
+    stockages_tubes: Array.from(stockagesBySession.get(s.id) ?? []),
     visa: s.visa,
     opened_at: s.opened_at,
     closed_at: s.closed_at,
@@ -67,6 +75,7 @@ export async function GET(request: NextRequest) {
       session_id: t.session_id,
       num_echant: t.num_echant,
       scanned_at: t.scanned_at,
+      stockage: t.stockage,
     })),
   }));
 
