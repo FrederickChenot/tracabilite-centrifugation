@@ -14,6 +14,7 @@ interface SidebarProps {
 const navItems = [
   { href: '/outils/centrifugation', label: 'Centrifugation', icon: '⟳' },
   { href: '/outils/transport',      label: 'Transport',       icon: '🚚' },
+  { href: '/tickets',               label: 'Tickets',         icon: '◈' },
   { href: '/recherche',             label: 'Recherche',       icon: '⌕' },
 ];
 

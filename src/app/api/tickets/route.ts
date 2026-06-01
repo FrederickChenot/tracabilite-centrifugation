@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       VALUES (
         ${titre},
         ${description ?? null},
-        'ouvert',
+        'a_faire',
         ${priorite},
         ${cree_par},
         ${site}
