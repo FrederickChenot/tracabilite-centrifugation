@@ -8,6 +8,17 @@ type SessionUser = {
   prenom?: string | null;
 };
 
+type PgError = {
+  message?: string;
+  code?: string;
+  detail?: string;
+};
+
+function safeUserId(rawId: string | undefined): number {
+  const n = parseInt(rawId ?? '0', 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -34,7 +45,7 @@ export async function POST(
     }
 
     const user = session.user as SessionUser;
-    const user_id = Number(user.id);
+    const user_id = safeUserId(user.id);
 
     const result = await sql`
       INSERT INTO ticket_historique (id, ticket_id, user_id, action, commentaire)
@@ -44,7 +55,8 @@ export async function POST(
 
     return NextResponse.json({ historique: result[0] }, { status: 201 });
   } catch (error) {
-    console.error('[tickets/[id]/commenter POST]', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    const e = error as PgError;
+    console.error('[tickets/[id]/commenter POST] ERREUR:', { message: e.message, code: e.code, detail: e.detail });
+    return NextResponse.json({ error: 'Erreur serveur', detail: e.message }, { status: 500 });
   }
 }

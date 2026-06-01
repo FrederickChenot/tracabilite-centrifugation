@@ -10,6 +10,17 @@ type SessionUser = {
   role?: string;
 };
 
+type PgError = {
+  message?: string;
+  code?: string;
+  detail?: string;
+};
+
+function safeUserId(rawId: string | undefined): number {
+  const n = parseInt(rawId ?? '0', 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
 function getResend(): Resend | null {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return null;
@@ -34,13 +45,13 @@ export async function POST(
 
     if (!Array.isArray(user_ids)) {
       return NextResponse.json(
-        { error: 'user_ids (tableau d\'entiers) requis' },
+        { error: "user_ids (tableau d'entiers) requis" },
         { status: 400 }
       );
     }
 
     const user = session.user as SessionUser;
-    const assigne_par = Number(user.id);
+    const assigne_par = safeUserId(user.id);
 
     const ticketResult = await sql`
       SELECT id, titre FROM tickets WHERE id = ${id}
@@ -64,10 +75,14 @@ export async function POST(
         DELETE FROM ticket_assignations
         WHERE ticket_id = ${id} AND user_id = ${uid}
       `;
-      await sql`
-        INSERT INTO ticket_historique (id, ticket_id, user_id, action, ancienne_valeur)
-        VALUES (gen_random_uuid(), ${id}, ${assigne_par}, 'desassignation', ${String(uid)})
-      `;
+      try {
+        await sql`
+          INSERT INTO ticket_historique (id, ticket_id, user_id, action, ancienne_valeur)
+          VALUES (gen_random_uuid(), ${id}, ${assigne_par}, 'desassignation', ${String(uid)})
+        `;
+      } catch (histErr) {
+        console.error('[tickets/assigner] historique desassignation échoué:', (histErr as PgError).message);
+      }
     }
 
     for (const uid of toAdd) {
@@ -75,15 +90,22 @@ export async function POST(
         INSERT INTO ticket_assignations (ticket_id, user_id, assigne_par, assigne_le)
         VALUES (${id}, ${uid}, ${assigne_par}, NOW())
       `;
-      await sql`
-        INSERT INTO ticket_historique (id, ticket_id, user_id, action, nouvelle_valeur)
-        VALUES (gen_random_uuid(), ${id}, ${assigne_par}, 'assignation', ${String(uid)})
-      `;
+      try {
+        await sql`
+          INSERT INTO ticket_historique (id, ticket_id, user_id, action, nouvelle_valeur)
+          VALUES (gen_random_uuid(), ${id}, ${assigne_par}, 'assignation', ${String(uid)})
+        `;
+      } catch (histErr) {
+        console.error('[tickets/assigner] historique assignation échoué:', (histErr as PgError).message);
+      }
     }
 
     if (toAdd.length > 0) {
+      // Utilise ::text sur les deux côtés pour éviter une erreur de type si users.id est UUID
       const newUsers = await sql`
-        SELECT id, email, nom, prenom FROM users WHERE id = ANY(${toAdd})
+        SELECT id, email, nom, prenom
+        FROM users
+        WHERE id::text = ANY(${toAdd.map(String)})
       `;
       const resend = getResend();
       const appUrl = process.env.NEXTAUTH_URL ?? 'https://biolabtrack.fr';
@@ -126,7 +148,8 @@ export async function POST(
 
     return NextResponse.json({ success: true, ajoutes: toAdd, retires: toRemove });
   } catch (error) {
-    console.error('[tickets/[id]/assigner POST]', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    const e = error as PgError;
+    console.error('[tickets/[id]/assigner POST] ERREUR:', { message: e.message, code: e.code, detail: e.detail });
+    return NextResponse.json({ error: 'Erreur serveur', detail: e.message }, { status: 500 });
   }
 }

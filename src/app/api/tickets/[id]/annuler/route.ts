@@ -10,6 +10,17 @@ type SessionUser = {
   role?: string;
 };
 
+type PgError = {
+  message?: string;
+  code?: string;
+  detail?: string;
+};
+
+function safeUserId(rawId: string | undefined): number {
+  const n = parseInt(rawId ?? '0', 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
 function getResend(): Resend | null {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return null;
@@ -33,7 +44,7 @@ export async function POST(
     const { motif } = body as { motif?: string };
 
     if (!motif || !motif.trim()) {
-      return NextResponse.json({ error: 'Le motif d\'annulation est obligatoire' }, { status: 400 });
+      return NextResponse.json({ error: "Le motif d'annulation est obligatoire" }, { status: 400 });
     }
 
     const ticketResult = await sql`
@@ -49,37 +60,41 @@ export async function POST(
     }
 
     const user = session.user as SessionUser;
-    const user_id = Number(user.id);
+    const user_id = safeUserId(user.id);
     const ancienStatut = ticket.statut as string;
 
     const updated = await sql`
       UPDATE tickets
       SET
-        statut            = 'annule',
-        motif_annulation  = ${motif.trim()},
-        updated_at        = NOW()
+        statut           = 'annule',
+        motif_annulation = ${motif.trim()},
+        updated_at       = NOW()
       WHERE id = ${id}
       RETURNING *
     `;
 
-    await sql`
-      INSERT INTO ticket_historique (id, ticket_id, user_id, action, ancienne_valeur, nouvelle_valeur, commentaire)
-      VALUES (
-        gen_random_uuid(),
-        ${id},
-        ${user_id},
-        'annulation',
-        ${ancienStatut},
-        'annule',
-        ${motif.trim()}
-      )
-    `;
+    try {
+      await sql`
+        INSERT INTO ticket_historique (id, ticket_id, user_id, action, ancienne_valeur, nouvelle_valeur, commentaire)
+        VALUES (
+          gen_random_uuid(),
+          ${id},
+          ${user_id},
+          'annulation',
+          ${ancienStatut},
+          'annule',
+          ${motif.trim()}
+        )
+      `;
+    } catch (histErr) {
+      console.error('[tickets/annuler] historique INSERT échoué (non bloquant):', (histErr as PgError).message);
+    }
 
     // Notifier les assignés par email
     const assignes = await sql`
       SELECT u.email, u.nom, u.prenom
       FROM ticket_assignations ta
-      JOIN users u ON u.id = ta.user_id
+      JOIN users u ON u.id::text = ta.user_id::text
       WHERE ta.ticket_id = ${id}
     `;
 
@@ -137,7 +152,8 @@ export async function POST(
 
     return NextResponse.json({ ticket: updated[0] });
   } catch (error) {
-    console.error('[tickets/[id]/annuler POST]', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    const e = error as PgError;
+    console.error('[tickets/[id]/annuler POST] ERREUR:', { message: e.message, code: e.code, detail: e.detail });
+    return NextResponse.json({ error: 'Erreur serveur', detail: e.message }, { status: 500 });
   }
 }

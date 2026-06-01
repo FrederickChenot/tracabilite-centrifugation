@@ -10,6 +10,21 @@ type SessionUser = {
   site_id?: number | null;
 };
 
+// session.user.id = token.sub (string) — peut être "42" (INTEGER) ou UUID selon le schéma users
+// parseInt() retourne NaN pour les UUID, on utilise 0 comme fallback (id admin)
+function safeUserId(rawId: string | undefined): number {
+  const n = parseInt(rawId ?? '0', 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
+type PgError = {
+  message?: string;
+  code?: string;
+  detail?: string;
+  hint?: string;
+  where?: string;
+};
+
 export async function GET() {
   const session = await auth();
   if (!session) {
@@ -23,10 +38,10 @@ export async function GET() {
         COALESCE(
           json_agg(
             json_build_object(
-              'user_id',   ta.user_id,
-              'nom',       u.nom,
-              'prenom',    u.prenom,
-              'email',     u.email,
+              'user_id',    ta.user_id,
+              'nom',        u.nom,
+              'prenom',     u.prenom,
+              'email',      u.email,
               'assigne_le', ta.assigne_le
             ) ORDER BY ta.assigne_le
           ) FILTER (WHERE ta.user_id IS NOT NULL),
@@ -34,15 +49,16 @@ export async function GET() {
         ) AS assignes
       FROM tickets t
       LEFT JOIN ticket_assignations ta ON ta.ticket_id = t.id
-      LEFT JOIN users u ON u.id = ta.user_id
+      LEFT JOIN users u ON u.id::text = ta.user_id::text
       GROUP BY t.id
       ORDER BY t.created_at DESC
     `;
 
     return NextResponse.json({ tickets });
   } catch (error) {
-    console.error('[tickets GET]', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    const e = error as PgError;
+    console.error('[tickets GET] ERREUR:', { message: e.message, code: e.code, detail: e.detail });
+    return NextResponse.json({ error: 'Erreur serveur', detail: e.message }, { status: 500 });
   }
 }
 
@@ -69,38 +85,65 @@ export async function POST(request: NextRequest) {
     }
 
     const user = session.user as SessionUser;
-    const cree_par = Number(user.id);
-    const auteur = `${user.prenom ?? ''} ${user.nom ?? ''}`.trim() || (session.user?.email ?? 'Inconnu');
+    const rawId = user.id ?? '0';
+    const cree_par = safeUserId(rawId);
+    const auteur =
+      `${user.prenom ?? ''} ${user.nom ?? ''}`.trim() ||
+      (session.user?.email ?? 'Inconnu');
+
+    console.log('[tickets POST] session.user.id:', rawId, '→ cree_par:', cree_par);
 
     const result = await sql`
-      INSERT INTO tickets (titre, description, statut, priorite, cree_par, site)
+      INSERT INTO tickets (titre, description, statut, priorite, cree_par, site, motif_annulation)
       VALUES (
         ${titre},
         ${description ?? null},
         'a_faire',
         ${priorite},
         ${cree_par},
-        ${site}
+        ${site},
+        ${null}
       )
       RETURNING *
     `;
 
     const ticket = result[0];
 
-    await sql`
-      INSERT INTO ticket_historique (id, ticket_id, user_id, action, commentaire)
-      VALUES (
-        gen_random_uuid(),
-        ${ticket.id as string},
-        ${cree_par},
-        'creation',
-        ${`Ticket créé par ${auteur}`}
-      )
-    `;
+    // Historique non bloquant — une erreur ici ne doit pas annuler la création
+    try {
+      await sql`
+        INSERT INTO ticket_historique (id, ticket_id, user_id, action, commentaire)
+        VALUES (
+          gen_random_uuid(),
+          ${ticket.id as string},
+          ${cree_par},
+          'creation',
+          ${`Ticket créé par ${auteur}`}
+        )
+      `;
+    } catch (histErr) {
+      const he = histErr as PgError;
+      console.error('[tickets POST] historique INSERT échoué (non bloquant):', {
+        message: he.message,
+        code: he.code,
+        detail: he.detail,
+      });
+    }
 
     return NextResponse.json({ ticket }, { status: 201 });
   } catch (error) {
-    console.error('[tickets POST]', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    const e = error as PgError;
+    console.error('[tickets POST] ERREUR COMPLÈTE:', {
+      message: e.message,
+      code:    e.code,
+      detail:  e.detail,
+      hint:    e.hint,
+      where:   e.where,
+      raw:     String(error),
+    });
+    return NextResponse.json(
+      { error: 'Erreur serveur', detail: e.message ?? String(error) },
+      { status: 500 }
+    );
   }
 }

@@ -9,6 +9,18 @@ type SessionUser = {
   role?: string;
 };
 
+type PgError = {
+  message?: string;
+  code?: string;
+  detail?: string;
+  hint?: string;
+};
+
+function safeUserId(rawId: string | undefined): number {
+  const n = parseInt(rawId ?? '0', 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -38,7 +50,7 @@ export async function GET(
         ) AS assignes
       FROM tickets t
       LEFT JOIN ticket_assignations ta ON ta.ticket_id = t.id
-      LEFT JOIN users u ON u.id = ta.user_id
+      LEFT JOIN users u ON u.id::text = ta.user_id::text
       WHERE t.id = ${id}
       GROUP BY t.id
     `;
@@ -54,15 +66,16 @@ export async function GET(
         u.prenom,
         u.email
       FROM ticket_historique th
-      LEFT JOIN users u ON u.id = th.user_id
+      LEFT JOIN users u ON u.id::text = th.user_id::text
       WHERE th.ticket_id = ${id}
       ORDER BY th.created_at ASC
     `;
 
     return NextResponse.json({ ticket: ticketResult[0], historique });
   } catch (error) {
-    console.error('[tickets/[id] GET]', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    const e = error as PgError;
+    console.error('[tickets/[id] GET] ERREUR:', { message: e.message, code: e.code, detail: e.detail });
+    return NextResponse.json({ error: 'Erreur serveur', detail: e.message }, { status: 500 });
   }
 }
 
@@ -88,7 +101,7 @@ export async function PUT(
     }
 
     const user = session.user as SessionUser;
-    const user_id = Number(user.id);
+    const user_id = safeUserId(user.id);
 
     const current = await sql`
       SELECT statut, priorite FROM tickets WHERE id = ${id}
@@ -108,36 +121,45 @@ export async function PUT(
     `;
 
     if (statut && statut !== current[0].statut) {
-      await sql`
-        INSERT INTO ticket_historique (id, ticket_id, user_id, action, ancienne_valeur, nouvelle_valeur)
-        VALUES (
-          gen_random_uuid(),
-          ${id},
-          ${user_id},
-          'changement_statut',
-          ${current[0].statut as string},
-          ${statut}
-        )
-      `;
+      try {
+        await sql`
+          INSERT INTO ticket_historique (id, ticket_id, user_id, action, ancienne_valeur, nouvelle_valeur)
+          VALUES (
+            gen_random_uuid(),
+            ${id},
+            ${user_id},
+            'changement_statut',
+            ${current[0].statut as string},
+            ${statut}
+          )
+        `;
+      } catch (histErr) {
+        console.error('[tickets/[id] PUT] historique statut INSERT échoué:', (histErr as PgError).message);
+      }
     }
 
     if (priorite && priorite !== current[0].priorite) {
-      await sql`
-        INSERT INTO ticket_historique (id, ticket_id, user_id, action, ancienne_valeur, nouvelle_valeur)
-        VALUES (
-          gen_random_uuid(),
-          ${id},
-          ${user_id},
-          'changement_priorite',
-          ${current[0].priorite as string},
-          ${priorite}
-        )
-      `;
+      try {
+        await sql`
+          INSERT INTO ticket_historique (id, ticket_id, user_id, action, ancienne_valeur, nouvelle_valeur)
+          VALUES (
+            gen_random_uuid(),
+            ${id},
+            ${user_id},
+            'changement_priorite',
+            ${current[0].priorite as string},
+            ${priorite}
+          )
+        `;
+      } catch (histErr) {
+        console.error('[tickets/[id] PUT] historique priorité INSERT échoué:', (histErr as PgError).message);
+      }
     }
 
     return NextResponse.json({ ticket: updated[0] });
   } catch (error) {
-    console.error('[tickets/[id] PUT]', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    const e = error as PgError;
+    console.error('[tickets/[id] PUT] ERREUR:', { message: e.message, code: e.code, detail: e.detail });
+    return NextResponse.json({ error: 'Erreur serveur', detail: e.message }, { status: 500 });
   }
 }
