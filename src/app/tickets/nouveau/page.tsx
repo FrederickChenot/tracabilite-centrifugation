@@ -71,6 +71,8 @@ export default function NouveauTicketPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    console.log('SUBMIT appelé', { titre, priorite, site });
+
     if (!titre.trim()) {
       setError('Le titre est obligatoire');
       return;
@@ -90,13 +92,17 @@ export default function NouveauTicketPage() {
         }),
       });
 
+      console.log('FETCH response status:', res.status);
+
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error ?? 'Erreur lors de la création');
+        console.log('FETCH error body:', data);
+        setError(data.error ?? data.detail ?? 'Erreur lors de la création');
         return;
       }
 
       const { ticket } = await res.json();
+      console.log('TICKET créé:', ticket?.id);
 
       if (selectedUsers.length > 0) {
         await fetch(`/api/tickets/${ticket.id}/assigner`, {
@@ -107,6 +113,9 @@ export default function NouveauTicketPage() {
       }
 
       router.push('/tickets');
+    } catch (err) {
+      console.error('ERREUR CLIENT handleSubmit:', err);
+      setError('Erreur inattendue côté client');
     } finally {
       setSubmitting(false);
     }
@@ -163,7 +172,6 @@ export default function NouveauTicketPage() {
                   onChange={(e) => setTitre(e.target.value)}
                   placeholder="Titre du ticket..."
                   maxLength={200}
-                  required
                   className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                 />
               </div>
@@ -282,7 +290,7 @@ export default function NouveauTicketPage() {
                 </Link>
                 <button
                   type="submit"
-                  disabled={submitting || !titre.trim()}
+                  disabled={submitting}
                   className="flex-1 sm:flex-none px-6 py-2.5 text-sm font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   {submitting ? 'Création en cours...' : 'Créer le ticket'}
