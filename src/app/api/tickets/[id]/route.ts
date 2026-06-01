@@ -25,14 +25,14 @@ export async function GET(
       SELECT
         t.*,
         COALESCE(
-          json_agg(DISTINCT
+          json_agg(
             json_build_object(
               'user_id',    ta.user_id,
               'nom',        u.nom,
               'prenom',     u.prenom,
               'email',      u.email,
               'assigne_le', ta.assigne_le
-            )
+            ) ORDER BY ta.assigne_le
           ) FILTER (WHERE ta.user_id IS NOT NULL),
           '[]'::json
         ) AS assignes
