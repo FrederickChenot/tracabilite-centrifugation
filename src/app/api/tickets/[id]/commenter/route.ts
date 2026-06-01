@@ -2,22 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import sql from '@/lib/db';
 
-type SessionUser = {
-  id?: string;
-  nom?: string | null;
-  prenom?: string | null;
-};
-
 type PgError = {
   message?: string;
   code?: string;
   detail?: string;
 };
-
-function safeUserId(rawId: string | undefined): number {
-  const n = parseInt(rawId ?? '0', 10);
-  return Number.isFinite(n) ? n : 0;
-}
 
 export async function POST(
   request: NextRequest,
@@ -44,12 +33,11 @@ export async function POST(
       return NextResponse.json({ error: 'Ticket introuvable' }, { status: 404 });
     }
 
-    const user = session.user as SessionUser;
-    const user_id = safeUserId(user.id);
+    const userId = session.user.id as number;
 
     const result = await sql`
       INSERT INTO ticket_historique (id, ticket_id, user_id, action, commentaire)
-      VALUES (gen_random_uuid(), ${id}, ${user_id}, 'commentaire', ${commentaire.trim()})
+      VALUES (gen_random_uuid(), ${id}, ${userId}, 'commentaire', ${commentaire.trim()})
       RETURNING *
     `;
 

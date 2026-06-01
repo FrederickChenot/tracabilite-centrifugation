@@ -3,23 +3,11 @@ import { auth } from '@/lib/auth';
 import sql from '@/lib/db';
 import { Resend } from 'resend';
 
-type SessionUser = {
-  id?: string;
-  nom?: string | null;
-  prenom?: string | null;
-  role?: string;
-};
-
 type PgError = {
   message?: string;
   code?: string;
   detail?: string;
 };
-
-function safeUserId(rawId: string | undefined): number {
-  const n = parseInt(rawId ?? '0', 10);
-  return Number.isFinite(n) ? n : 0;
-}
 
 function getResend(): Resend | null {
   const apiKey = process.env.RESEND_API_KEY;
@@ -50,8 +38,7 @@ export async function POST(
       );
     }
 
-    const user = session.user as SessionUser;
-    const assigne_par = safeUserId(user.id);
+    const assigne_par = session.user.id as number;
 
     const ticketResult = await sql`
       SELECT id, titre FROM tickets WHERE id = ${id}
@@ -101,7 +88,6 @@ export async function POST(
     }
 
     if (toAdd.length > 0) {
-      // Utilise ::text sur les deux côtés pour éviter une erreur de type si users.id est UUID
       const newUsers = await sql`
         SELECT id, email, nom, prenom
         FROM users

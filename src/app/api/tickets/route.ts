@@ -2,21 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import sql from '@/lib/db';
 
-type SessionUser = {
-  id?: string;
-  nom?: string | null;
-  prenom?: string | null;
-  role?: string;
-  site_id?: number | null;
-};
-
-// session.user.id = token.sub (string) — peut être "42" (INTEGER) ou UUID selon le schéma users
-// parseInt() retourne NaN pour les UUID, on utilise 0 comme fallback (id admin)
-function safeUserId(rawId: string | undefined): number {
-  const n = parseInt(rawId ?? '0', 10);
-  return Number.isFinite(n) ? n : 0;
-}
-
 type PgError = {
   message?: string;
   code?: string;
@@ -84,14 +69,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = session.user as SessionUser;
-    const rawId = user.id ?? '0';
-    const cree_par = safeUserId(rawId);
+    const cree_par = session.user.id as number;
     const auteur =
-      `${user.prenom ?? ''} ${user.nom ?? ''}`.trim() ||
-      (session.user?.email ?? 'Inconnu');
+      `${session.user.nom ?? ''} ${session.user.prenom ?? ''}`.trim() ||
+      (session.user.email ?? 'Inconnu');
 
-    console.log('[tickets POST] session.user.id:', rawId, '→ cree_par:', cree_par);
+    console.log('[tickets POST] session.user.id:', cree_par);
 
     const result = await sql`
       INSERT INTO tickets (titre, description, statut, priorite, cree_par, site, motif_annulation)
@@ -109,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     const ticket = result[0];
 
-    // Historique non bloquant — une erreur ici ne doit pas annuler la création
+    // Historique non bloquant
     try {
       await sql`
         INSERT INTO ticket_historique (id, ticket_id, user_id, action, commentaire)

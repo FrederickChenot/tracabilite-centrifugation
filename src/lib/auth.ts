@@ -72,22 +72,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         const u = user as ExtUser;
-        token.role = u.role;
+        token.role = u.role ?? '';
         token.site_id = u.site_id ?? null;
         token.nom = u.nom ?? null;
         token.prenom = u.prenom ?? null;
         token.must_change_password = u.must_change_password ?? false;
+        // Stocker l'id en INTEGER dans le token (user.id est String(DB_id) ou '0' pour admin)
+        token.id = Number(user.id ?? '0');
       }
       return token;
     },
     async session({ session, token }) {
-      const u = session.user as ExtUser & { id?: string };
+      const u = session.user as ExtUser & { id?: number };
       u.role = token.role as string;
       u.site_id = token.site_id as number | null;
       u.nom = token.nom as string | null;
       u.prenom = token.prenom as string | null;
-      u.must_change_password = token.must_change_password as boolean ?? false;
-      if (token.sub) u.id = token.sub;
+      u.must_change_password = (token.must_change_password as boolean) ?? false;
+      // token.id est le number stocké dans le jwt callback (fallback sur token.sub pour anciens tokens)
+      u.id = typeof token.id === 'number' ? token.id : Number(token.sub ?? '0');
       return session;
     },
   },

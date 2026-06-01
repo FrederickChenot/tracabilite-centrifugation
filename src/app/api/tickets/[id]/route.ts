@@ -2,24 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import sql from '@/lib/db';
 
-type SessionUser = {
-  id?: string;
-  nom?: string | null;
-  prenom?: string | null;
-  role?: string;
-};
-
 type PgError = {
   message?: string;
   code?: string;
   detail?: string;
   hint?: string;
 };
-
-function safeUserId(rawId: string | undefined): number {
-  const n = parseInt(rawId ?? '0', 10);
-  return Number.isFinite(n) ? n : 0;
-}
 
 export async function GET(
   _request: NextRequest,
@@ -100,8 +88,7 @@ export async function PUT(
       );
     }
 
-    const user = session.user as SessionUser;
-    const user_id = safeUserId(user.id);
+    const userId = session.user.id as number;
 
     const current = await sql`
       SELECT statut, priorite FROM tickets WHERE id = ${id}
@@ -127,14 +114,14 @@ export async function PUT(
           VALUES (
             gen_random_uuid(),
             ${id},
-            ${user_id},
+            ${userId},
             'changement_statut',
             ${current[0].statut as string},
             ${statut}
           )
         `;
       } catch (histErr) {
-        console.error('[tickets/[id] PUT] historique statut INSERT échoué:', (histErr as PgError).message);
+        console.error('[tickets/[id] PUT] historique statut échoué:', (histErr as PgError).message);
       }
     }
 
@@ -145,14 +132,14 @@ export async function PUT(
           VALUES (
             gen_random_uuid(),
             ${id},
-            ${user_id},
+            ${userId},
             'changement_priorite',
             ${current[0].priorite as string},
             ${priorite}
           )
         `;
       } catch (histErr) {
-        console.error('[tickets/[id] PUT] historique priorité INSERT échoué:', (histErr as PgError).message);
+        console.error('[tickets/[id] PUT] historique priorité échoué:', (histErr as PgError).message);
       }
     }
 

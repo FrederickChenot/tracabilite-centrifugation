@@ -3,23 +3,11 @@ import { auth } from '@/lib/auth';
 import sql from '@/lib/db';
 import { Resend } from 'resend';
 
-type SessionUser = {
-  id?: string;
-  nom?: string | null;
-  prenom?: string | null;
-  role?: string;
-};
-
 type PgError = {
   message?: string;
   code?: string;
   detail?: string;
 };
-
-function safeUserId(rawId: string | undefined): number {
-  const n = parseInt(rawId ?? '0', 10);
-  return Number.isFinite(n) ? n : 0;
-}
 
 function getResend(): Resend | null {
   const apiKey = process.env.RESEND_API_KEY;
@@ -34,7 +22,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session || (session.user as SessionUser).role !== 'admin') {
+  if (!session || session.user.role !== 'admin') {
     return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 });
   }
 
@@ -59,8 +47,7 @@ export async function POST(
       return NextResponse.json({ error: 'Ce ticket est déjà annulé' }, { status: 400 });
     }
 
-    const user = session.user as SessionUser;
-    const user_id = safeUserId(user.id);
+    const userId = session.user.id as number;
     const ancienStatut = ticket.statut as string;
 
     const updated = await sql`
@@ -79,7 +66,7 @@ export async function POST(
         VALUES (
           gen_random_uuid(),
           ${id},
-          ${user_id},
+          ${userId},
           'annulation',
           ${ancienStatut},
           'annule',
@@ -101,6 +88,9 @@ export async function POST(
     if (assignes.length > 0) {
       const resend = getResend();
       const appUrl = process.env.NEXTAUTH_URL ?? 'https://biolabtrack.fr';
+      const annuleurNom =
+        `${session.user.prenom ?? ''} ${session.user.nom ?? ''}`.trim() ||
+        (session.user.email ?? 'Administrateur');
 
       if (resend) {
         for (const u of assignes) {
@@ -129,9 +119,7 @@ export async function POST(
                       </tr>
                       <tr>
                         <td style="padding:8px 0;color:#666;font-size:13px">Annulé par</td>
-                        <td style="padding:8px 0;font-weight:600;color:#111827">
-                          ${`${user.prenom ?? ''} ${user.nom ?? ''}`.trim() || (session.user?.email ?? 'Administrateur')}
-                        </td>
+                        <td style="padding:8px 0;font-weight:600;color:#111827">${annuleurNom}</td>
                       </tr>
                     </table>
                     <a href="${appUrl}/tickets/${id}"

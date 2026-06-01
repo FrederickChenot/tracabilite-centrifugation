@@ -9,8 +9,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
   }
 
-  const userId = (session.user as { id?: string }).id
-  if (!userId || userId === '0') {
+  const userId = session.user.id
+  if (!userId || userId === 0) {
     return NextResponse.json(
       { error: 'Non disponible pour le compte administrateur système' },
       { status: 400 }
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const rows = await sql`SELECT password_hash FROM users WHERE id = ${parseInt(userId, 10)} LIMIT 1`
+  const rows = await sql`SELECT password_hash FROM users WHERE id = ${userId} LIMIT 1`
   if (!rows[0]) return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 })
 
   const valid = await compare(ancien_password as string, rows[0].password_hash as string)
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   const newHash = await hash(nouveau_password as string, 12)
   await sql`
     UPDATE users SET password_hash = ${newHash}, must_change_password = false
-    WHERE id = ${parseInt(userId, 10)}
+    WHERE id = ${userId}
   `
 
   return NextResponse.json({ success: true })
