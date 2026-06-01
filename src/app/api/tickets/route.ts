@@ -74,7 +74,8 @@ export async function POST(request: NextRequest) {
       `${session.user.nom ?? ''} ${session.user.prenom ?? ''}`.trim() ||
       (session.user.email ?? 'Inconnu');
 
-    console.log('[tickets POST] session.user.id:', cree_par);
+    console.log('DEBUG userId:', session.user.id, typeof session.user.id);
+    console.log('DEBUG body:', JSON.stringify(body));
 
     const result = await sql`
       INSERT INTO tickets (titre, description, statut, priorite, cree_par, site, motif_annulation)
@@ -115,17 +116,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ticket }, { status: 201 });
   } catch (error) {
-    const e = error as PgError;
-    console.error('[tickets POST] ERREUR COMPLÈTE:', {
-      message: e.message,
-      code:    e.code,
-      detail:  e.detail,
-      hint:    e.hint,
-      where:   e.where,
-      raw:     String(error),
-    });
+    console.error('ERREUR COMPLETE:', JSON.stringify(error, null, 2));
+    console.error('MESSAGE:', (error as any).message);
+    console.error('CODE:', (error as any).code);
+    console.error('DETAIL:', (error as any).detail);
     return NextResponse.json(
-      { error: 'Erreur serveur', detail: e.message ?? String(error) },
+      { error: 'Erreur serveur', detail: (error as any).message ?? String(error) },
       { status: 500 }
     );
   }
