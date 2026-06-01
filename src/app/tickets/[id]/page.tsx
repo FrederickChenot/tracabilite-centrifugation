@@ -167,6 +167,7 @@ export default function TicketDetailPage() {
 
   /* Toast */
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   function showToast(msg: string, type: 'success' | 'error' = 'success') {
     setToast({ msg, type });
@@ -176,21 +177,34 @@ export default function TicketDetailPage() {
   /* Load ticket + historique */
   const loadTicket = useCallback(async () => {
     setLoading(true);
+    setFetchError(null);
+    console.log('ticket id:', ticketId);
     try {
       const res = await fetch(`/api/tickets/${ticketId}`);
+      console.log('API response status:', res.status, res.ok);
+
       if (res.status === 404) {
         router.push('/tickets');
         return;
       }
       if (res.ok) {
         const data = await res.json();
+        console.log('ticket data:', data);
         setTicket(data.ticket);
         setHistorique(data.historique ?? []);
         setStatut(data.ticket.statut);
         setPriorite(data.ticket.priorite);
         const assignedIds = (data.ticket.assignes ?? []).map((a: Assigne) => a.user_id);
         setSelectedUsers(assignedIds);
+      } else {
+        const errData = await res.json().catch(() => ({})) as { error?: string; detail?: string };
+        const msg = errData.error ?? errData.detail ?? `Erreur ${res.status}`;
+        console.error('API error:', res.status, errData);
+        setFetchError(msg);
       }
+    } catch (err) {
+      console.error('fetch exception:', err);
+      setFetchError('Erreur de connexion au serveur');
     } finally {
       setLoading(false);
     }
@@ -341,7 +355,21 @@ export default function TicketDetailPage() {
     );
   }
 
-  if (!ticket) return null;
+  if (!ticket) {
+    return (
+      <div className="flex h-screen bg-gray-100 overflow-hidden">
+        <Sidebar siteId={1} onSiteChange={() => {}} mobileOpen={false} onMobileClose={() => {}} />
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6">
+          <p className="text-sm font-semibold text-red-600">
+            {fetchError ?? 'Ticket introuvable'}
+          </p>
+          <Link href="/tickets" className="text-sm text-teal-600 hover:underline">
+            ← Retour aux tickets
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
