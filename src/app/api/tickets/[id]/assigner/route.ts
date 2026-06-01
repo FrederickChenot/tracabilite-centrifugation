@@ -38,7 +38,11 @@ export async function POST(
       );
     }
 
-    const assigne_par = session.user.id as number;
+    const userRow = await sql`SELECT id FROM users WHERE email = ${session.user.email} LIMIT 1`;
+    if (!userRow.length) {
+      return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 401 });
+    }
+    const assigne_par = userRow[0].id as number;
 
     const ticketResult = await sql`
       SELECT id, titre FROM tickets WHERE id = ${id}

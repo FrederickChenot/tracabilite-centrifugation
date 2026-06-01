@@ -88,7 +88,11 @@ export async function PUT(
       );
     }
 
-    const userId = session.user.id as number;
+    const userRow = await sql`SELECT id FROM users WHERE email = ${session.user.email} LIMIT 1`;
+    if (!userRow.length) {
+      return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 401 });
+    }
+    const userId = userRow[0].id as number;
 
     const current = await sql`
       SELECT statut, priorite FROM tickets WHERE id = ${id}

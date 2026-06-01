@@ -69,12 +69,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const cree_par = session.user.id as number;
+    // Résolution fiable de l'id : session.user.email est garanti par NextAuth,
+    // contrairement à session.user.id dont le type (INTEGER/UUID) peut diverger.
+    const userRow = await sql`SELECT id FROM users WHERE email = ${session.user.email} LIMIT 1`;
+    if (!userRow.length) {
+      return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 401 });
+    }
+    const cree_par = userRow[0].id as number;
+
     const auteur =
       `${session.user.nom ?? ''} ${session.user.prenom ?? ''}`.trim() ||
       (session.user.email ?? 'Inconnu');
 
-    console.log('DEBUG userId:', session.user.id, typeof session.user.id);
+    console.log('DEBUG email:', session.user.email, '→ cree_par:', cree_par, typeof cree_par);
     console.log('DEBUG body:', JSON.stringify(body));
 
     const result = await sql`

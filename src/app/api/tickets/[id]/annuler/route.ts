@@ -47,7 +47,11 @@ export async function POST(
       return NextResponse.json({ error: 'Ce ticket est déjà annulé' }, { status: 400 });
     }
 
-    const userId = session.user.id as number;
+    const userRow = await sql`SELECT id FROM users WHERE email = ${session.user.email} LIMIT 1`;
+    if (!userRow.length) {
+      return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 401 });
+    }
+    const userId = userRow[0].id as number;
     const ancienStatut = ticket.statut as string;
 
     const updated = await sql`
