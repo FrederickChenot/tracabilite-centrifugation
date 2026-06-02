@@ -62,6 +62,10 @@ export default function NouveauTicketPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    document.title = 'Nouveau ticket | BioLabTrack';
+  }, []);
+
+  useEffect(() => {
     if (!isAdmin) return;
     fetch('/api/admin/users')
       .then((res) => (res.ok ? res.json() : null))
@@ -109,7 +113,7 @@ export default function NouveauTicketPage() {
         });
       }
 
-      router.push('/tickets');
+      router.push(`/tickets/${ticket.id}`);
     } catch {
       setError('Erreur inattendue côté client');
     } finally {

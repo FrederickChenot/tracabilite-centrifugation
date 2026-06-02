@@ -6,8 +6,6 @@ type PgError = {
   message?: string;
   code?: string;
   detail?: string;
-  hint?: string;
-  where?: string;
 };
 
 export async function GET() {
@@ -31,11 +29,20 @@ export async function GET() {
             ) ORDER BY ta.assigne_le
           ) FILTER (WHERE ta.user_id IS NOT NULL),
           '[]'::json
-        ) AS assignes
+        ) AS assignes,
+        (
+          SELECT COUNT(*)::int
+          FROM ticket_historique th
+          WHERE th.ticket_id = t.id
+            AND th.action = 'commentaire'
+        ) AS commentaires_count,
+        uc.prenom AS createur_prenom,
+        uc.nom    AS createur_nom
       FROM tickets t
       LEFT JOIN ticket_assignations ta ON ta.ticket_id = t.id
-      LEFT JOIN users u ON u.id::text = ta.user_id::text
-      GROUP BY t.id
+      LEFT JOIN users u  ON u.id::text  = ta.user_id::text
+      LEFT JOIN users uc ON uc.id::text = t.cree_par::text
+      GROUP BY t.id, uc.prenom, uc.nom
       ORDER BY t.created_at DESC
     `;
 
@@ -70,8 +77,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Résolution fiable de l'id : session.user.email est garanti par NextAuth,
-    // contrairement à session.user.id dont le type (INTEGER/UUID) peut diverger.
     const userRow = await sql`SELECT id FROM users WHERE email = ${session.user.email} LIMIT 1`;
     if (!userRow.length) {
       return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 401 });
@@ -79,7 +84,7 @@ export async function POST(request: NextRequest) {
     const cree_par = userRow[0].id as number;
 
     const auteur =
-      `${session.user.nom ?? ''} ${session.user.prenom ?? ''}`.trim() ||
+      `${session.user.prenom ?? ''} ${session.user.nom ?? ''}`.trim() ||
       (session.user.email ?? 'Inconnu');
 
     const result = await sql`
@@ -99,7 +104,6 @@ export async function POST(request: NextRequest) {
 
     const ticket = result[0];
 
-    // Historique non bloquant
     try {
       await sql`
         INSERT INTO ticket_historique (id, ticket_id, user_id, action, commentaire)
@@ -113,11 +117,7 @@ export async function POST(request: NextRequest) {
       `;
     } catch (histErr) {
       const he = histErr as PgError;
-      console.error('[tickets POST] historique INSERT échoué (non bloquant):', {
-        message: he.message,
-        code: he.code,
-        detail: he.detail,
-      });
+      console.error('[tickets POST] historique INSERT échoué (non bloquant):', he.message);
     }
 
     return NextResponse.json({ ticket }, { status: 201 });

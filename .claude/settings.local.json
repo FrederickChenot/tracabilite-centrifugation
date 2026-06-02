@@ -36,7 +36,9 @@
       "Bash(sed -i \"s|signOut\\({ callbackUrl: '/login?changed=true' }\\)|signOut\\({ callbackUrl: '/' }\\)|g\" src/app/profil/page.tsx)",
       "Bash(sed -i \"s|signOut\\({ callbackUrl: '/login' }\\)|signOut\\({ callbackUrl: '/' }\\)|g\" src/app/admin/page.tsx)",
       "Bash(git diff *)",
-      "PowerShell(cd \"C:\\\\Dev\\\\tracabilite-centrifugation\"; \\(Get-Content \"src\\\\app\\\\tickets\\\\[id]\\\\page.tsx\"\\).Count; Get-Content package.json | Select-String \"typography\")"
+      "PowerShell(cd \"C:\\\\Dev\\\\tracabilite-centrifugation\"; \\(Get-Content \"src\\\\app\\\\tickets\\\\[id]\\\\page.tsx\"\\).Count; Get-Content package.json | Select-String \"typography\")",
+      "Bash(git checkout *)",
+      "Bash(New-Item *)"
     ]
   },
   "hooks": {

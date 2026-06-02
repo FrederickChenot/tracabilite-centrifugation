@@ -35,12 +35,15 @@ export async function GET(
             ) ORDER BY ta.assigne_le
           ) FILTER (WHERE ta.user_id IS NOT NULL),
           '[]'::json
-        ) AS assignes
+        ) AS assignes,
+        uc.prenom AS createur_prenom,
+        uc.nom    AS createur_nom
       FROM tickets t
       LEFT JOIN ticket_assignations ta ON ta.ticket_id = t.id
-      LEFT JOIN users u ON u.id::text = ta.user_id::text
+      LEFT JOIN users u  ON u.id::text  = ta.user_id::text
+      LEFT JOIN users uc ON uc.id::text = t.cree_par::text
       WHERE t.id = ${id}
-      GROUP BY t.id
+      GROUP BY t.id, uc.prenom, uc.nom
     `;
 
     if (ticketResult.length === 0) {
@@ -78,18 +81,18 @@ export async function PUT(
 
   try {
     const { id } = await params;
-    const body = await request.json();
-    const { statut, priorite, description } = body as {
-      statut?: string;
-      priorite?: string;
-      description?: string;
-    };
-    const echeanceInBody = 'echeance' in body;
-    const echeance = echeanceInBody
-      ? ((body as { echeance?: string | null }).echeance ?? null)
-      : undefined;
+    const body = await request.json() as Record<string, unknown>;
 
-    if (!statut && !priorite && description === undefined && !echeanceInBody) {
+    const statut      = body.statut      as string | undefined;
+    const priorite    = body.priorite    as string | undefined;
+    const description = body.description as string | undefined;
+    const echeanceInBody = 'echeance' in body;
+    const echeance    = echeanceInBody ? (body.echeance as string | null ?? null) : undefined;
+    const checklistInBody = 'checklist' in body;
+    const checklist   = checklistInBody ? body.checklist : undefined;
+
+    const hasChanges = statut || priorite || description !== undefined || echeanceInBody || checklistInBody;
+    if (!hasChanges) {
       return NextResponse.json(
         { error: 'Au moins un champ à modifier est requis' },
         { status: 400 }
@@ -120,41 +123,43 @@ export async function PUT(
       WHERE id = ${id}
     `;
 
-    // Mise à jour de l'échéance séparément (pour gérer explicitement la valeur null)
+    // Échéance (peut être null explicitement)
     if (echeanceInBody) {
       await sql`UPDATE tickets SET echeance = ${echeance} WHERE id = ${id}`;
     }
 
+    // Checklist
+    if (checklistInBody) {
+      await sql`UPDATE tickets SET checklist = ${JSON.stringify(checklist)} WHERE id = ${id}`;
+    }
+
     const updated = await sql`SELECT * FROM tickets WHERE id = ${id}`;
 
+    // Historique — changement statut
     if (statut && statut !== current[0].statut) {
       try {
         await sql`
           INSERT INTO ticket_historique (id, ticket_id, user_id, action, ancienne_valeur, nouvelle_valeur)
-          VALUES (
-            gen_random_uuid(), ${id}, ${userId},
-            'changement_statut', ${current[0].statut as string}, ${statut}
-          )
+          VALUES (gen_random_uuid(), ${id}, ${userId}, 'changement_statut', ${current[0].statut as string}, ${statut})
         `;
       } catch (histErr) {
         console.error('[tickets/[id] PUT] historique statut échoué:', (histErr as PgError).message);
       }
     }
 
+    // Historique — changement priorité
     if (priorite && priorite !== current[0].priorite) {
       try {
         await sql`
           INSERT INTO ticket_historique (id, ticket_id, user_id, action, ancienne_valeur, nouvelle_valeur)
-          VALUES (
-            gen_random_uuid(), ${id}, ${userId},
-            'changement_priorite', ${current[0].priorite as string}, ${priorite}
-          )
+          VALUES (gen_random_uuid(), ${id}, ${userId}, 'changement_priorite', ${current[0].priorite as string}, ${priorite})
         `;
       } catch (histErr) {
         console.error('[tickets/[id] PUT] historique priorité échoué:', (histErr as PgError).message);
       }
     }
 
+    // Historique — changement échéance
     if (echeanceInBody) {
       const ancienne = current[0].echeance ? String(current[0].echeance) : null;
       const nouvelle = echeance;
@@ -162,10 +167,7 @@ export async function PUT(
         try {
           await sql`
             INSERT INTO ticket_historique (id, ticket_id, user_id, action, ancienne_valeur, nouvelle_valeur)
-            VALUES (
-              gen_random_uuid(), ${id}, ${userId},
-              'changement_echeance', ${ancienne}, ${nouvelle}
-            )
+            VALUES (gen_random_uuid(), ${id}, ${userId}, 'changement_echeance', ${ancienne}, ${nouvelle})
           `;
         } catch (histErr) {
           console.error('[tickets/[id] PUT] historique échéance échoué:', (histErr as PgError).message);

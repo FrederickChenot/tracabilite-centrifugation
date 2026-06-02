@@ -28,34 +28,40 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { email, password, nom, prenom, site_id, role } = body;
+  const { email, password, nom, prenom, site_id, role } = body as {
+    email?: string;
+    password?: string;
+    nom?: string | null;
+    prenom?: string | null;
+    site_id?: string | null;
+    role?: string;
+  };
 
   if (!email || !password) {
     return NextResponse.json({ error: 'email et password requis' }, { status: 400 });
   }
 
-  const passwordHash = await hash(password as string, 12);
+  const passwordHash = await hash(password, 12);
 
   try {
     const rows = await sql`
-      INSERT INTO users (email, password_hash, nom, prenom, site_id, role, must_change_password)
+      INSERT INTO users (email, password_hash, nom, prenom, site_id, role)
       VALUES (
-        ${email as string},
+        ${email},
         ${passwordHash},
-        ${(nom as string | null) ?? null},
-        ${(prenom as string | null) ?? null},
-        ${(site_id as number | null) ?? null},
-        ${(role as string) ?? 'technicien'},
-        true
+        ${nom ?? null},
+        ${prenom ?? null},
+        ${site_id ?? null},
+        ${role ?? 'technicien'}
       )
       RETURNING id, email, nom, prenom, site_id, role, actif, created_at
     `;
 
     sendEmailBienvenue({
-      email: email as string,
-      prenom: (prenom as string | null) ?? undefined,
-      nom: (nom as string | null) ?? undefined,
-      tempPassword: password as string,
+      email,
+      prenom: prenom ?? undefined,
+      nom: nom ?? undefined,
+      tempPassword: password,
     }).catch((err) => console.error('[users] welcome email error:', err));
 
     await logAudit(
@@ -67,10 +73,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ user: rows[0] }, { status: 201 });
   } catch (e: unknown) {
-    const err = e as { code?: string };
+    const err = e as { code?: string; message?: string };
     if (err.code === '23505') {
       return NextResponse.json({ error: 'Cet email est déjà utilisé' }, { status: 409 });
     }
+    console.error('[users POST] ERREUR:', err.message);
     return NextResponse.json({ error: 'Erreur lors de la création' }, { status: 500 });
   }
 }
