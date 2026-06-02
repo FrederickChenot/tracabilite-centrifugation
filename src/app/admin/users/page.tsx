@@ -119,9 +119,12 @@ function Modal({
       setError('Prénom, Nom et Email sont obligatoires');
       return;
     }
-    if (!isEdit && !PWD_REGEX.test(form.password)) {
-      setErreurMdp('8 caractères minimum, 1 majuscule et 1 chiffre requis');
-      return;
+    if (!isEdit) {
+      console.log('validation mdp:', form.password, PWD_REGEX.test(form.password));
+      if (!PWD_REGEX.test(form.password)) {
+        setErreurMdp('8 caractères minimum, 1 majuscule et 1 chiffre requis');
+        return;
+      }
     }
     setSaving(true);
     try {
