@@ -108,16 +108,19 @@ function Modal({
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [erreurMdp, setErreurMdp] = useState('');
+
+  const PWD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
 
   async function save() {
     setError('');
+    setErreurMdp('');
     if (!form.email || !form.nom || !form.prenom) {
       setError('Prénom, Nom et Email sont obligatoires');
       return;
     }
-    const PWD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
     if (!isEdit && !PWD_REGEX.test(form.password)) {
-      setError('Le mot de passe doit contenir au moins 8 caractères, 1 majuscule et 1 chiffre');
+      setErreurMdp('8 caractères minimum, 1 majuscule et 1 chiffre requis');
       return;
     }
     setSaving(true);
@@ -219,10 +222,15 @@ function Modal({
               <input
                 type="password"
                 value={form.password}
-                onChange={set('password')}
+                onChange={(e) => { set('password')(e); setErreurMdp(''); }}
                 autoComplete="new-password"
-                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className={`w-full text-sm border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${
+                  erreurMdp ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-teal-500'
+                }`}
               />
+              {erreurMdp && (
+                <p className="mt-1 text-xs text-red-600">{erreurMdp}</p>
+              )}
             </div>
           )}
 
