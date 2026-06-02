@@ -93,6 +93,7 @@ function Modal({
   onSaved: (msg: string) => void;
 }) {
   const isEdit = user !== null;
+  const modalMode = isEdit ? 'edit' : 'create';
   const [form, setForm] = useState<UserForm>(
     isEdit
       ? {
@@ -110,21 +111,19 @@ function Modal({
   const [error, setError] = useState('');
   const [erreurMdp, setErreurMdp] = useState('');
 
-  const PWD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
-
   async function save() {
     setError('');
     setErreurMdp('');
+
+    const PWD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (modalMode === 'create' && !PWD_REGEX.test(form.password)) {
+      setErreurMdp('8 caractères minimum, 1 majuscule et 1 chiffre requis');
+      return;
+    }
+
     if (!form.email || !form.nom || !form.prenom) {
       setError('Prénom, Nom et Email sont obligatoires');
       return;
-    }
-    if (!isEdit) {
-      console.log('validation mdp:', form.password, PWD_REGEX.test(form.password));
-      if (!PWD_REGEX.test(form.password)) {
-        setErreurMdp('8 caractères minimum, 1 majuscule et 1 chiffre requis');
-        return;
-      }
     }
     setSaving(true);
     try {
@@ -232,7 +231,9 @@ function Modal({
                 }`}
               />
               {erreurMdp && (
-                <p className="mt-1 text-xs text-red-600">{erreurMdp}</p>
+                <p style={{ color: 'red', fontSize: '12px', marginTop: '4px' }}>
+                  {erreurMdp}
+                </p>
               )}
             </div>
           )}
