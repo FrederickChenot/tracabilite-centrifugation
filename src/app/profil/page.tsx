@@ -49,7 +49,8 @@ export default function ProfilPage() {
     e.preventDefault()
     setError('')
     if (newPwd !== confirmPwd) { setError('Les mots de passe ne correspondent pas'); return }
-    if (newPwd.length < 8) { setError('Minimum 8 caractères'); return }
+    const PWD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!PWD_REGEX.test(newPwd)) { setError('Le mot de passe doit contenir au moins 8 caractères, 1 majuscule et 1 chiffre'); return }
     setLoading(true)
     try {
       const res = await fetch('/api/auth/change-password', {
@@ -145,7 +146,7 @@ export default function ProfilPage() {
                     </button>
                   </div>
                   {label === 'Nouveau mot de passe' && (
-                    <p className="mt-1 text-xs text-gray-400">Minimum 8 caractères</p>
+                    <p className="mt-1 text-xs text-gray-400">Minimum 8 caractères, 1 majuscule, 1 chiffre</p>
                   )}
                 </div>
               ))}

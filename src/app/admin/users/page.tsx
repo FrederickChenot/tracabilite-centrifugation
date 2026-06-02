@@ -115,8 +115,9 @@ function Modal({
       setError('Prénom, Nom et Email sont obligatoires');
       return;
     }
-    if (!isEdit && form.password.length < 8) {
-      setError('Le mot de passe doit faire au moins 8 caractères');
+    const PWD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!isEdit && !PWD_REGEX.test(form.password)) {
+      setError('Le mot de passe doit contenir au moins 8 caractères, 1 majuscule et 1 chiffre');
       return;
     }
     setSaving(true);
@@ -214,7 +215,7 @@ function Modal({
 
           {!isEdit && (
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Mot de passe * (min 8 caractères)</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Mot de passe * (8+ car., 1 majuscule, 1 chiffre)</label>
               <input
                 type="password"
                 value={form.password}

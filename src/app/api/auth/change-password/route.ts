@@ -22,9 +22,10 @@ export async function POST(req: NextRequest) {
   if (!ancien_password || !nouveau_password) {
     return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
   }
-  if ((nouveau_password as string).length < 8) {
+  const PWD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+  if (!PWD_REGEX.test(nouveau_password as string)) {
     return NextResponse.json(
-      { error: 'Le nouveau mot de passe doit faire au moins 8 caractères' },
+      { error: 'Le mot de passe doit contenir au moins 8 caractères, 1 majuscule et 1 chiffre' },
       { status: 400 }
     )
   }

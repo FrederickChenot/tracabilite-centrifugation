@@ -45,8 +45,9 @@ export async function POST(req: NextRequest) {
   if (!email || !password || !nom || !prenom) {
     return NextResponse.json({ error: 'email, password, nom et prenom sont requis' }, { status: 400 });
   }
-  if ((password as string).length < 8) {
-    return NextResponse.json({ error: 'Le mot de passe doit faire au moins 8 caractères' }, { status: 400 });
+  const PWD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+  if (!PWD_REGEX.test(password as string)) {
+    return NextResponse.json({ error: 'Le mot de passe doit contenir au moins 8 caractères, 1 majuscule et 1 chiffre' }, { status: 400 });
   }
 
   const passwordHash = await hash(password, 10);
