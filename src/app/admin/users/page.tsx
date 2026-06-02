@@ -112,6 +112,7 @@ function Modal({
   const [erreurMdp, setErreurMdp] = useState('');
 
   async function save() {
+    console.log('BOUTON CLIQUÉ');
     setError('');
     setErreurMdp('');
 
