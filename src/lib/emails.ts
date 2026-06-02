@@ -200,6 +200,53 @@ export async function sendEmailForgotPassword(params: {
   }
 }
 
+export async function sendEmailTempPassword(params: {
+  email: string;
+  prenom?: string | null;
+  tempPassword: string;
+}) {
+  const greeting = params.prenom ? `Bonjour ${params.prenom},` : 'Bonjour,';
+  const appUrl = process.env.NEXTAUTH_URL ?? 'https://biolabtrack.fr';
+  const html = `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+      <div style="background:#0F6E56;color:white;padding:20px;border-radius:8px 8px 0 0">
+        <h2 style="margin:0;font-size:18px">GCS Bio Med — BioLabTrack</h2>
+        <p style="margin:6px 0 0;font-size:14px;opacity:0.85">Réinitialisation de mot de passe</p>
+      </div>
+      <div style="padding:24px;border:1px solid #e0e0e0;border-top:none;background:#fff">
+        <p style="margin:0 0 16px;color:#374151">${greeting}</p>
+        <p style="margin:0 0 20px;color:#374151">Votre mot de passe a été réinitialisé par un administrateur.</p>
+        <table style="width:100%;border-collapse:collapse;margin:0 0 20px">
+          <tr>
+            <td style="padding:8px 0;color:#666;font-size:13px;width:40%">Mot de passe temporaire</td>
+            <td style="padding:8px 0;font-weight:700;color:#0F6E56;font-size:20px;letter-spacing:3px">${params.tempPassword}</td>
+          </tr>
+        </table>
+        <p style="margin:0 0 20px;color:#374151">Connectez-vous sur biolabtrack.fr et changez votre mot de passe dès que possible.</p>
+        <a href="${appUrl}/login"
+           style="display:inline-block;background:#0F6E56;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600">
+          Se connecter → biolabtrack.fr/login
+        </a>
+        <p style="margin:20px 0 0;font-size:12px;color:#9ca3af">
+          Si vous n'êtes pas à l'origine de cette demande, contactez votre administrateur.
+        </p>
+      </div>
+    </div>
+  `;
+  try {
+    const resend = getResend();
+    if (!resend) return;
+    await resend.emails.send({
+      from: FROM,
+      to: [params.email],
+      subject: 'BioLabTrack — Nouveau mot de passe',
+      html,
+    });
+  } catch (err) {
+    console.error('[emails] sendEmailTempPassword error:', err);
+  }
+}
+
 export async function sendEmailBienvenue(params: {
   email: string;
   prenom?: string;

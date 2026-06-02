@@ -11,14 +11,19 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const rows = await sql`
-    SELECT u.id, u.email, u.nom, u.prenom, u.role, u.actif, u.created_at,
-           s.nom AS site_nom, u.site_id
-    FROM users u
-    LEFT JOIN sites s ON s.id = u.site_id
-    ORDER BY u.created_at DESC
-  `;
-  return NextResponse.json({ users: rows });
+  try {
+    const rows = await sql`
+      SELECT u.id, u.email, u.nom, u.prenom, u.role, u.actif, u.created_at,
+             s.nom AS site_nom, u.site_id
+      FROM users u
+      LEFT JOIN sites s ON s.id = u.site_id
+      ORDER BY u.nom, u.prenom
+    `;
+    return NextResponse.json({ users: rows });
+  } catch (err) {
+    console.error('[GET /api/admin/users]', err);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -37,22 +42,26 @@ export async function POST(req: NextRequest) {
     role?: string;
   };
 
-  if (!email || !password) {
-    return NextResponse.json({ error: 'email et password requis' }, { status: 400 });
+  if (!email || !password || !nom || !prenom) {
+    return NextResponse.json({ error: 'email, password, nom et prenom sont requis' }, { status: 400 });
+  }
+  if ((password as string).length < 8) {
+    return NextResponse.json({ error: 'Le mot de passe doit faire au moins 8 caractères' }, { status: 400 });
   }
 
-  const passwordHash = await hash(password, 12);
+  const passwordHash = await hash(password, 10);
 
   try {
     const rows = await sql`
-      INSERT INTO users (email, password_hash, nom, prenom, site_id, role)
+      INSERT INTO users (email, password_hash, nom, prenom, site_id, role, must_change_password)
       VALUES (
         ${email},
         ${passwordHash},
-        ${nom ?? null},
-        ${prenom ?? null},
+        ${nom},
+        ${prenom},
         ${site_id ?? null},
-        ${role ?? 'technicien'}
+        ${role ?? 'technicien'},
+        true
       )
       RETURNING id, email, nom, prenom, site_id, role, actif, created_at
     `;
