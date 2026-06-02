@@ -55,11 +55,12 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { titre, description, priorite, site } = body as {
+    const { titre, description, priorite, site, echeance } = body as {
       titre?: string;
       description?: string;
       priorite?: string;
       site?: string;
+      echeance?: string | null;
     };
 
     if (!titre || !priorite || !site) {
@@ -81,11 +82,8 @@ export async function POST(request: NextRequest) {
       `${session.user.nom ?? ''} ${session.user.prenom ?? ''}`.trim() ||
       (session.user.email ?? 'Inconnu');
 
-    console.log('DEBUG email:', session.user.email, '→ cree_par:', cree_par, typeof cree_par);
-    console.log('DEBUG body:', JSON.stringify(body));
-
     const result = await sql`
-      INSERT INTO tickets (titre, description, statut, priorite, cree_par, site, motif_annulation)
+      INSERT INTO tickets (titre, description, statut, priorite, cree_par, site, motif_annulation, echeance)
       VALUES (
         ${titre},
         ${description ?? null},
@@ -93,7 +91,8 @@ export async function POST(request: NextRequest) {
         ${priorite},
         ${cree_par},
         ${site},
-        ${null}
+        ${null},
+        ${echeance ?? null}
       )
       RETURNING *
     `;
@@ -123,12 +122,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ticket }, { status: 201 });
   } catch (error) {
-    console.error('ERREUR COMPLETE:', JSON.stringify(error, null, 2));
-    console.error('MESSAGE:', (error as any).message);
-    console.error('CODE:', (error as any).code);
-    console.error('DETAIL:', (error as any).detail);
+    const e = error as PgError;
+    console.error('[tickets POST] ERREUR:', { message: e.message, code: e.code, detail: e.detail });
     return NextResponse.json(
-      { error: 'Erreur serveur', detail: (error as any).message ?? String(error) },
+      { error: 'Erreur serveur', detail: e.message ?? String(error) },
       { status: 500 }
     );
   }

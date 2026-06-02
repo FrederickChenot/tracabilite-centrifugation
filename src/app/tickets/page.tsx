@@ -36,9 +36,18 @@ type Ticket = {
   cree_par: number;
   site: string;
   motif_annulation: string | null;
+  echeance: string | null;
   created_at: string;
   updated_at: string | null;
   assignes: Assigne[];
+};
+
+type ColumnDef = {
+  id: string;
+  label: string;
+  headerCls: string;
+  dropCls: string;
+  accentCls: string;
 };
 
 type ExtUser = {
@@ -94,6 +103,21 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('fr-FR', {
     day: '2-digit', month: '2-digit', year: 'numeric',
   });
+}
+
+function echeanceBadge(echeance: string | null): { label: string; cls: string } | null {
+  if (!echeance) return null;
+  const [y, m, d] = echeance.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.ceil((date.getTime() - today.getTime()) / 86400000);
+  if (diffDays < 0) return { label: 'Dépassée', cls: 'bg-red-100 text-red-700 border border-red-200' };
+  if (diffDays <= 2) return { label: `J-${diffDays}`, cls: 'bg-orange-100 text-orange-700 border border-orange-200' };
+  return {
+    label: `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`,
+    cls: 'bg-gray-100 text-gray-400 border border-gray-200',
+  };
 }
 
 function initials(prenom: string | null, nom: string | null): string {
@@ -152,6 +176,17 @@ function TicketCardContent({
           </div>
         )}
       </div>
+      {/* Échéance */}
+      {ticket.echeance && (() => {
+        const badge = echeanceBadge(ticket.echeance);
+        return badge ? (
+          <div className="mt-1.5">
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${badge.cls}`}>
+              ⏱ {badge.label}
+            </span>
+          </div>
+        ) : null;
+      })()}
     </div>
   );
 }
@@ -187,7 +222,7 @@ function DroppableColumn({
   tickets,
   isDisabled,
 }: {
-  col: (typeof COLUMNS)[number];
+  col: ColumnDef;
   tickets: Ticket[];
   isDisabled: boolean;
 }) {
@@ -371,9 +406,9 @@ export default function TicketsPage() {
             <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden p-4">
               <div
                 className="flex gap-4 h-full"
-                style={{ minWidth: `${COLUMNS.length * 256}px` }}
+                style={{ minWidth: `${(isAdmin ? COLUMNS.length : COLUMNS.length - 1) * 256}px` }}
               >
-                {COLUMNS.map((col) => (
+                {COLUMNS.filter((col) => isAdmin || col.id !== 'annule').map((col) => (
                   <DroppableColumn
                     key={col.id}
                     col={col}

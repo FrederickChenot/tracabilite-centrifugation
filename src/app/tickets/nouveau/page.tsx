@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Sidebar from '@/components/layout/Sidebar';
 import InactivityGuard from '@/components/InactivityGuard';
+import MarkdownEditor from '@/components/tickets/MarkdownEditor';
 
 /* ── Constants ─────────────────────────────────────────────────── */
 
@@ -53,6 +54,7 @@ export default function NouveauTicketPage() {
   const [description, setDescription] = useState('');
   const [priorite, setPriorite] = useState('normale');
   const [site, setSite] = useState('epinal');
+  const [echeance, setEcheance] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
 
   const [users, setUsers] = useState<User[]>([]);
@@ -71,8 +73,6 @@ export default function NouveauTicketPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    console.log('SUBMIT appelé', { titre, priorite, site });
-
     if (!titre.trim()) {
       setError('Le titre est obligatoire');
       return;
@@ -89,20 +89,17 @@ export default function NouveauTicketPage() {
           description: description.trim() || null,
           priorite,
           site,
+          echeance: echeance || null,
         }),
       });
 
-      console.log('FETCH response status:', res.status);
-
       if (!res.ok) {
         const data = await res.json();
-        console.log('FETCH error body:', data);
         setError(data.error ?? data.detail ?? 'Erreur lors de la création');
         return;
       }
 
       const { ticket } = await res.json();
-      console.log('TICKET créé:', ticket?.id);
 
       if (selectedUsers.length > 0) {
         await fetch(`/api/tickets/${ticket.id}/assigner`, {
@@ -113,8 +110,7 @@ export default function NouveauTicketPage() {
       }
 
       router.push('/tickets');
-    } catch (err) {
-      console.error('ERREUR CLIENT handleSubmit:', err);
+    } catch {
       setError('Erreur inattendue côté client');
     } finally {
       setSubmitting(false);
@@ -176,17 +172,16 @@ export default function NouveauTicketPage() {
                 />
               </div>
 
-              {/* Description */}
+              {/* Description — éditeur markdown */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                   Description
                 </label>
-                <textarea
+                <MarkdownEditor
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={setDescription}
                   placeholder="Description du problème ou de la demande..."
-                  rows={4}
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-y"
+                  rows={5}
                 />
               </div>
 
@@ -224,6 +219,20 @@ export default function NouveauTicketPage() {
                 </div>
               </div>
 
+              {/* Date d'échéance */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  Date d&apos;échéance
+                  <span className="text-xs font-normal text-gray-400 ml-2">optionnel</span>
+                </label>
+                <input
+                  type="date"
+                  value={echeance}
+                  onChange={(e) => setEcheance(e.target.value)}
+                  className="w-full sm:w-48 text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+
               {/* Assignés — admin uniquement */}
               {isAdmin && users.length > 0 && (
                 <div>
@@ -248,9 +257,7 @@ export default function NouveauTicketPage() {
                             className="w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
                           />
                           <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <span
-                              className="w-7 h-7 rounded-full bg-teal-600 text-white text-xs flex items-center justify-center font-semibold flex-shrink-0"
-                            >
+                            <span className="w-7 h-7 rounded-full bg-teal-600 text-white text-xs flex items-center justify-center font-semibold flex-shrink-0">
                               {((u.prenom ?? '').charAt(0) + (u.nom ?? '').charAt(0)).toUpperCase() || '?'}
                             </span>
                             <div className="min-w-0">

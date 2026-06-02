@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
 import Sidebar from '@/components/layout/Sidebar';
 import InactivityGuard from '@/components/InactivityGuard';
 
@@ -129,6 +130,150 @@ function initials(prenom: string | null, nom: string | null): string {
   return (p + n) || '?';
 }
 
+async function exportTicketPDF(
+  ticket: Ticket,
+  historique: HistoriqueEntry[],
+) {
+  const { default: jsPDF } = await import('jspdf');
+  const { default: autoTable } = await import('jspdf-autotable');
+
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  const margin = 15;
+  let y = margin;
+
+  // En-tête
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('TICKET — BioLabTrack', pageW / 2, y, { align: 'center' });
+  y += 7;
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(120);
+  doc.text(`GCS Bio Med — biolabtrack.fr`, pageW / 2, y, { align: 'center' });
+  doc.setTextColor(0);
+  y += 10;
+
+  // Ligne de séparation
+  doc.setDrawColor(200);
+  doc.line(margin, y, pageW - margin, y);
+  y += 8;
+
+  // Titre du ticket
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  const titreLines = doc.splitTextToSize(ticket.titre, pageW - margin * 2) as string[];
+  doc.text(titreLines, margin, y);
+  y += titreLines.length * 6 + 6;
+
+  // Métadonnées
+  const STATUT_LABELS_PDF: Record<string, string> = {
+    a_faire: 'À faire', en_cours: 'En cours', termine: 'Terminé', annule: 'Annulé',
+  };
+  const PRIORITE_LABELS_PDF: Record<string, string> = {
+    basse: 'Basse', normale: 'Normale', haute: 'Haute', urgente: 'Urgente',
+  };
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: margin, right: margin },
+    head: [],
+    body: [
+      ['Statut',    STATUT_LABELS_PDF[ticket.statut]    ?? ticket.statut],
+      ['Priorité',  PRIORITE_LABELS_PDF[ticket.priorite] ?? ticket.priorite],
+      ['Site',      ticket.site],
+      ['Créé le',   fmtDate(ticket.created_at)],
+      ...(ticket.echeance ? [['Échéance', fmtDate(ticket.echeance)]] : [] as [string, string][]),
+      ...(ticket.assignes.length > 0
+        ? [[
+            'Assignés',
+            ticket.assignes
+              .map((a) => `${a.prenom ?? ''} ${a.nom ?? ''}`.trim() || (a.email ?? ''))
+              .join(', '),
+          ]]
+        : [] as [string, string][]),
+    ],
+    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 35, fillColor: [248, 250, 252] }, 1: { cellWidth: 'auto' } },
+    styles: { fontSize: 9, cellPadding: 3 },
+    theme: 'grid',
+  });
+
+  y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+
+  // Description
+  if (ticket.description) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Description', margin, y);
+    y += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    const lines = doc.splitTextToSize(ticket.description, pageW - margin * 2) as string[];
+    doc.text(lines, margin, y);
+    y += lines.length * 5 + 8;
+  }
+
+  // Motif annulation
+  if (ticket.statut === 'annule' && ticket.motif_annulation) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(180, 40, 40);
+    doc.text('Motif d\'annulation', margin, y);
+    doc.setTextColor(0);
+    y += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    const lines = doc.splitTextToSize(ticket.motif_annulation, pageW - margin * 2) as string[];
+    doc.text(lines, margin, y);
+    y += lines.length * 5 + 8;
+  }
+
+  // Historique
+  if (historique.length > 0) {
+    const ACTION_LABELS: Record<string, string> = {
+      creation:            'Création',
+      changement_statut:   'Statut modifié',
+      changement_priorite: 'Priorité modifiée',
+      changement_echeance: 'Échéance modifiée',
+      assignation:         'Utilisateur assigné',
+      desassignation:      'Utilisateur retiré',
+      commentaire:         'Commentaire',
+      annulation:          'Annulation',
+    };
+
+    autoTable(doc, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [['Date', 'Acteur', 'Action', 'Détail']],
+      body: historique.map((h) => {
+        const acteur = `${h.prenom ?? ''} ${h.nom ?? ''}`.trim() || (h.email ?? '');
+        let detail = '';
+        if (h.ancienne_valeur && h.nouvelle_valeur) detail = `${h.ancienne_valeur} → ${h.nouvelle_valeur}`;
+        else if (h.commentaire) detail = h.commentaire;
+        return [fmtDateTime(h.created_at), acteur, ACTION_LABELS[h.action] ?? h.action, detail];
+      }),
+      headStyles: { fillColor: [15, 118, 110], textColor: 255, fontSize: 8, fontStyle: 'bold' },
+      styles: { fontSize: 8, cellPadding: 2.5, overflow: 'linebreak' },
+      columnStyles: { 0: { cellWidth: 30 }, 1: { cellWidth: 32 }, 2: { cellWidth: 35 }, 3: { cellWidth: 'auto' } },
+      theme: 'striped',
+    });
+
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+  }
+
+  // Pied de page
+  doc.setFontSize(7);
+  doc.setTextColor(150);
+  doc.text(
+    `Document généré le ${new Date().toLocaleString('fr-FR')} — BioLabTrack`,
+    pageW / 2,
+    doc.internal.pageSize.getHeight() - 8,
+    { align: 'center' },
+  );
+
+  doc.save(`ticket-${ticket.id.slice(0, 8)}.pdf`);
+}
+
 /* ── Page ───────────────────────────────────────────────────────── */
 
 export default function TicketDetailPage() {
@@ -178,18 +323,14 @@ export default function TicketDetailPage() {
   const loadTicket = useCallback(async () => {
     setLoading(true);
     setFetchError(null);
-    console.log('ticket id:', ticketId);
     try {
       const res = await fetch(`/api/tickets/${ticketId}`);
-      console.log('API response status:', res.status, res.ok);
-
       if (res.status === 404) {
         router.push('/tickets');
         return;
       }
       if (res.ok) {
         const data = await res.json();
-        console.log('ticket data:', data);
         setTicket(data.ticket);
         setHistorique(data.historique ?? []);
         setStatut(data.ticket.statut);
@@ -198,12 +339,9 @@ export default function TicketDetailPage() {
         setSelectedUsers(assignedIds);
       } else {
         const errData = await res.json().catch(() => ({})) as { error?: string; detail?: string };
-        const msg = errData.error ?? errData.detail ?? `Erreur ${res.status}`;
-        console.error('API error:', res.status, errData);
-        setFetchError(msg);
+        setFetchError(errData.error ?? errData.detail ?? `Erreur ${res.status}`);
       }
-    } catch (err) {
-      console.error('fetch exception:', err);
+    } catch {
       setFetchError('Erreur de connexion au serveur');
     } finally {
       setLoading(false);
@@ -451,7 +589,7 @@ export default function TicketDetailPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <Link href="/tickets" className="text-teal-600 hover:text-teal-700 text-sm font-medium">
+          <Link href="/tickets" className="text-teal-600 hover:text-teal-700 text-sm font-medium shrink-0">
             ← Tickets
           </Link>
           <span className="text-gray-300">/</span>
@@ -461,6 +599,16 @@ export default function TicketDetailPage() {
           <span className={`text-xs font-semibold px-2 py-0.5 rounded flex-shrink-0 ${STATUT_BADGE[ticket.statut] ?? 'bg-gray-100 text-gray-600'}`}>
             {STATUT_LABELS[ticket.statut] ?? ticket.statut}
           </span>
+          <button
+            onClick={() => exportTicketPDF(ticket, historique)}
+            title="Exporter en PDF"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors flex-shrink-0"
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+            </svg>
+            <span className="hidden sm:inline">PDF</span>
+          </button>
         </div>
 
         {/* Content */}
@@ -494,8 +642,15 @@ export default function TicketDetailPage() {
               </div>
 
               {ticket.description && (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{ticket.description}</p>
+                <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700
+                  [&_strong]:font-bold [&_em]:italic
+                  [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5
+                  [&_li]:mb-0.5 [&_p]:mb-2 [&_p:last-child]:mb-0
+                  [&_h1]:font-bold [&_h1]:text-base [&_h1]:mb-1
+                  [&_h2]:font-semibold [&_h2]:text-sm [&_h2]:mb-1
+                  [&_hr]:border-gray-200 [&_hr]:my-2"
+                >
+                  <ReactMarkdown>{ticket.description}</ReactMarkdown>
                 </div>
               )}
 
