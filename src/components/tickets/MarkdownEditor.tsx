@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function MarkdownEditor({
   value,
@@ -17,16 +18,17 @@ export default function MarkdownEditor({
   const [preview, setPreview] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
 
-  function wrap(before: string, after: string) {
+  function wrap(before: string, after: string, placeholder: string) {
     const ta = ref.current;
     if (!ta) return;
     const s = ta.selectionStart;
     const e = ta.selectionEnd;
     const sel = value.slice(s, e);
-    onChange(value.slice(0, s) + before + sel + after + value.slice(e));
+    const insertion = sel || placeholder;
+    onChange(value.slice(0, s) + before + insertion + after + value.slice(e));
     setTimeout(() => {
       ta.focus();
-      ta.setSelectionRange(s + before.length, s + before.length + sel.length);
+      ta.setSelectionRange(s + before.length, s + before.length + insertion.length);
     }, 0);
   }
 
@@ -36,11 +38,22 @@ export default function MarkdownEditor({
     const s = ta.selectionStart;
     const lineStart = value.lastIndexOf('\n', s - 1) + 1;
     onChange(value.slice(0, lineStart) + prefix + value.slice(lineStart));
-    setTimeout(() => ta.focus(), 0);
+    setTimeout(() => {
+      ta.focus();
+      ta.setSelectionRange(s + prefix.length, s + prefix.length);
+    }, 0);
   }
 
-  function appendBlock(block: string) {
-    onChange(value.trimEnd() + '\n\n' + block + '\n');
+  function insertAtCursor(text: string) {
+    const ta = ref.current;
+    if (!ta) return;
+    const s = ta.selectionStart;
+    onChange(value.slice(0, s) + text + value.slice(s));
+    setTimeout(() => {
+      ta.focus();
+      const newPos = s + text.length;
+      ta.setSelectionRange(newPos, newPos);
+    }, 0);
   }
 
   return (
@@ -49,7 +62,7 @@ export default function MarkdownEditor({
       <div className="flex items-center gap-0.5 px-2 py-1 bg-gray-50 border-b border-gray-200">
         <button
           type="button"
-          onClick={() => wrap('**', '**')}
+          onClick={() => wrap('**', '**', 'gras')}
           title="Gras"
           className="px-2 py-0.5 text-sm font-bold text-gray-600 hover:bg-gray-200 rounded"
         >
@@ -57,7 +70,7 @@ export default function MarkdownEditor({
         </button>
         <button
           type="button"
-          onClick={() => wrap('*', '*')}
+          onClick={() => wrap('*', '*', 'texte')}
           title="Italique"
           className="px-2 py-0.5 text-sm italic text-gray-600 hover:bg-gray-200 rounded"
         >
@@ -73,7 +86,7 @@ export default function MarkdownEditor({
         </button>
         <button
           type="button"
-          onClick={() => appendBlock('---')}
+          onClick={() => insertAtCursor('\n---\n')}
           title="Séparateur horizontal"
           className="px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-200 rounded"
         >
@@ -111,10 +124,13 @@ export default function MarkdownEditor({
             [&_li]:mb-0.5 [&_p]:mb-2 [&_p:last-child]:mb-0
             [&_h1]:font-bold [&_h1]:text-base [&_h1]:mb-1
             [&_h2]:font-semibold [&_h2]:text-sm [&_h2]:mb-1
-            [&_hr]:border-gray-200 [&_hr]:my-2"
+            [&_hr]:border-gray-200 [&_hr]:my-2
+            [&_table]:border-collapse [&_table]:w-full [&_table]:text-xs
+            [&_th]:border [&_th]:border-gray-300 [&_th]:px-2 [&_th]:py-1 [&_th]:bg-gray-50 [&_th]:font-semibold
+            [&_td]:border [&_td]:border-gray-300 [&_td]:px-2 [&_td]:py-1"
         >
           {value.trim() ? (
-            <ReactMarkdown>{value}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown>
           ) : (
             <p className="text-gray-400 italic">Aucun contenu à prévisualiser.</p>
           )}
