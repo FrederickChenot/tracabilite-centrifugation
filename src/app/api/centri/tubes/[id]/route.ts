@@ -12,7 +12,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  const hasLabo = request.cookies.get('labo_access')?.value === 'true';
+  if (!session && !hasLabo) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
 
   const { id } = await params;
   const body = await request.json();
@@ -30,11 +31,12 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session) {
+  const hasLabo = request.cookies.get('labo_access')?.value === 'true';
+  if (!session && !hasLabo) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   }
 

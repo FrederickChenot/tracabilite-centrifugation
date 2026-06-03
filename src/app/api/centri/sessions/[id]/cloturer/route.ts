@@ -4,11 +4,12 @@ import { logAudit } from '@/lib/audit';
 import sql from '@/lib/db';
 
 export async function PATCH(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session) {
+  const hasLabo = request.cookies.get('labo_access')?.value === 'true';
+  if (!session && !hasLabo) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   }
 
@@ -26,7 +27,7 @@ export async function PATCH(
   }
 
   await logAudit(
-    session.user?.email ?? null,
+    session?.user?.email ?? null,
     'CLOSE_SESSION',
     'session',
     String(id),

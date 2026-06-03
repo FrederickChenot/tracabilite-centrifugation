@@ -5,7 +5,8 @@ import { HistoriqueSession } from '@/lib/schemas';
 
 export async function GET(request: NextRequest) {
   const session = await auth();
-  if (!session) {
+  const hasLabo = request.cookies.get('labo_access')?.value === 'true';
+  if (!session && !hasLabo) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   }
 
