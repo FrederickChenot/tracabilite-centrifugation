@@ -38,7 +38,9 @@
       "Bash(git diff *)",
       "PowerShell(cd \"C:\\\\Dev\\\\tracabilite-centrifugation\"; \\(Get-Content \"src\\\\app\\\\tickets\\\\[id]\\\\page.tsx\"\\).Count; Get-Content package.json | Select-String \"typography\")",
       "Bash(git checkout *)",
-      "Bash(New-Item *)"
+      "Bash(New-Item *)",
+      "Bash(git cherry-pick *)",
+      "Bash(git branch *)"
     ]
   },
   "hooks": {

@@ -18,7 +18,11 @@ export default auth((req) => {
     pathname.startsWith('/api/contact') ||
     pathname.startsWith('/transport/') ||
     pathname.startsWith('/api/transport/') ||
-    pathname.startsWith('/api/public/')
+    pathname.startsWith('/api/public/') ||
+    pathname.startsWith('/outils/') ||
+    pathname.startsWith('/api/centri/') ||
+    pathname.startsWith('/api/referentiels') ||
+    pathname === '/api/admin/sites'
   ) {
     return NextResponse.next();
   }
