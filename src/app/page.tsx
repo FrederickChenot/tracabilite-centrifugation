@@ -109,7 +109,7 @@ export default function LandingPage() {
             >
               <span className="text-3xl mb-2">🔬</span>
               <span className="font-bold text-base">Centrifugation / Transport</span>
-              <span className="text-xs text-teal-100 font-normal mt-1">Accès sans connexion</span>
+              <span className="text-xs text-teal-100 font-normal mt-1">Accès avec mot de passe laboratoire</span>
             </Link>
             <Link
               href="/login"
