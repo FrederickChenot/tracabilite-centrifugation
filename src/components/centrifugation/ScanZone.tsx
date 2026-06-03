@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { IconPlayerPlay } from '@tabler/icons-react';
 import { Tube } from '@/lib/schemas';
 
 type StockageCentri = 'ambiant' | 'plus5' | 'moins20';
@@ -28,20 +27,16 @@ interface ScanZoneProps {
   sessionId: string | null;
   tubes: Tube[];
   sessionActive: boolean;
-  canStart: boolean;
   onScan: (numEchant: string, stockage: string) => Promise<void>;
   onDelete: (id: string) => void;
-  onStartSession: () => Promise<void>;
 }
 
 export default function ScanZone({
   sessionId,
   tubes,
   sessionActive,
-  canStart,
   onScan,
   onDelete,
-  onStartSession,
 }: ScanZoneProps) {
   const [scanValues, setScanValues] = useState({ ambiant: '', plus5: '', moins20: '' });
   const [scanning, setScanning] = useState<StockageCentri | null>(null);
@@ -49,8 +44,6 @@ export default function ScanZone({
   const scanRefs = useRef<Record<StockageCentri, HTMLInputElement | null>>({
     ambiant: null, plus5: null, moins20: null,
   });
-
-  // Pas de focus automatique — le technicien choisit sa zone
 
   const tubesByTemp = (temp: StockageCentri) =>
     tubes.filter((t) => t.stockage === temp);
@@ -65,10 +58,6 @@ export default function ScanZone({
     } finally {
       setScanning(null);
     }
-  }
-
-  async function handleStartClick() {
-    await onStartSession();
   }
 
   return (
@@ -137,34 +126,15 @@ export default function ScanZone({
         );
       })}
 
-      {/* Pied de page */}
-      <div className="shrink-0 pt-2 border-t border-gray-200 mt-1">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-gray-500">
-            {tubes.length} tube{tubes.length !== 1 ? 's' : ''} scannés
+      {/* Compteur tubes */}
+      <div className="shrink-0 pt-2 border-t border-gray-200 mt-1 flex items-center justify-between">
+        <span className="text-xs text-gray-500">
+          {tubes.length} tube{tubes.length !== 1 ? 's' : ''} scannés
+        </span>
+        {sessionId && (
+          <span className="text-xs text-teal-600 font-mono">
+            #{sessionId.slice(0, 8)}
           </span>
-          {sessionId && (
-            <span className="text-xs text-teal-600 font-mono">
-              #{sessionId.slice(0, 8)}
-            </span>
-          )}
-        </div>
-
-        {!sessionActive && (
-          <button
-            onClick={handleStartClick}
-            disabled={!canStart}
-            title={!canStart ? 'Complétez la configuration pour démarrer' : undefined}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded text-sm font-semibold transition-colors"
-            style={
-              canStart
-                ? { background: '#0F6E56', color: '#fff' }
-                : { background: '#e5e7eb', color: '#9ca3af', cursor: 'not-allowed' }
-            }
-          >
-            <IconPlayerPlay size={16} />
-            Nouveau scan
-          </button>
         )}
       </div>
     </div>

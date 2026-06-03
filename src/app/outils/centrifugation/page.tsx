@@ -231,17 +231,23 @@ export default function CentrifugationPage() {
                 )}
               </div>
 
-              {/* Bouton Terminer */}
-              {sessionActive && (
-                <div className="shrink-0 bg-white border-b border-gray-200 px-3 py-2">
-                  <button
-                    onClick={handleCloturer}
-                    className="w-full py-2 rounded text-sm font-semibold bg-teal-600 text-white hover:bg-teal-700 transition-colors"
-                  >
-                    Terminer
-                  </button>
-                </div>
-              )}
+              {/* Boutons Nouveau scan + Terminer — toujours visibles */}
+              <div className="shrink-0 px-3 py-2 bg-white border-b border-gray-200 flex gap-2">
+                <button
+                  onClick={handleStartSession}
+                  disabled={!canStart || sessionActive}
+                  className="flex-1 py-2 rounded text-sm font-semibold bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Nouveau scan
+                </button>
+                <button
+                  onClick={handleCloturer}
+                  disabled={!sessionActive}
+                  className="flex-1 py-2 rounded text-sm font-semibold border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Terminer
+                </button>
+              </div>
 
               {/* Titre Tubes scannés */}
               <div className="shrink-0 px-3 py-2 bg-gray-50 border-b border-gray-200">
@@ -256,10 +262,8 @@ export default function CentrifugationPage() {
                   sessionId={sessionId}
                   tubes={tubes}
                   sessionActive={sessionActive}
-                  canStart={canStart}
                   onScan={handleScan}
                   onDelete={handleDeleteTube}
-                  onStartSession={handleStartSession}
                 />
               </div>
             </div>

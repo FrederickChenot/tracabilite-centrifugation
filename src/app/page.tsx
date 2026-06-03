@@ -48,10 +48,16 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-2 ml-auto">
             <Link
-              href="/app"
-              className="text-sm px-4 py-2 bg-teal-600 text-white rounded-full font-semibold hover:bg-teal-700 transition-colors whitespace-nowrap shrink-0"
+              href="/outils/centrifugation"
+              className="hidden sm:block text-sm px-3 py-1.5 bg-teal-600 text-white rounded-full font-semibold hover:bg-teal-700 transition-colors whitespace-nowrap shrink-0"
             >
-              Accès laboratoire →
+              🔬 Traçabilité
+            </Link>
+            <Link
+              href="/login"
+              className="text-sm px-3 py-1.5 border border-gray-300 text-gray-700 rounded-full font-semibold hover:bg-gray-50 transition-colors whitespace-nowrap shrink-0"
+            >
+              🔒 Connexion
             </Link>
             <button
               onClick={() => setMobileNavOpen((v) => !v)}
@@ -95,18 +101,30 @@ export default function LandingPage() {
           Centrifugation, transport, recherche inter-sites —<br className="hidden md:block" />
           conçu pour les laboratoires de biologie médicale des CH et GCS.
         </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link
-            href="/app"
-            className="px-8 py-3.5 bg-teal-600 text-white rounded-xl font-semibold text-base hover:bg-teal-700 transition-colors shadow-sm"
-          >
-            Accès laboratoire →
-          </Link>
+        <div className="flex flex-col items-center gap-5">
+          <div className="flex flex-col sm:flex-row items-stretch justify-center gap-4 w-full max-w-xl">
+            <Link
+              href="/outils/centrifugation"
+              className="flex flex-col items-center px-6 py-5 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition-colors shadow-sm flex-1"
+            >
+              <span className="text-3xl mb-2">🔬</span>
+              <span className="font-bold text-base">Centrifugation / Transport</span>
+              <span className="text-xs text-teal-100 font-normal mt-1">Accès sans connexion</span>
+            </Link>
+            <Link
+              href="/login"
+              className="flex flex-col items-center px-6 py-5 border-2 border-gray-200 text-gray-700 rounded-xl hover:border-teal-300 hover:bg-gray-50 transition-colors flex-1"
+            >
+              <span className="text-3xl mb-2">🔒</span>
+              <span className="font-bold text-base">Tickets / Administration</span>
+              <span className="text-xs text-gray-400 font-normal mt-1">Connexion requise</span>
+            </Link>
+          </div>
           <a
             href="#fonctionnalites"
-            className="px-8 py-3.5 border-2 border-gray-200 text-gray-700 rounded-xl font-semibold text-base hover:border-gray-300 hover:bg-gray-50 transition-colors"
+            className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
           >
-            En savoir plus
+            En savoir plus ↓
           </a>
         </div>
       </section>
