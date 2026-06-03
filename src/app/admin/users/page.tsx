@@ -122,8 +122,14 @@ function Modal({
       return;
     }
 
-    if (!form.email || !form.nom || !form.prenom) {
-      setError('Prénom, Nom et Email sont obligatoires');
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!EMAIL_REGEX.test(form.email)) {
+      setError('Email invalide');
+      return;
+    }
+
+    if (!form.prenom || !form.nom || !form.email) {
+      setError('Prénom, nom et email sont obligatoires');
       return;
     }
     setSaving(true);
@@ -231,11 +237,7 @@ function Modal({
                   erreurMdp ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-teal-500'
                 }`}
               />
-              {erreurMdp && (
-                <p style={{ color: 'red', fontSize: '12px', marginTop: '4px' }}>
-                  {erreurMdp}
-                </p>
-              )}
+              {erreurMdp && <p className="text-red-600 text-xs mt-1">{erreurMdp}</p>}
             </div>
           )}
 

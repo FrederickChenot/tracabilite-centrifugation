@@ -66,14 +66,13 @@ export default function NouveauTicketPage() {
   }, []);
 
   useEffect(() => {
-    if (!isAdmin) return;
     fetch('/api/admin/users')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data) setUsers((data.users ?? []).filter((u: User) => u.actif));
       })
       .catch(() => {});
-  }, [isAdmin]);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -237,8 +236,8 @@ export default function NouveauTicketPage() {
                 />
               </div>
 
-              {/* Assignés — admin uniquement */}
-              {isAdmin && users.length > 0 && (
+              {/* Assignés */}
+              {users.length > 0 && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Assignés
