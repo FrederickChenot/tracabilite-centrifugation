@@ -4,13 +4,10 @@ import { logAudit } from '@/lib/audit';
 import sql from '@/lib/db';
 import { CreateSessionSchema } from '@/lib/schemas';
 
-function isAuthorized(session: Awaited<ReturnType<typeof auth>>, request: NextRequest): boolean {
-  return !!session || request.cookies.get('labo_access')?.value === 'true';
-}
-
 export async function POST(request: NextRequest) {
   const session = await auth();
-  if (!isAuthorized(session, request)) {
+  const hasLabo = request.cookies.get('labo_access')?.value === 'true';
+  if (!session && !hasLabo) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   }
 
@@ -44,7 +41,8 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const session = await auth();
-  if (!isAuthorized(session, request)) {
+  const hasLabo = request.cookies.get('labo_access')?.value === 'true';
+  if (!session && !hasLabo) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   }
 
