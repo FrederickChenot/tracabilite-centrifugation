@@ -116,9 +116,8 @@ function Modal({
     setError('');
     setErreurMdp('');
 
-    const PWD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
-    if (modalMode === 'create' && !PWD_REGEX.test(form.password)) {
-      setErreurMdp('8 caractères minimum, 1 majuscule et 1 chiffre requis');
+    if (!form.prenom || !form.nom || !form.email) {
+      setError('Prénom, nom et email sont obligatoires');
       return;
     }
 
@@ -128,8 +127,9 @@ function Modal({
       return;
     }
 
-    if (!form.prenom || !form.nom || !form.email) {
-      setError('Prénom, nom et email sont obligatoires');
+    const PWD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (modalMode === 'create' && !PWD_REGEX.test(form.password)) {
+      setErreurMdp('8 caractères minimum, 1 majuscule et 1 chiffre requis');
       return;
     }
     setSaving(true);
@@ -220,9 +220,10 @@ function Modal({
             <input
               type="email"
               value={form.email}
-              onChange={set('email')}
+              onChange={(e) => { set('email')(e); setError(''); }}
               className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
+            {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
           </div>
 
           {!isEdit && (
@@ -281,10 +282,6 @@ function Modal({
             <span className="text-sm text-gray-700">Compte actif</span>
           </div>
         </div>
-
-        {error && (
-          <p className="mt-3 text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
-        )}
 
         <div className="flex gap-2 mt-5 pt-4 border-t border-gray-100">
           <button

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Sidebar from '@/components/layout/Sidebar';
@@ -34,18 +33,10 @@ type User = {
   actif: boolean;
 };
 
-type ExtUser = {
-  id?: string;
-  role?: string;
-};
-
 /* ── Page ───────────────────────────────────────────────────────── */
 
 export default function NouveauTicketPage() {
   const router = useRouter();
-  const { data: session } = useSession();
-  const currentUser = session?.user as ExtUser | undefined;
-  const isAdmin = currentUser?.role === 'admin';
 
   const [siteId, setSiteId] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(false);

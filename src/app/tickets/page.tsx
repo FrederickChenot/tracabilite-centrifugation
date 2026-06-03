@@ -61,6 +61,7 @@ type SortField = 'titre' | 'statut' | 'priorite' | 'echeance' | 'created_at';
 type ExtUser = {
   id?: string;
   role?: string;
+  email?: string | null;
   nom?: string | null;
   prenom?: string | null;
 };
@@ -302,19 +303,12 @@ function DroppableColumn({
         <span className="ml-auto text-xs font-medium text-gray-500 bg-white/80 rounded-full px-1.5 py-0.5 border border-gray-200/60">
           {tickets.length}
         </span>
-        {isDisabled && (
-          <span className="text-xs text-gray-400 italic">admin</span>
-        )}
       </div>
 
       <div
         ref={setNodeRef}
         className={`flex-1 min-h-[280px] rounded-b-lg border border-t-0 p-2 flex flex-col gap-2 transition-colors duration-150 ${
-          isOver && !isDisabled
-            ? 'bg-teal-50 border-teal-300 ring-1 ring-teal-300'
-            : isOver && isDisabled
-            ? 'bg-red-50 border-red-300 ring-1 ring-red-300'
-            : col.dropCls
+          isOver ? 'bg-teal-50 border-teal-300 ring-1 ring-teal-300' : col.dropCls
         }`}
       >
         {tickets.map((ticket) => (
@@ -456,7 +450,7 @@ function ListView({
 export default function TicketsPage() {
   const { data: session } = useSession();
   const user = session?.user as ExtUser | undefined;
-  const isAdmin = user?.role === 'admin';
+  const userEmail = user?.email ?? null;
 
   const [siteId, setSiteId]   = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -469,9 +463,10 @@ export default function TicketsPage() {
   const [view, setView] = useState<'board' | 'list'>('board');
 
   // Filters
-  const [filterSite, setFilterSite]         = useState('');
-  const [filterPriorite, setFilterPriorite] = useState('');
-  const [filterAssigne, setFilterAssigne]   = useState('');
+  const [filterSite, setFilterSite]             = useState('');
+  const [filterPriorite, setFilterPriorite]     = useState('');
+  const [filterAssigne, setFilterAssigne]       = useState('');
+  const [filterMesTickets, setFilterMesTickets] = useState(false);
 
   // Sort (list view)
   const [sortBy, setSortBy]   = useState<SortField>('created_at');
@@ -520,9 +515,10 @@ export default function TicketsPage() {
       if (filterSite && t.site !== filterSite) return false;
       if (filterPriorite && t.priorite !== filterPriorite) return false;
       if (filterAssigne && !t.assignes.some((a) => String(a.user_id) === filterAssigne)) return false;
+      if (filterMesTickets && userEmail && !t.assignes.some((a) => a.email === userEmail)) return false;
       return true;
     });
-  }, [tickets, filterSite, filterPriorite, filterAssigne]);
+  }, [tickets, filterSite, filterPriorite, filterAssigne, filterMesTickets, userEmail]);
 
   // Sorted for list view
   const listTickets = useMemo(() => {
@@ -565,9 +561,10 @@ export default function TicketsPage() {
     setFilterSite('');
     setFilterPriorite('');
     setFilterAssigne('');
+    setFilterMesTickets(false);
   }
 
-  const activeFilters = [filterSite, filterPriorite, filterAssigne].filter(Boolean).length;
+  const activeFilters = [filterSite, filterPriorite, filterAssigne].filter(Boolean).length + (filterMesTickets ? 1 : 0);
 
   function handleDragStart({ active }: DragStartEvent) {
     const t = tickets.find((tk) => tk.id === String(active.id));
@@ -583,7 +580,6 @@ export default function TicketsPage() {
     const currentTicket = tickets.find((t) => t.id === ticketId);
 
     if (!currentTicket || currentTicket.statut === newStatut) return;
-    if (newStatut === 'annule' && !isAdmin) return;
 
     const prevTickets = [...tickets];
     setTickets((prev) =>
@@ -606,8 +602,6 @@ export default function TicketsPage() {
         showToast('Erreur réseau', 'error');
       });
   }
-
-  const visibleColumns = isAdmin ? COLUMNS : COLUMNS.filter((c) => c.id !== 'annule');
 
   const selectCls = 'text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 text-gray-700';
 
@@ -707,6 +701,17 @@ export default function TicketsPage() {
             ))}
           </select>
 
+          <button
+            onClick={() => setFilterMesTickets((v) => !v)}
+            className={`text-xs px-2.5 py-1.5 rounded-lg border font-medium transition-colors ${
+              filterMesTickets
+                ? 'bg-teal-600 text-white border-teal-600'
+                : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+            }`}
+          >
+            Mes tickets
+          </button>
+
           {activeFilters > 0 && (
             <button
               onClick={clearFilters}
@@ -745,14 +750,14 @@ export default function TicketsPage() {
             <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden p-4">
               <div
                 className="flex gap-4 h-full"
-                style={{ minWidth: `${visibleColumns.length * 256}px` }}
+                style={{ minWidth: `${COLUMNS.length * 256}px` }}
               >
-                {visibleColumns.map((col) => (
+                {COLUMNS.map((col) => (
                   <DroppableColumn
                     key={col.id}
                     col={col}
                     tickets={filteredTickets.filter((t) => t.statut === col.id)}
-                    isDisabled={col.id === 'annule' && !isAdmin}
+                    isDisabled={false}
                   />
                 ))}
               </div>
