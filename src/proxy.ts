@@ -9,6 +9,19 @@ export default auth((req) => {
     return NextResponse.redirect(new URL('/outils/centrifugation', req.url));
   }
 
+  // Routes outils — protégées par cookie labo_access
+  if (
+    pathname === '/outils/centrifugation' ||
+    pathname.startsWith('/outils/centrifugation/') ||
+    pathname === '/outils/transport' ||
+    pathname.startsWith('/outils/transport/')
+  ) {
+    if (req.cookies.get('labo_access')?.value !== 'true') {
+      return NextResponse.redirect(new URL('/outils/login', req.url));
+    }
+    return NextResponse.next();
+  }
+
   if (
     pathname === '/' ||
     pathname === '/mentions-legales' ||
@@ -22,7 +35,8 @@ export default auth((req) => {
     pathname.startsWith('/outils/') ||
     pathname.startsWith('/api/centri/') ||
     pathname.startsWith('/api/referentiels') ||
-    pathname === '/api/admin/sites'
+    pathname === '/api/admin/sites' ||
+    pathname === '/api/outils/auth'
   ) {
     return NextResponse.next();
   }

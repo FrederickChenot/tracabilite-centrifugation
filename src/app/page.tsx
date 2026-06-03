@@ -48,7 +48,7 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-2 ml-auto">
             <Link
-              href="/login"
+              href="/outils/login"
               className="hidden sm:block text-sm px-3 py-1.5 bg-teal-600 text-white rounded-full font-semibold hover:bg-teal-700 transition-colors whitespace-nowrap shrink-0"
             >
               🔬 Traçabilité
@@ -104,7 +104,7 @@ export default function LandingPage() {
         <div className="flex flex-col items-center gap-5">
           <div className="flex flex-col sm:flex-row items-stretch justify-center gap-4 w-full max-w-xl">
             <Link
-              href="/login"
+              href="/outils/login"
               className="flex flex-col items-center px-6 py-5 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition-colors shadow-sm flex-1"
             >
               <span className="text-3xl mb-2">🔬</span>
