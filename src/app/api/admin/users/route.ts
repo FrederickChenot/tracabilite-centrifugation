@@ -50,6 +50,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Le mot de passe doit contenir au moins 8 caractères, 1 majuscule et 1 chiffre' }, { status: 400 });
   }
 
+  const VALID_ROLES = ['technicien', 'biologiste', 'secretaire', 'cadre', 'assistante_qualite', 'agent_transverse', 'admin'];
+  if (role && !VALID_ROLES.includes(role)) {
+    return NextResponse.json({ error: 'Rôle invalide' }, { status: 400 });
+  }
+
   const passwordHash = await hash(password, 10);
 
   try {
