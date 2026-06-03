@@ -27,7 +27,7 @@ function LoginForm() {
   const disconnected = searchParams.get('disconnected') === 'true';
   const changed = searchParams.get('changed') === 'true';
 
-  const [email, setEmail] = useState('');
+  const [matricule, setMatricule] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -39,7 +39,7 @@ function LoginForm() {
     setLoading(true);
     try {
       const res = await signIn('credentials', {
-        email,
+        matricule,
         password,
         redirect: false,
       });
@@ -78,14 +78,15 @@ function LoginForm() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Matricule</label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              value={matricule}
+              onChange={(e) => setMatricule(e.target.value)}
               required
               autoFocus
-              autoComplete="email"
+              autoComplete="username"
+              placeholder="Ex: D048323"
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </div>

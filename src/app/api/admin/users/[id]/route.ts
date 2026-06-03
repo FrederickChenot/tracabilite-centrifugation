@@ -13,13 +13,14 @@ export async function PUT(
 
   const { id } = await params;
   const body = await req.json();
-  const { nom, prenom, email, site_id, role, actif } = body as {
+  const { nom, prenom, email, site_id, role, actif, matricule } = body as {
     nom?: string | null;
     prenom?: string | null;
     email?: string;
     site_id?: string | null;
     role?: string;
     actif?: boolean;
+    matricule?: string | null;
   };
 
   if (!email || !nom || !prenom) {
@@ -35,16 +36,20 @@ export async function PUT(
     const rows = await sql`
       UPDATE users
       SET nom = ${nom}, prenom = ${prenom}, email = ${email},
+          matricule = ${matricule ?? null},
           site_id = ${site_id ?? null}, role = ${role ?? 'technicien'},
           actif = ${actif ?? true}
       WHERE id = ${parseInt(id, 10)}
-      RETURNING id, email, nom, prenom, site_id, role, actif
+      RETURNING id, email, matricule, nom, prenom, site_id, role, actif
     `;
     if (!rows[0]) return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
     return NextResponse.json({ user: rows[0] });
   } catch (e: unknown) {
     const err = e as { code?: string; message?: string };
     if (err.code === '23505') {
+      if (err.message?.includes('matricule')) {
+        return NextResponse.json({ error: 'Ce matricule est déjà utilisé' }, { status: 409 });
+      }
       return NextResponse.json({ error: 'Cet email est déjà utilisé' }, { status: 409 });
     }
     console.error('[PUT /api/admin/users/[id]]', err.message);

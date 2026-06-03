@@ -34,6 +34,7 @@ const ROLE_CLS: Record<Role, string> = {
 interface User {
   id: number;
   email: string;
+  matricule: string | null;
   nom: string | null;
   prenom: string | null;
   role: Role;
@@ -46,6 +47,7 @@ interface User {
 interface UserForm {
   prenom: string;
   nom: string;
+  matricule: string;
   email: string;
   role: Role;
   site_id: string;
@@ -56,6 +58,7 @@ interface UserForm {
 const EMPTY_FORM: UserForm = {
   prenom: '',
   nom: '',
+  matricule: '',
   email: '',
   role: 'technicien',
   site_id: '',
@@ -121,6 +124,7 @@ function Modal({
       ? {
           prenom: user.prenom ?? '',
           nom: user.nom ?? '',
+          matricule: user.matricule ?? '',
           email: user.email,
           role: user.role,
           site_id: user.site_id !== null ? String(user.site_id) : '',
@@ -140,6 +144,11 @@ function Modal({
 
     if (!form.prenom || !form.nom || !form.email) {
       setError('Prénom, nom et email sont obligatoires');
+      return;
+    }
+
+    if (modalMode === 'create' && !form.matricule.trim()) {
+      setError('Le matricule est obligatoire');
       return;
     }
 
@@ -163,6 +172,7 @@ function Modal({
           body: JSON.stringify({
             prenom: form.prenom,
             nom: form.nom,
+            matricule: form.matricule.trim() || null,
             email: form.email,
             role: form.role,
             site_id: form.site_id || null,
@@ -182,6 +192,7 @@ function Modal({
           body: JSON.stringify({
             prenom: form.prenom,
             nom: form.nom,
+            matricule: form.matricule.trim() || null,
             email: form.email,
             password: form.password,
             role: form.role,
@@ -237,7 +248,17 @@ function Modal({
               className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </div>
-          <div className="col-span-2">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Matricule {modalMode === 'create' ? '*' : ''}</label>
+            <input
+              type="text"
+              value={form.matricule}
+              onChange={(e) => { set('matricule')(e); setError(''); }}
+              placeholder="Ex: D048323"
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 uppercase"
+            />
+          </div>
+          <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Email *</label>
             <input
               type="email"
@@ -245,7 +266,9 @@ function Modal({
               onChange={(e) => { set('email')(e); setError(''); }}
               className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
-            {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
+          </div>
+          <div className="col-span-2">
+            {error && <p className="text-red-600 text-xs -mt-1">{error}</p>}
           </div>
 
           {!isEdit && (
@@ -450,6 +473,7 @@ export default function AdminUsersPage() {
                   <tr className="border-b border-gray-200 bg-gray-50">
                     <th className="text-left py-2.5 px-4 text-xs font-semibold text-gray-600 w-10" />
                     <th className="text-left py-2.5 px-4 text-xs font-semibold text-gray-600">Nom</th>
+                    <th className="text-left py-2.5 px-4 text-xs font-semibold text-gray-600">Matricule</th>
                     <th className="text-left py-2.5 px-4 text-xs font-semibold text-gray-600">Email</th>
                     <th className="text-left py-2.5 px-4 text-xs font-semibold text-gray-600">Rôle</th>
                     <th className="text-left py-2.5 px-4 text-xs font-semibold text-gray-600">Site</th>
@@ -469,6 +493,7 @@ export default function AdminUsersPage() {
                       <td className="py-2.5 px-4 font-medium text-gray-800">
                         {u.prenom ? `${u.prenom} ${u.nom ?? ''}`.trim() : (u.nom ?? '—')}
                       </td>
+                      <td className="py-2.5 px-4 text-gray-700 font-mono text-xs font-semibold">{u.matricule ?? '—'}</td>
                       <td className="py-2.5 px-4 text-gray-500 font-mono text-xs">{u.email}</td>
                       <td className="py-2.5 px-4"><RoleBadge role={u.role} /></td>
                       <td className="py-2.5 px-4 text-gray-500 text-xs">{u.site_nom ?? '—'}</td>

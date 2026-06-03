@@ -15,15 +15,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Credentials({
       credentials: {
-        email: { label: 'Email', type: 'email' },
+        matricule: { label: 'Matricule', type: 'text' },
         password: { label: 'Mot de passe', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        if (!credentials?.matricule || !credentials?.password) return null;
 
-        // Admin from environment
+        // Admin from environment (le matricule admin = ADMIN_EMAIL)
         if (
-          credentials.email === process.env.ADMIN_EMAIL &&
+          credentials.matricule === process.env.ADMIN_EMAIL &&
           credentials.password === process.env.ADMIN_PASSWORD
         ) {
           return {
@@ -43,7 +43,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             SELECT id, email, password_hash, nom, prenom, site_id, role,
                    COALESCE(must_change_password, false) AS must_change_password
             FROM users
-            WHERE email = ${credentials.email as string} AND actif = true
+            WHERE matricule = ${credentials.matricule as string} AND actif = true
             LIMIT 1
           `;
           const user = rows[0];

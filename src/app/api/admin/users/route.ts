@@ -13,7 +13,7 @@ export async function GET() {
 
   try {
     const rows = await sql`
-      SELECT u.id, u.email, u.nom, u.prenom, u.role, u.actif, u.created_at,
+      SELECT u.id, u.email, u.matricule, u.nom, u.prenom, u.role, u.actif, u.created_at,
              s.nom AS site_nom, u.site_id
       FROM users u
       LEFT JOIN sites s ON s.id = u.site_id
@@ -33,17 +33,21 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { email, password, nom, prenom, site_id, role } = body as {
+  const { email, password, nom, prenom, site_id, role, matricule } = body as {
     email?: string;
     password?: string;
     nom?: string | null;
     prenom?: string | null;
     site_id?: string | null;
     role?: string;
+    matricule?: string | null;
   };
 
   if (!email || !password || !nom || !prenom) {
     return NextResponse.json({ error: 'email, password, nom et prenom sont requis' }, { status: 400 });
+  }
+  if (!matricule) {
+    return NextResponse.json({ error: 'Le matricule est obligatoire' }, { status: 400 });
   }
   const PWD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
   if (!PWD_REGEX.test(password as string)) {
@@ -59,7 +63,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const rows = await sql`
-      INSERT INTO users (email, password_hash, nom, prenom, site_id, role, must_change_password)
+      INSERT INTO users (email, password_hash, nom, prenom, site_id, role, matricule, must_change_password)
       VALUES (
         ${email},
         ${passwordHash},
@@ -67,9 +71,10 @@ export async function POST(req: NextRequest) {
         ${prenom},
         ${site_id ?? null},
         ${role ?? 'technicien'},
+        ${matricule},
         true
       )
-      RETURNING id, email, nom, prenom, site_id, role, actif, created_at
+      RETURNING id, email, matricule, nom, prenom, site_id, role, actif, created_at
     `;
 
     sendEmailBienvenue({
@@ -90,6 +95,9 @@ export async function POST(req: NextRequest) {
   } catch (e: unknown) {
     const err = e as { code?: string; message?: string };
     if (err.code === '23505') {
+      if (err.message?.includes('matricule')) {
+        return NextResponse.json({ error: 'Ce matricule est déjà utilisé' }, { status: 409 });
+      }
       return NextResponse.json({ error: 'Cet email est déjà utilisé' }, { status: 409 });
     }
     console.error('[users POST] ERREUR:', err.message);
