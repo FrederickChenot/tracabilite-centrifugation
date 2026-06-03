@@ -98,6 +98,15 @@ export default function AdminPage() {
       <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4 shrink-0">
         <Link href="/outils/centrifugation" className="text-sm text-gray-500 hover:text-gray-700">← Retour</Link>
         <h1 className="text-xl font-bold text-gray-900 flex-1">Administration · Centrifugation</h1>
+        <Link
+          href="/admin/users"
+          className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-teal-700 font-medium transition-colors"
+        >
+          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Utilisateurs
+        </Link>
         <button
           onClick={() => signOut({ callbackUrl: '/' })}
           className="text-sm text-gray-500 hover:text-gray-700"
