@@ -233,18 +233,19 @@ export async function sendEmailTempPassword(params: {
       </div>
     </div>
   `;
-  try {
-    const resend = getResend();
-    if (!resend) return;
-    await resend.emails.send({
-      from: FROM,
-      to: [params.email],
-      subject: 'BioLabTrack — Nouveau mot de passe',
-      html,
-    });
-  } catch (err) {
-    console.error('[emails] sendEmailTempPassword error:', err);
+  const resend = getResend();
+  if (!resend) {
+    console.warn('[emails] sendEmailTempPassword — RESEND_API_KEY absente, email non envoyé');
+    return null;
   }
+  console.log('[emails] sendEmailTempPassword — envoi à:', params.email, '| from:', FROM);
+  const result = await resend.emails.send({
+    from: FROM,
+    to: [params.email],
+    subject: 'BioLabTrack — Nouveau mot de passe',
+    html,
+  });
+  return result;
 }
 
 export async function sendEmailBienvenue(params: {

@@ -41,11 +41,19 @@ export async function POST(
     WHERE id = ${userId}
   `;
 
-  sendEmailTempPassword({
-    email: user.email as string,
-    prenom: user.prenom as string | undefined,
-    tempPassword,
-  }).catch((err) => console.error('[reset-password] email error:', err));
+  console.log('RESET MDP pour email:', user.email);
+  console.log('RESEND_API_KEY présente:', !!process.env.RESEND_API_KEY);
+
+  try {
+    const result = await sendEmailTempPassword({
+      email: user.email as string,
+      prenom: user.prenom as string | undefined,
+      tempPassword,
+    });
+    console.log('RESEND response:', JSON.stringify(result));
+  } catch (error) {
+    console.error('RESEND error:', error);
+  }
 
   await logAudit(
     session.user?.email ?? null,
