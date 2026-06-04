@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 import sql from '@/lib/db';
 
-const FROM = 'BioTools <onboarding@resend.dev>';
+const FROM = 'BioLabTrack <noreply@biolabtrack.fr>';
 const TO_FALLBACK = process.env.EMAIL_EXPEDITEUR ?? '';
 
 function getResend(): Resend | null {
