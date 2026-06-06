@@ -17,16 +17,30 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  console.log('[upload] POST — début');
+
   const session = await auth();
   if (!session) {
+    console.log('[upload] POST — non autorisé');
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   }
+  console.log('[upload] POST — session OK, user:', session.user?.email);
+
+  // Vérification token Blob
+  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!blobToken) {
+    console.error('[upload] POST — BLOB_READ_WRITE_TOKEN absent de process.env');
+    return NextResponse.json({ error: 'Configuration Blob manquante (token absent)' }, { status: 500 });
+  }
+  console.log('[upload] POST — BLOB token présent, préfixe:', blobToken.slice(0, 20) + '...');
 
   try {
     const { id } = await params;
+    console.log('[upload] POST — ticket id:', id);
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
+    console.log('[upload] POST — fichier reçu:', file?.name, '| taille:', file?.size, '| type:', file?.type);
 
     if (!file) {
       return NextResponse.json({ error: 'Fichier requis' }, { status: 400 });
@@ -35,13 +49,25 @@ export async function POST(
       return NextResponse.json({ error: 'Fichier trop volumineux (max 10 Mo)' }, { status: 400 });
     }
 
+    // Vérification colonne pieces_jointes en DB
+    console.log('[upload] POST — requête DB ticket...');
     const ticketResult = await sql`SELECT id, pieces_jointes FROM tickets WHERE id = ${id}`;
     if (ticketResult.length === 0) {
+      console.log('[upload] POST — ticket introuvable:', id);
       return NextResponse.json({ error: 'Ticket introuvable' }, { status: 404 });
     }
+    console.log('[upload] POST — ticket trouvé, pieces_jointes actuelles:', JSON.stringify(ticketResult[0].pieces_jointes));
 
+    // Upload Vercel Blob
     const safeFilename = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-    const blob = await put(`tickets/${id}/${safeFilename}`, file, { access: 'public' });
+    const blobPath = `tickets/${id}/${safeFilename}`;
+    console.log('[upload] POST — upload Blob vers:', blobPath);
+
+    const blob = await put(blobPath, file, {
+      access: 'public',
+      token: blobToken,
+    });
+    console.log('[upload] POST — Blob OK, url:', blob.url);
 
     const user = session.user as { prenom?: string; nom?: string; email?: string };
     const uploaderName = `${user.prenom ?? ''} ${user.nom ?? ''}`.trim() || (user.email ?? '');
@@ -58,6 +84,7 @@ export async function POST(
 
     const currentPieces = (ticketResult[0].pieces_jointes as PieceJointe[] | null) ?? [];
     const updatedPieces = [...currentPieces, pieceJointe];
+    console.log('[upload] POST — UPDATE tickets pieces_jointes, count:', updatedPieces.length);
 
     await sql`
       UPDATE tickets
@@ -65,19 +92,27 @@ export async function POST(
           updated_at = NOW()
       WHERE id = ${id}
     `;
+    console.log('[upload] POST — DB UPDATE OK');
 
     const userRow = await sql`SELECT id FROM users WHERE email = ${session.user.email} LIMIT 1`;
     if (userRow.length > 0) {
       await sql`
         INSERT INTO ticket_historique (id, ticket_id, user_id, action, nouvelle_valeur)
         VALUES (gen_random_uuid(), ${id}, ${userRow[0].id as number}, 'piece_jointe', ${file.name})
-      `.catch(() => {});
+      `.catch((histErr) => console.error('[upload] POST — historique insert échoué (non bloquant):', histErr));
     }
 
+    console.log('[upload] POST — succès, retour pieceJointe');
     return NextResponse.json({ pieceJointe }, { status: 201 });
+
   } catch (error) {
-    console.error('[tickets/upload POST] ERREUR:', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    const err = error as Error;
+    console.error('[upload] POST — ERREUR:', err?.message ?? err);
+    console.error('[upload] POST — stack:', err?.stack);
+    return NextResponse.json(
+      { error: 'Erreur serveur', detail: err?.message ?? String(error) },
+      { status: 500 }
+    );
   }
 }
 
@@ -85,6 +120,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  console.log('[upload] DELETE — début');
+
   const session = await auth();
   if (!session) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
@@ -94,6 +131,7 @@ export async function DELETE(
     const { id } = await params;
     const { searchParams } = new URL(request.url);
     const pieceId = searchParams.get('pieceId');
+    console.log('[upload] DELETE — ticket:', id, '| pieceId:', pieceId);
 
     if (!pieceId) {
       return NextResponse.json({ error: 'pieceId requis' }, { status: 400 });
@@ -118,20 +156,27 @@ export async function DELETE(
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
 
-    await del(piece.url).catch(() => {});
+    console.log('[upload] DELETE — suppression Blob url:', piece.url);
+    await del(piece.url, {
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+    }).catch((delErr) => console.error('[upload] DELETE — del Blob échoué (non bloquant):', delErr));
 
     const updatedPieces = currentPieces.filter((p) => p.id !== pieceId);
-
     await sql`
       UPDATE tickets
       SET pieces_jointes = ${JSON.stringify(updatedPieces)},
           updated_at = NOW()
       WHERE id = ${id}
     `;
-
+    console.log('[upload] DELETE — succès');
     return NextResponse.json({ success: true });
+
   } catch (error) {
-    console.error('[tickets/upload DELETE] ERREUR:', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    const err = error as Error;
+    console.error('[upload] DELETE — ERREUR:', err?.message ?? err);
+    return NextResponse.json(
+      { error: 'Erreur serveur', detail: err?.message ?? String(error) },
+      { status: 500 }
+    );
   }
 }
