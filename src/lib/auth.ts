@@ -12,6 +12,7 @@ type ExtUser = {
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
   providers: [
     Credentials({
       credentials: {
@@ -45,7 +46,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             prenom: user.prenom as string | null,
             must_change_password: Boolean(user.must_change_password),
           };
-        } catch {
+        } catch (err) {
+          console.error('[auth] authorize error:', err);
           return null;
         }
       },

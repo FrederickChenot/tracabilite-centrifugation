@@ -43,7 +43,8 @@
       "Bash(git branch *)",
       "Bash(git *)",
       "Bash(npm list *)",
-      "Bash(vercel *)"
+      "Bash(vercel *)",
+      "Bash(del \"src\\\\middleware.ts\")"
     ]
   },
   "hooks": {
