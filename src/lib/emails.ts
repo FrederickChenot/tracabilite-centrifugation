@@ -159,10 +159,10 @@ export async function sendEmailReception(params: {
 
 export async function sendEmailForgotPassword(params: {
   email: string;
-  nom?: string;
+  prenom?: string;
   resetUrl: string;
 }) {
-  const greeting = params.nom ? `Bonjour ${params.nom},` : 'Bonjour,';
+  const greeting = params.prenom ? `Bonjour ${params.prenom},` : 'Bonjour,';
   const html = `
     <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
       <div style="background:#0F6E56;color:white;padding:20px;border-radius:8px 8px 0 0">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -12,6 +12,16 @@ import MarkdownEditor from '@/components/tickets/MarkdownEditor';
 /* ── Types ─────────────────────────────────────────────────────── */
 
 type ChecklistItem = { id: string; texte: string; fait: boolean };
+
+type PieceJointe = {
+  id: string;
+  nom: string;
+  url: string;
+  type: string;
+  taille: number;
+  uploaded_le: string;
+  uploaded_par: string;
+};
 
 type Assigne = {
   user_id: number;
@@ -37,6 +47,7 @@ type Ticket = {
   updated_at: string | null;
   assignes: Assigne[];
   checklist: ChecklistItem[] | null;
+  pieces_jointes: PieceJointe[] | null;
 };
 
 type HistoriqueEntry = {
@@ -121,6 +132,7 @@ const ACTION_CONFIG: Record<string, { label: string; icon: string; iconCls: stri
   desassignation:       { label: 'Utilisateur retiré',  icon: '−', iconCls: 'text-gray-400 font-bold' },
   commentaire:          { label: 'Commentaire',         icon: '◎', iconCls: 'text-indigo-500' },
   annulation:           { label: 'Ticket annulé',       icon: '✕', iconCls: 'text-red-500' },
+  piece_jointe:         { label: 'Pièce jointe',         icon: '📎', iconCls: 'text-gray-500' },
 };
 
 /* ── Helpers ───────────────────────────────────────────────────── */
@@ -156,6 +168,16 @@ function echeanceCls(echeance: string | null): string {
   return 'text-gray-700';
 }
 
+function fmtSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} o`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} Ko`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+}
+
+function isImage(type: string, nom: string): boolean {
+  return type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(nom);
+}
+
 function stripMarkdown(text: string): string {
   return text
     .replace(/#+\s/g, '')
@@ -169,7 +191,7 @@ function stripMarkdown(text: string): string {
 
 /* ── PDF Export ─────────────────────────────────────────────────── */
 
-async function exportTicketPDF(ticket: Ticket, historique: HistoriqueEntry[]) {
+async function exportTicketPDF(ticket: Ticket, historique: HistoriqueEntry[], piecesJointes: PieceJointe[] = []) {
   const { default: jsPDF } = await import('jspdf');
   const { default: autoTable } = await import('jspdf-autotable');
 
@@ -183,23 +205,28 @@ async function exportTicketPDF(ticket: Ticket, historique: HistoriqueEntry[]) {
 
   // En-tête bleu
   doc.setFillColor(...BLUE_RGB);
-  doc.rect(0, 0, pageW, 38, 'F');
+  doc.rect(0, 0, pageW, 42, 'F');
 
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
+  doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('BioLabTrack', margin, 14);
+  doc.text('BioLabTrack — GCS Bio Med', margin, 14);
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Généré le ${new Date().toLocaleString('fr-FR')}`, pageW - margin, 14, { align: 'right' });
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`TICKET #${ticket.id.slice(0, 8).toUpperCase()}`, margin, 27);
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text('GCS Bio Med — Traçabilité laboratoire', margin, 21);
-
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`TICKET #${ticket.id.slice(0, 8).toUpperCase()}`, margin, 31);
+  const shortTitle = ticket.titre.length > 80 ? ticket.titre.slice(0, 77) + '...' : ticket.titre;
+  doc.text(shortTitle, margin, 36);
 
   doc.setTextColor(0, 0, 0);
-  let y = 48;
+  let y = 52;
 
   // Titre
   doc.setFontSize(14);
@@ -310,6 +337,35 @@ async function exportTicketPDF(ticket: Ticket, historique: HistoriqueEntry[]) {
     y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
   }
 
+  // Pièces jointes
+  if (piecesJointes.length > 0) {
+    if (y > pageH - 50) { doc.addPage(); y = margin; }
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...BLUE_RGB);
+    doc.text(`Pièces jointes (${piecesJointes.length})`, margin, y);
+    doc.setTextColor(0, 0, 0);
+    y += 5;
+
+    autoTable(doc, {
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [['Fichier', 'Taille', 'Ajouté par', 'Date']],
+      body: piecesJointes.map((p) => [p.nom, fmtSize(p.taille), p.uploaded_par, fmtDate(p.uploaded_le)]),
+      headStyles: { fillColor: BLUE_RGB, textColor: 255, fontSize: 8, fontStyle: 'bold' },
+      styles: { fontSize: 8, cellPadding: 2.5, overflow: 'linebreak' },
+      columnStyles: {
+        0: { cellWidth: 80 },
+        1: { cellWidth: 20 },
+        2: { cellWidth: 40 },
+        3: { cellWidth: 30 },
+      },
+      theme: 'striped',
+    });
+
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+  }
+
   // Historique
   const ACTION_LABELS: Record<string, string> = {
     creation:            'Création',
@@ -320,6 +376,7 @@ async function exportTicketPDF(ticket: Ticket, historique: HistoriqueEntry[]) {
     desassignation:      'Utilisateur retiré',
     commentaire:         'Commentaire',
     annulation:          'Annulation',
+    piece_jointe:        'Pièce jointe ajoutée',
   };
 
   if (historique.length > 0) {
@@ -371,6 +428,189 @@ async function exportTicketPDF(ticket: Ticket, historique: HistoriqueEntry[]) {
   doc.save(`ticket-${ticket.id.slice(0, 8)}.pdf`);
 }
 
+/* ── Word Export ────────────────────────────────────────────────── */
+
+async function exportTicketWord(ticket: Ticket, historique: HistoriqueEntry[], piecesJointes: PieceJointe[]) {
+  const docx = await import('docx');
+  const {
+    Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+    HeadingLevel, AlignmentType, WidthType, Header, Footer, ShadingType,
+  } = docx;
+
+  const dateGen = new Date().toLocaleString('fr-FR');
+  const ticketNum = ticket.id.slice(0, 8).toUpperCase();
+
+  const STATUT_LBL: Record<string, string> = { a_faire: 'À faire', en_cours: 'En cours', termine: 'Terminé', annule: 'Annulé' };
+  const PRIO_LBL: Record<string, string>   = { basse: 'Basse', normale: 'Normale', haute: 'Haute', urgente: 'Urgente' };
+  const SITE_LBL: Record<string, string>   = { epinal: 'Épinal', remiremont: 'Remiremont', neufchateau: 'Neufchâteau' };
+  const ACT_LBL: Record<string, string>    = {
+    creation: 'Création', changement_statut: 'Statut modifié', changement_priorite: 'Priorité modifiée',
+    changement_echeance: 'Échéance modifiée', assignation: 'Assigné', desassignation: 'Retiré',
+    commentaire: 'Commentaire', annulation: 'Annulation', piece_jointe: 'Pièce jointe',
+  };
+
+  const createur = `${ticket.createur_prenom ?? ''} ${ticket.createur_nom ?? ''}`.trim() || '—';
+  const assignesStr = ticket.assignes.length > 0
+    ? ticket.assignes.map((a) => `${a.prenom ?? ''} ${a.nom ?? ''}`.trim() || (a.email ?? '')).join(', ')
+    : '—';
+
+  const BLUE_FILL = '004785';
+
+  function infoRow(label: string, value: string) {
+    return new TableRow({
+      children: [
+        new TableCell({
+          children: [new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 20 })] })],
+          width: { size: 2500, type: WidthType.DXA },
+          shading: { type: ShadingType.CLEAR, color: 'auto', fill: 'F0F5FF' },
+        }),
+        new TableCell({
+          children: [new Paragraph({ children: [new TextRun({ text: value, size: 20 })] })],
+          width: { size: 5000, type: WidthType.DXA },
+        }),
+      ],
+    });
+  }
+
+  function histHeaderCell(text: string) {
+    return new TableCell({
+      children: [new Paragraph({ children: [new TextRun({ text, bold: true, size: 16, color: 'FFFFFF' })] })],
+      shading: { type: ShadingType.CLEAR, color: 'auto', fill: BLUE_FILL },
+    });
+  }
+
+  function histDataRow(date: string, auteur: string, action: string, detail: string) {
+    return new TableRow({
+      children: [
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: date, size: 16 })] })], width: { size: 1900, type: WidthType.DXA } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: auteur, size: 16 })] })], width: { size: 1800, type: WidthType.DXA } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: action, size: 16 })] })], width: { size: 2000, type: WidthType.DXA } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: detail, size: 16 })] })], width: { size: 1900, type: WidthType.DXA } }),
+      ],
+    });
+  }
+
+  const checklist = ticket.checklist ?? [];
+
+  const children = [
+    new Paragraph({
+      text: ticket.titre,
+      heading: HeadingLevel.HEADING_1,
+      spacing: { before: 0, after: 200 },
+    }),
+
+    new Paragraph({ spacing: { before: 0, after: 80 } }),
+
+    new Table({
+      rows: [
+        infoRow('Statut',    STATUT_LBL[ticket.statut] ?? ticket.statut),
+        infoRow('Priorité',  PRIO_LBL[ticket.priorite] ?? ticket.priorite),
+        infoRow('Site',      SITE_LBL[ticket.site] ?? ticket.site),
+        infoRow('Créé par',  createur),
+        infoRow('Échéance',  ticket.echeance ? fmtDate(ticket.echeance) : '—'),
+        infoRow('Assignés',  assignesStr),
+      ],
+      width: { size: 7500, type: WidthType.DXA },
+    }),
+
+    new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun('Description')], spacing: { before: 300, after: 100 } }),
+    new Paragraph({
+      children: [new TextRun({ text: ticket.description ? stripMarkdown(ticket.description) : '—', size: 20 })],
+      spacing: { before: 0, after: 200 },
+    }),
+
+    ...(checklist.length > 0 ? [
+      new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun('Checklist')], spacing: { before: 200, after: 100 } }),
+      ...checklist.map((item) =>
+        new Paragraph({
+          children: [
+            new TextRun({ text: item.fait ? '✓  ' : '☐  ', bold: true, color: item.fait ? '2E7D32' : '555555', size: 20 }),
+            new TextRun({ text: item.texte, strike: item.fait, color: item.fait ? '888888' : '111827', size: 20 }),
+          ],
+          spacing: { before: 0, after: 80 },
+        })
+      ),
+    ] : []),
+
+    ...(piecesJointes.length > 0 ? [
+      new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun('Pièces jointes')], spacing: { before: 200, after: 100 } }),
+      ...piecesJointes.map((p) =>
+        new Paragraph({
+          children: [
+            new TextRun({ text: `• ${p.nom}`, size: 20 }),
+            new TextRun({ text: `  (${fmtSize(p.taille)} — ${p.uploaded_par})`, size: 18, color: '888888' }),
+          ],
+          spacing: { before: 0, after: 80 },
+        })
+      ),
+    ] : []),
+
+    ...(historique.length > 0 ? [
+      new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun('Historique')], spacing: { before: 200, after: 100 } }),
+      new Table({
+        rows: [
+          new TableRow({
+            tableHeader: true,
+            children: [
+              histHeaderCell('Date'),
+              histHeaderCell('Auteur'),
+              histHeaderCell('Action'),
+              histHeaderCell('Détail'),
+            ],
+          }),
+          ...historique.map((h) => {
+            const acteur = `${h.prenom ?? ''} ${h.nom ?? ''}`.trim() || (h.email ?? '');
+            let detail = '';
+            if (h.ancienne_valeur && h.nouvelle_valeur) detail = `${h.ancienne_valeur} → ${h.nouvelle_valeur}`;
+            else if (h.commentaire) detail = h.commentaire.slice(0, 100);
+            return histDataRow(fmtDateTime(h.created_at), acteur, ACT_LBL[h.action] ?? h.action, detail);
+          }),
+        ],
+        width: { size: 7600, type: WidthType.DXA },
+      }),
+    ] : []),
+  ];
+
+  const doc = new Document({
+    sections: [{
+      headers: {
+        default: new Header({
+          children: [
+            new Paragraph({
+              children: [
+                new TextRun({ text: 'GCS Bio Med — BioLabTrack', bold: true, size: 20 }),
+                new TextRun({ text: `  |  Ticket #${ticketNum}`, color: '555555', size: 20 }),
+              ],
+              alignment: AlignmentType.LEFT,
+            }),
+          ],
+        }),
+      },
+      footers: {
+        default: new Footer({
+          children: [
+            new Paragraph({
+              children: [new TextRun({ text: `biolabtrack.fr  |  Généré le ${dateGen}`, size: 16, color: '9CA3AF' })],
+              alignment: AlignmentType.CENTER,
+            }),
+          ],
+        }),
+      },
+      children,
+    }],
+  });
+
+  const blob = await Packer.toBlob(doc);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ticket_${ticketNum}_${new Date().toISOString().slice(0, 10)}.docx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 /* ── Page ───────────────────────────────────────────────────────── */
 
 export default function TicketDetailPage() {
@@ -380,6 +620,7 @@ export default function TicketDetailPage() {
   const { data: session } = useSession();
   const currentUser = session?.user as ExtUser | undefined;
   const isAdmin = currentUser?.role === 'admin';
+  const currentUserName = `${currentUser?.prenom ?? ''} ${currentUser?.nom ?? ''}`.trim() || (currentUser?.email ?? '');
 
   const [siteId, setSiteId]       = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -415,6 +656,13 @@ export default function TicketDetailPage() {
   const [addingComment, setAddingComment] = useState(false);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
+  // Pièces jointes
+  const [piecesJointes, setPiecesJointes]     = useState<PieceJointe[]>([]);
+  const [uploadingFile, setUploadingFile]     = useState(false);
+  const [deletingPieceId, setDeletingPieceId] = useState<string | null>(null);
+  const [previewImage, setPreviewImage]       = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Modal annulation
   const [showAnnulerModal, setShowAnnulerModal] = useState(false);
   const [motifAnnulation, setMotifAnnulation]   = useState('');
@@ -444,6 +692,7 @@ export default function TicketDetailPage() {
         setPriorite(t.priorite);
         setEcheance(t.echeance ?? '');
         setChecklist((t.checklist as ChecklistItem[] | null) ?? []);
+        setPiecesJointes((t.pieces_jointes as PieceJointe[] | null) ?? []);
         setSelectedUsers((t.assignes ?? []).map((a: Assigne) => a.user_id));
       } else {
         const err = await res.json().catch(() => ({})) as { error?: string; detail?: string };
@@ -653,6 +902,42 @@ export default function TicketDetailPage() {
     }
   }
 
+  /* Pièces jointes */
+  async function handleUploadFile(file: File) {
+    if (file.size > 10 * 1024 * 1024) { showToast('Fichier trop volumineux (max 10 Mo)', 'error'); return; }
+    setUploadingFile(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`/api/tickets/${ticketId}/upload`, { method: 'POST', body: formData });
+      if (res.ok) {
+        const data = await res.json() as { pieceJointe: PieceJointe };
+        setPiecesJointes((prev) => [...prev, data.pieceJointe]);
+        showToast('Fichier ajouté');
+      } else {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        showToast(err.error ?? "Erreur lors de l'upload", 'error');
+      }
+    } finally {
+      setUploadingFile(false);
+    }
+  }
+
+  async function handleDeletePiece(pieceId: string) {
+    setDeletingPieceId(pieceId);
+    try {
+      const res = await fetch(`/api/tickets/${ticketId}/upload?pieceId=${pieceId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setPiecesJointes((prev) => prev.filter((p) => p.id !== pieceId));
+        showToast('Fichier supprimé');
+      } else {
+        showToast('Erreur lors de la suppression', 'error');
+      }
+    } finally {
+      setDeletingPieceId(null);
+    }
+  }
+
   /* Annuler ticket */
   async function handleAnnuler() {
     if (!motifAnnulation.trim()) return;
@@ -804,6 +1089,28 @@ export default function TicketDetailPage() {
         </div>
       )}
 
+      {/* Modale aperçu image */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-full" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-9 right-0 text-white hover:text-gray-300 text-sm font-medium"
+            >
+              Fermer ✕
+            </button>
+            <img
+              src={previewImage}
+              alt="Aperçu"
+              className="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain"
+            />
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-3 px-4 md:px-6 py-3 bg-white border-b border-gray-200 shrink-0">
@@ -830,7 +1137,7 @@ export default function TicketDetailPage() {
             {STATUT_LABELS[ticket.statut] ?? ticket.statut}
           </span>
           <button
-            onClick={() => exportTicketPDF(ticket, historique)}
+            onClick={() => exportTicketPDF(ticket, historique, piecesJointes)}
             title="Exporter en PDF"
             className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors shrink-0"
           >
@@ -838,6 +1145,16 @@ export default function TicketDetailPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h4a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
             </svg>
             <span className="hidden sm:inline">PDF</span>
+          </button>
+          <button
+            onClick={() => exportTicketWord(ticket, historique, piecesJointes)}
+            title="Exporter en Word"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors shrink-0"
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span className="hidden sm:inline">Word</span>
           </button>
         </div>
 
@@ -994,6 +1311,123 @@ export default function TicketDetailPage() {
                   )}
                 </div>
               ) : null}
+
+              {/* Pièces jointes */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">
+                    Pièces jointes
+                  </h2>
+                  {piecesJointes.length > 0 && (
+                    <span className="text-xs font-semibold text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">
+                      {piecesJointes.length}
+                    </span>
+                  )}
+                </div>
+
+                {canEdit && (
+                  <div
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-teal-400 hover:bg-teal-50 transition-colors mb-3"
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-teal-400', 'bg-teal-50'); }}
+                    onDragLeave={(e) => { e.currentTarget.classList.remove('border-teal-400', 'bg-teal-50'); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove('border-teal-400', 'bg-teal-50');
+                      const file = e.dataTransfer.files[0];
+                      if (file) handleUploadFile(file);
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleUploadFile(file);
+                        e.target.value = '';
+                      }}
+                    />
+                    {uploadingFile ? (
+                      <p className="text-sm text-teal-600">Chargement en cours...</p>
+                    ) : (
+                      <>
+                        <svg viewBox="0 0 24 24" className="w-7 h-7 mx-auto text-gray-400 mb-1.5" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                        </svg>
+                        <p className="text-sm text-gray-500">
+                          Glisser un fichier ici ou <span className="text-teal-600 font-medium">parcourir</span>
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">Tous formats — max 10 Mo</p>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {piecesJointes.length > 0 && (
+                  <div className="space-y-1.5">
+                    {piecesJointes.map((p) => {
+                      const isImg  = isImage(p.type, p.nom);
+                      const isPdf  = p.type === 'application/pdf' || p.nom.toLowerCase().endsWith('.pdf');
+                      const isWord = p.type.includes('word') || /\.(doc|docx)$/i.test(p.nom);
+                      const canDeletePiece = isAdmin || currentUserName === p.uploaded_par;
+                      return (
+                        <div key={p.id} className="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg group hover:bg-gray-100 transition-colors">
+                          <div className="w-8 h-8 rounded flex items-center justify-center bg-white border border-gray-200 flex-shrink-0">
+                            {isImg ? (
+                              <svg viewBox="0 0 24 24" className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            ) : isPdf ? (
+                              <svg viewBox="0 0 24 24" className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            ) : isWord ? (
+                              <svg viewBox="0 0 24 24" className="w-4 h-4 text-blue-700" fill="none" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            ) : (
+                              <svg viewBox="0 0 24 24" className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <button
+                              onClick={() => isImg ? setPreviewImage(p.url) : window.open(p.url, '_blank')}
+                              className="text-sm font-medium text-teal-700 hover:text-teal-900 truncate block text-left w-full"
+                              title={p.nom}
+                            >
+                              {p.nom}
+                            </button>
+                            <p className="text-xs text-gray-400">{fmtSize(p.taille)} · {p.uploaded_par} · {fmtDate(p.uploaded_le)}</p>
+                          </div>
+                          {canDeletePiece && (
+                            <button
+                              onClick={() => handleDeletePiece(p.id)}
+                              disabled={deletingPieceId === p.id}
+                              className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all disabled:opacity-40 flex-shrink-0"
+                              title="Supprimer"
+                            >
+                              {deletingPieceId === p.id ? (
+                                <span className="text-xs">...</span>
+                              ) : (
+                                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {piecesJointes.length === 0 && !canEdit && (
+                  <p className="text-sm text-gray-400 italic">Aucune pièce jointe.</p>
+                )}
+              </div>
 
               {/* Commentaires */}
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">

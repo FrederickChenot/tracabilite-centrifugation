@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     if (!email) return always
 
     const users = await sql`
-      SELECT id, nom, email FROM users
+      SELECT id, nom, prenom, email FROM users
       WHERE email = ${email as string} AND actif = true
       LIMIT 1
     `
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     const result = await sendEmailForgotPassword({
       email: process.env.EMAIL_EXPEDITEUR ?? user.email as string,
-      nom: user.nom as string | undefined,
+      prenom: user.prenom as string | undefined,
       resetUrl,
     })
     console.log('[forgot-password] email envoyé:', result)
