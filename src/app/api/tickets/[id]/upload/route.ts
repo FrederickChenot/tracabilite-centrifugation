@@ -64,7 +64,7 @@ export async function POST(
     console.log('[upload] POST — upload Blob vers:', blobPath);
 
     const blob = await put(blobPath, file, {
-      access: 'public',
+      access: 'private',
       token: blobToken,
     });
     console.log('[upload] POST — Blob OK, url:', blob.url);
