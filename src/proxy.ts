@@ -32,6 +32,7 @@ export default auth((req) => {
     pathname.startsWith('/api/auth/') ||
     pathname.startsWith('/api/contact') ||
     pathname.startsWith('/transport/') ||
+    pathname.startsWith('/t/') ||
     pathname.startsWith('/api/transport/') ||
     pathname.startsWith('/api/public/') ||
     pathname.startsWith('/outils/') ||

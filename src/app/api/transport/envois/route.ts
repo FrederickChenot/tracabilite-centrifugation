@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import sql from '@/lib/db';
 
+function generateCodeAcces(): string {
+  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const digits = '0123456789';
+  const l = Array.from({ length: 3 }, () => letters[Math.floor(Math.random() * letters.length)]).join('');
+  const d = Array.from({ length: 4 }, () => digits[Math.floor(Math.random() * digits.length)]).join('');
+  return `${l}-${d}`;
+}
+
 async function ensureTables() {
   await sql`CREATE TABLE IF NOT EXISTS laboratoires_dest (
     id SERIAL PRIMARY KEY,
@@ -46,6 +54,8 @@ async function ensureTables() {
   await sql`ALTER TABLE IF EXISTS envois_transport ADD COLUMN IF NOT EXISTS visa_transporteur VARCHAR(10)`;
   await sql`ALTER TABLE IF EXISTS envois_transport ADD COLUMN IF NOT EXISTS nom_receptionnaire VARCHAR(100)`;
   await sql`ALTER TABLE IF EXISTS envois_transport ADD COLUMN IF NOT EXISTS visa_receptionnaire VARCHAR(10)`;
+  await sql`ALTER TABLE IF EXISTS envois_transport ADD COLUMN IF NOT EXISTS matricule_expediteur VARCHAR(20)`;
+  await sql`ALTER TABLE IF EXISTS envois_transport ADD COLUMN IF NOT EXISTS code_acces VARCHAR(8) UNIQUE`;
 
   /* Fix constraint statut */
   try {
@@ -115,15 +125,31 @@ export async function POST(request: NextRequest) {
   try {
     await ensureTables();
     const body = await request.json();
-    const { site_id, dest_id, visa_expediteur } = body as {
-      site_id: number; dest_id: number; visa_expediteur: string;
+    const { site_id, dest_id, visa_expediteur, matricule_expediteur } = body as {
+      site_id: number; dest_id: number; visa_expediteur: string; matricule_expediteur?: string;
     };
     if (!site_id || !dest_id || !visa_expediteur) {
       return NextResponse.json({ error: 'Champs requis manquants' }, { status: 400 });
     }
+
+    // Generate unique code_acces, retry once on collision
+    let code_acces = generateCodeAcces();
+    try {
+      const existing = await sql`SELECT id FROM envois_transport WHERE code_acces = ${code_acces} LIMIT 1`;
+      if (existing.length > 0) code_acces = generateCodeAcces();
+    } catch {
+      // column may not exist yet on first run — ensureTables handles it
+    }
+
     const result = await sql`
-      INSERT INTO envois_transport (site_id, dest_id, visa_expediteur)
-      VALUES (${site_id}, ${dest_id}, ${visa_expediteur.trim().toUpperCase()})
+      INSERT INTO envois_transport (site_id, dest_id, visa_expediteur, matricule_expediteur, code_acces)
+      VALUES (
+        ${site_id},
+        ${dest_id},
+        ${visa_expediteur.trim().toUpperCase()},
+        ${matricule_expediteur?.trim().toUpperCase() ?? null},
+        ${code_acces}
+      )
       RETURNING *
     `;
     return NextResponse.json({ envoi: result[0] }, { status: 201 });

@@ -33,6 +33,7 @@ type Assigne = {
 
 type Ticket = {
   id: string;
+  numero_ticket: string | null;
   titre: string;
   description: string | null;
   statut: string;
@@ -218,7 +219,10 @@ async function exportTicketPDF(ticket: Ticket, historique: HistoriqueEntry[], pi
 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text(`TICKET #${ticket.id.slice(0, 8).toUpperCase()}`, margin, 27);
+  const ticketLabel = ticket.numero_ticket
+    ? `${ticket.numero_ticket}`
+    : `TICKET #${ticket.id.slice(0, 8).toUpperCase()}`;
+  doc.text(ticketLabel, margin, 27);
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
@@ -1126,9 +1130,14 @@ export default function TicketDetailPage() {
             ← Tickets
           </Link>
           <span className="text-gray-300">/</span>
-          <h1 className="text-sm md:text-base font-bold text-gray-900 truncate flex-1 min-w-0">
-            {ticket.titre}
-          </h1>
+          <div className="flex-1 min-w-0 flex flex-col">
+            <h1 className="text-sm md:text-base font-bold text-gray-900 truncate">
+              {ticket.titre}
+            </h1>
+            {ticket.numero_ticket && (
+              <span className="font-mono text-[10px] text-gray-400">{ticket.numero_ticket}</span>
+            )}
+          </div>
           <span
             className={`text-xs font-semibold px-2 py-0.5 rounded shrink-0 ${
               STATUT_BADGE[ticket.statut] ?? 'bg-gray-100 text-gray-600'

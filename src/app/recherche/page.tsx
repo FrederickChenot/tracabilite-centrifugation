@@ -1,9 +1,23 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Sidebar from '@/components/layout/Sidebar';
 import InactivityGuard from '@/components/InactivityGuard';
 import { RechercheResult, FilterState, Centrifugeuse } from '@/lib/schemas';
+
+/* ─── Types ──────────────────────────────────────────────── */
+
+type TicketResult = {
+  id: string;
+  numero_ticket: string | null;
+  titre: string;
+  description: string | null;
+  statut: string;
+  priorite: string;
+  site: string;
+  created_at: string;
+  assignes: { user_id: number; nom: string | null; prenom: string | null }[];
+};
 
 /* ─── Helpers ────────────────────────────────────────────── */
 
@@ -106,6 +120,67 @@ function ResultCard({ r }: { r: RechercheResult }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/* ─── Ticket card ────────────────────────────────────────── */
+
+const STATUT_LABELS: Record<string, string> = { a_faire: 'À faire', en_cours: 'En cours', termine: 'Terminé', annule: 'Annulé' };
+const STATUT_CLS: Record<string, string> = {
+  a_faire: 'bg-gray-100 text-gray-600',
+  en_cours: 'bg-blue-100 text-blue-700',
+  termine: 'bg-green-100 text-green-700',
+  annule: 'bg-red-100 text-red-600',
+};
+const PRIO_CLS: Record<string, string> = {
+  basse: 'bg-gray-100 text-gray-500',
+  normale: 'bg-blue-50 text-blue-600',
+  haute: 'bg-orange-100 text-orange-700',
+  urgente: 'bg-red-100 text-red-700',
+};
+const SITE_LABELS: Record<string, string> = { epinal: 'Épinal', remiremont: 'Remiremont', neufchateau: 'Neufchâteau' };
+
+function ticketInitials(prenom: string | null, nom: string | null): string {
+  return ((prenom ?? '').charAt(0) + (nom ?? '').charAt(0)).toUpperCase() || '?';
+}
+
+function TicketCard({ t, query }: { t: TicketResult; query: string }) {
+  function highlight(text: string): React.ReactNode {
+    if (!query.trim()) return text;
+    const idx = text.toLowerCase().indexOf(query.toLowerCase());
+    if (idx === -1) return text;
+    return <>{text.slice(0, idx)}<mark className="bg-yellow-200 rounded">{text.slice(idx, idx + query.length)}</mark>{text.slice(idx + query.length)}</>;
+  }
+
+  return (
+    <a href={`/tickets/${t.id}`} className="block bg-white border border-gray-200 rounded-lg p-3 hover:border-teal-300 hover:shadow-sm transition-all">
+      <div className="flex items-start gap-2 flex-wrap mb-1">
+        {t.numero_ticket && (
+          <span className="font-mono text-[10px] text-gray-400 shrink-0">{t.numero_ticket}</span>
+        )}
+        <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${PRIO_CLS[t.priorite] ?? 'bg-gray-100 text-gray-500'}`}>
+          {t.priorite}
+        </span>
+        <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${STATUT_CLS[t.statut] ?? 'bg-gray-100 text-gray-500'}`}>
+          {STATUT_LABELS[t.statut] ?? t.statut}
+        </span>
+        <span className="text-xs text-gray-400 ml-auto">{fmtDate(t.created_at)}</span>
+      </div>
+      <p className="text-sm font-medium text-gray-800 mb-1">{highlight(t.titre)}</p>
+      <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
+        <span>{SITE_LABELS[t.site] ?? t.site}</span>
+        {t.assignes.length > 0 && (
+          <div className="flex gap-0.5 ml-1">
+            {t.assignes.slice(0, 3).map((a) => (
+              <span key={a.user_id} title={`${a.prenom ?? ''} ${a.nom ?? ''}`.trim()}
+                className="w-5 h-5 rounded-full bg-teal-600 text-white text-[10px] flex items-center justify-center font-semibold">
+                {ticketInitials(a.prenom, a.nom)}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </a>
   );
 }
 
@@ -258,6 +333,7 @@ async function generateAuditPdf(results: RechercheResult[], filters: FilterState
 export default function RecherchePage() {
   const [sidebarSiteId, setSidebarSiteId] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'centri' | 'tickets'>('centri');
   const [query, setQuery]       = useState('');
   const [filters, setFilters]   = useState<FilterState>(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
@@ -266,6 +342,11 @@ export default function RecherchePage() {
   const [searched, setSearched] = useState(false);
   const [centrifugeuses, setCentrifugeuses] = useState<Centrifugeuse[]>([]);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+
+  // Tickets tab state
+  const [ticketResults, setTicketResults] = useState<TicketResult[]>([]);
+  const [ticketLoading, setTicketLoading] = useState(false);
+  const [ticketSearched, setTicketSearched] = useState(false);
 
   const inputRef    = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -305,10 +386,29 @@ export default function RecherchePage() {
     }
   }, []);
 
+  const searchTickets = useCallback(async (q: string) => {
+    if (q.trim().length < 2) { setTicketResults([]); setTicketSearched(false); return; }
+    setTicketLoading(true);
+    try {
+      const res = await fetch(`/api/tickets?search=${encodeURIComponent(q.trim())}`);
+      const data = await res.json();
+      setTicketResults(data.tickets ?? []);
+      setTicketSearched(true);
+    } catch {
+      setTicketResults([]);
+    } finally {
+      setTicketLoading(false);
+    }
+  }, []);
+
   /* ── Query change avec debounce 500ms ── */
   function handleQueryChange(val: string) {
     setQuery(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (activeTab === 'tickets') {
+      debounceRef.current = setTimeout(() => searchTickets(val), 500);
+      return;
+    }
     if (!val.trim() && !hasActiveFilter(latestFilters.current)) {
       setResults([]);
       setSearched(false);
@@ -321,7 +421,11 @@ export default function RecherchePage() {
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key !== 'Enter') return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    performSearch(query, filters);
+    if (activeTab === 'tickets') {
+      searchTickets(query);
+    } else {
+      performSearch(query, filters);
+    }
   }
 
   /* ── Mise à jour filtre ── */
@@ -376,15 +480,20 @@ export default function RecherchePage() {
             </svg>
           </button>
           <h1 className="text-lg font-bold text-gray-900">Recherche</h1>
-          {searched && !loading && (
+          {activeTab === 'centri' && searched && !loading && (
             <span className="text-sm text-gray-500">
               {results.length} résultat{results.length !== 1 ? 's' : ''}
             </span>
           )}
-          {loading && (
+          {activeTab === 'tickets' && ticketSearched && !ticketLoading && (
+            <span className="text-sm text-gray-500">
+              {ticketResults.length} ticket{ticketResults.length !== 1 ? 's' : ''}
+            </span>
+          )}
+          {(loading || ticketLoading) && (
             <span className="text-sm text-teal-600 animate-pulse">Recherche...</span>
           )}
-          {hasDateFilter(filters) && results.length > 0 && (
+          {activeTab === 'centri' && hasDateFilter(filters) && results.length > 0 && (
             <button
               onClick={handleGeneratePdf}
               disabled={generatingPdf}
@@ -398,6 +507,26 @@ export default function RecherchePage() {
         {/* ── Main ── */}
         <main className="flex-1 overflow-auto px-4 md:px-6 py-5 space-y-4">
 
+          {/* ── Onglets ── */}
+          <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+            <button
+              onClick={() => setActiveTab('centri')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                activeTab === 'centri' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Centrifugation
+            </button>
+            <button
+              onClick={() => setActiveTab('tickets')}
+              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                activeTab === 'tickets' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Tickets
+            </button>
+          </div>
+
           {/* ── Barre de recherche ── */}
           <div className="flex gap-2 items-center">
             <div className="relative flex-1 max-w-2xl">
@@ -408,31 +537,33 @@ export default function RecherchePage() {
                 value={query}
                 onChange={(e) => handleQueryChange(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Scanner ou saisir un numéro d'échantillon..."
+                placeholder={activeTab === 'tickets' ? 'Titre, description ou numéro de ticket...' : "Scanner ou saisir un numéro d'échantillon..."}
                 className="w-full pl-9 pr-4 py-3 text-sm border-2 border-gray-300 rounded-xl font-mono focus:outline-none focus:border-teal-500 transition-colors bg-white shadow-sm"
                 autoFocus
               />
             </div>
 
-            <button
-              onClick={() => setShowFilters((v) => !v)}
-              className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 transition-colors ${
-                showFilters || activeFilterCount > 0
-                  ? 'border-teal-500 bg-teal-50 text-teal-700'
-                  : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
-              }`}
-            >
-              Filtres
-              {activeFilterCount > 0 && (
-                <span className="bg-teal-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center font-bold">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
+            {activeTab === 'centri' && (
+              <button
+                onClick={() => setShowFilters((v) => !v)}
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 transition-colors ${
+                  showFilters || activeFilterCount > 0
+                    ? 'border-teal-500 bg-teal-50 text-teal-700'
+                    : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
+                }`}
+              >
+                Filtres
+                {activeFilterCount > 0 && (
+                  <span className="bg-teal-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center font-bold">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
 
-          {/* ── Panneau filtres ── */}
-          {showFilters && (
+          {/* ── Panneau filtres (centri uniquement) ── */}
+          {activeTab === 'centri' && showFilters && (
             <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
@@ -571,33 +702,68 @@ export default function RecherchePage() {
             </div>
           )}
 
-          {/* ── Résultats ── */}
-          {searched && !loading && results.length === 0 && (
-            <div className="text-center py-16 text-gray-400">
-              <div className="text-4xl mb-3">⌕</div>
-              <p className="text-sm">Aucun résultat pour ces critères</p>
-            </div>
+          {/* ── Résultats centrifugation ── */}
+          {activeTab === 'centri' && (
+            <>
+              {searched && !loading && results.length === 0 && (
+                <div className="text-center py-16 text-gray-400">
+                  <div className="text-4xl mb-3">⌕</div>
+                  <p className="text-sm">Aucun résultat pour ces critères</p>
+                </div>
+              )}
+
+              {!searched && !loading && (
+                <div className="text-center py-20 text-gray-400">
+                  <div className="text-5xl mb-4 text-gray-200">⌕</div>
+                  <p className="text-sm">Scanner un code-barres ou saisir un numéro pour commencer</p>
+                  <p className="text-xs mt-1 text-gray-300">Recherche partielle — min. 2 caractères</p>
+                </div>
+              )}
+
+              {results.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 text-xs text-gray-500 pb-1">
+                    <span>{results.length} résultat{results.length !== 1 ? 's' : ''}</span>
+                    {results.length === 500 && (
+                      <span className="text-amber-600 bg-amber-50 px-2 py-0.5 rounded">Limite 500 — affinez les filtres</span>
+                    )}
+                    <span className="ml-auto">Trié par heure décroissante</span>
+                  </div>
+                  {results.map((r) => <ResultCard key={r.id} r={r} />)}
+                </div>
+              )}
+            </>
           )}
 
-          {!searched && !loading && (
-            <div className="text-center py-20 text-gray-400">
-              <div className="text-5xl mb-4 text-gray-200">⌕</div>
-              <p className="text-sm">Scanner un code-barres ou saisir un numéro pour commencer</p>
-              <p className="text-xs mt-1 text-gray-300">Recherche partielle — min. 2 caractères</p>
-            </div>
-          )}
+          {/* ── Résultats tickets ── */}
+          {activeTab === 'tickets' && (
+            <>
+              {ticketLoading && (
+                <div className="text-center py-8 text-teal-600 text-sm animate-pulse">Recherche...</div>
+              )}
 
-          {results.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-3 text-xs text-gray-500 pb-1">
-                <span>{results.length} résultat{results.length !== 1 ? 's' : ''}</span>
-                {results.length === 500 && (
-                  <span className="text-amber-600 bg-amber-50 px-2 py-0.5 rounded">Limite 500 — affinez les filtres</span>
-                )}
-                <span className="ml-auto">Trié par heure décroissante</span>
-              </div>
-              {results.map((r) => <ResultCard key={r.id} r={r} />)}
-            </div>
+              {ticketSearched && !ticketLoading && ticketResults.length === 0 && (
+                <div className="text-center py-16 text-gray-400">
+                  <div className="text-4xl mb-3">⌕</div>
+                  <p className="text-sm">Aucun ticket trouvé</p>
+                </div>
+              )}
+
+              {!ticketSearched && !ticketLoading && (
+                <div className="text-center py-20 text-gray-400">
+                  <div className="text-5xl mb-4 text-gray-200">⌕</div>
+                  <p className="text-sm">Saisir un mot-clé ou numéro de ticket pour commencer</p>
+                  <p className="text-xs mt-1 text-gray-300">Min. 2 caractères</p>
+                </div>
+              )}
+
+              {ticketResults.length > 0 && !ticketLoading && (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-500">{ticketResults.length} ticket{ticketResults.length !== 1 ? 's' : ''} trouvé{ticketResults.length !== 1 ? 's' : ''}</p>
+                  {ticketResults.map((t) => <TicketCard key={t.id} t={t} query={query} />)}
+                </div>
+              )}
+            </>
           )}
         </main>
       </div>

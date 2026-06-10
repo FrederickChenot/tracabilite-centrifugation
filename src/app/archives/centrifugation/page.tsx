@@ -62,18 +62,28 @@ function formatStockages(stockages: string | string[] | null | undefined): strin
 }
 
 function exportCsv(sessions: ArchiveSession[]) {
-  const headers = ['Date', 'Heure', 'Site', 'Centrifugeuse', 'Programme', 'Visa', 'Statut', 'Nb tubes', 'Échantillons'];
-  const rows = sessions.map((s) => [
-    fmtDate(s.opened_at),
-    fmtTime(s.opened_at),
-    `"${s.site_nom}"`,
-    `"${s.centri_nom}"`,
-    `"Pgm ${s.prog_numero} ${s.prog_libelle}"`,
-    s.visa,
-    s.statut,
-    s.nb_tubes,
-    `"${(s.echantillons ?? []).join(';')}"`,
-  ]);
+  const headers = ['Date', 'Heure début', 'Heure fin', 'Durée (min)', 'Site', 'Centrifugeuse', 'Programme', 'Visa', 'Statut', 'Nb tubes', 'Stockages', 'Échantillons'];
+  const rows = sessions.map((s) => {
+    const heureFin = s.closed_at ? fmtTime(s.closed_at) : '';
+    const duree = s.closed_at
+      ? String(Math.round((new Date(s.closed_at).getTime() - new Date(s.opened_at).getTime()) / 60000))
+      : '';
+    const stockages = formatStockages(s.stockages_tubes ?? s.stockage);
+    return [
+      fmtDate(s.opened_at),
+      fmtTime(s.opened_at),
+      heureFin,
+      duree,
+      `"${s.site_nom}"`,
+      `"${s.centri_nom}"`,
+      `"Pgm ${s.prog_numero} ${s.prog_libelle}"`,
+      s.visa,
+      s.statut,
+      s.nb_tubes,
+      `"${stockages}"`,
+      `"${(s.echantillons ?? []).join(';')}"`,
+    ];
+  });
   const csv = [headers, ...rows].map((r) => r.join(',')).join('\r\n');
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -143,6 +153,7 @@ export default function ArchivesCentrifugationPage() {
   const [filterDateDebut, setFilterDateDebut] = useState('');
   const [filterDateFin, setFilterDateFin] = useState('');
   const [filterVisa, setFilterVisa] = useState('');
+  const [filterTube, setFilterTube] = useState('');
 
   /* Data */
   const [allCentrifugeuses, setAllCentrifugeuses] = useState<Centrifugeuse[]>([]);
@@ -179,6 +190,7 @@ export default function ArchivesCentrifugationPage() {
       if (filterDateDebut) params.set('date_debut', filterDateDebut);
       if (filterDateFin)   params.set('date_fin',   filterDateFin);
       if (filterVisa.trim()) params.set('visa',    filterVisa.trim());
+      if (filterTube.trim()) params.set('num_tube', filterTube.trim());
       params.set('page', String(p));
       const res = await fetch(`/api/centri/archives?${params}`);
       const data = await res.json();
@@ -246,7 +258,7 @@ export default function ArchivesCentrifugationPage() {
           {/* Filtres */}
           <div className="bg-white rounded-lg border border-gray-200 p-4">
             <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Filtres</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Site</label>
                 <select value={filterSiteId} onChange={(e) => setFilterSiteId(e.target.value)}
@@ -278,6 +290,12 @@ export default function ArchivesCentrifugationPage() {
                 <input type="text" value={filterVisa} onChange={(e) => setFilterVisa(e.target.value.toUpperCase())}
                   placeholder="ex: FD" maxLength={5}
                   className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 uppercase font-mono focus:outline-none focus:ring-1 focus:ring-teal-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">N° tube</label>
+                <input type="text" value={filterTube} onChange={(e) => setFilterTube(e.target.value)}
+                  placeholder="ex: 2024001234"
+                  className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 font-mono focus:outline-none focus:ring-1 focus:ring-teal-500" />
               </div>
             </div>
             <button onClick={() => search(0)} disabled={loading}

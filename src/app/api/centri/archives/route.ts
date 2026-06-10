@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
   const date_debut = searchParams.get('date_debut') || null;
   const date_fin   = searchParams.get('date_fin')   || null;
   const visa       = searchParams.get('visa')?.trim() || null;
+  const num_tube   = searchParams.get('num_tube')?.trim() || null;
   const page       = Math.max(0, Number(searchParams.get('page') ?? 0));
 
   const where = sql`
@@ -20,6 +21,11 @@ export async function GET(request: NextRequest) {
     AND ${date_debut ? sql`s.opened_at::date >= ${date_debut}::date`   : sql`TRUE`}
     AND ${date_fin   ? sql`s.opened_at::date <= ${date_fin}::date`     : sql`TRUE`}
     AND ${visa       ? sql`s.visa ILIKE ${visa + '%'}`                  : sql`TRUE`}
+    AND ${num_tube   ? sql`EXISTS (
+      SELECT 1 FROM tubes_centri tc
+      WHERE tc.session_id = s.id
+        AND tc.num_echant ILIKE ${'%' + num_tube + '%'}
+    )`                                                                  : sql`TRUE`}
   `;
 
   const [rows, countRows] = await Promise.all([

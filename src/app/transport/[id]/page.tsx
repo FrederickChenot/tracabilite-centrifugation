@@ -17,6 +17,8 @@ type Envoi = {
   site_nom: string
   dest_nom: string
   visa_expediteur: string
+  matricule_expediteur: string | null
+  code_acces: string | null
   created_at: string
   envoye_at: string | null
   receptionne_at: string | null
@@ -70,6 +72,7 @@ function Counter({
 const btnSmall: CSSProperties = {
   width: 44, height: 44, border: '1px solid #d1d5db',
   borderRadius: 4, background: '#f9fafb', cursor: 'pointer', fontSize: 16,
+  touchAction: 'manipulation',
 }
 
 const teal = '#0F6E56'
@@ -177,12 +180,16 @@ export default function TransportPublicPage() {
     doc.text('Transport complété ✓', pageW / 2, 31.5, { align: 'center' })
 
     // Infos
+    const operateur = envoi.matricule_expediteur
+      ? `${envoi.visa_expediteur} — ${envoi.matricule_expediteur}`
+      : envoi.visa_expediteur;
+
     autoTable(doc, {
       startY: 36,
       body: [
         ['Expéditeur', envoi.site_nom],
         ['Destinataire', envoi.dest_nom],
-        ['Opérateur', envoi.visa_expediteur],
+        ['Opérateur', operateur],
         ['Date création', fmt(envoi.created_at)],
       ],
       styles: { fontSize: 8.5, cellPadding: 2 },
@@ -316,14 +323,23 @@ export default function TransportPublicPage() {
       <div style={card}>
         <Row label="Expéditeur" value={envoi.site_nom} />
         <Row label="Destinataire" value={envoi.dest_nom} />
-        <Row label="Opérateur" value={envoi.visa_expediteur} />
+        <Row
+          label="Opérateur"
+          value={envoi.matricule_expediteur
+            ? `${envoi.visa_expediteur} — ${envoi.matricule_expediteur}`
+            : envoi.visa_expediteur}
+        />
         <Row label="Date création" value={fmt(envoi.created_at)} />
+        {envoi.code_acces && (
+          <Row label="Code accès" value={envoi.code_acces} />
+        )}
       </div>
 
       {/* TABLEAU SACHETS */}
       <div style={{ ...card, marginTop: 16 }}>
         <div style={sectionTitle}>Sachets</div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 320 }}>
           <thead>
             <tr style={{ background: '#f0fdf4' }}>
               <Th>Température</Th><Th>Nb</Th><Th>Codes-barres</Th>
@@ -336,6 +352,7 @@ export default function TransportPublicPage() {
             <tr style={{ background: '#f0fdf4', fontWeight: 700 }}><Td>TOTAL</Td><Td>{nbTotal}</Td><Td></Td></tr>
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* PRISE EN CHARGE */}
@@ -488,12 +505,13 @@ const inputStyle: CSSProperties = {
 
 const btnPrimary: CSSProperties = {
   width: '100%',
-  padding: '12px',
+  padding: '14px',
   background: '#0F6E56',
   color: '#fff',
   border: 'none',
   borderRadius: 8,
-  fontSize: 15,
+  fontSize: 16,
   fontWeight: 700,
   cursor: 'pointer',
+  touchAction: 'manipulation',
 }

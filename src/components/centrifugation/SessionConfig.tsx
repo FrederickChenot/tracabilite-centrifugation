@@ -9,15 +9,29 @@ import {
 } from '@tabler/icons-react';
 import { CentrifugeusesAvecProgrammes } from '@/lib/schemas';
 
+interface CentriUser {
+  id: number;
+  prenom: string | null;
+  nom: string | null;
+  matricule: string;
+}
+
 interface SessionConfigProps {
   centrifugeuses: CentrifugeusesAvecProgrammes[];
   selectedCentri: number | null;
   selectedProg: number | null;
   visa: string;
   sessionActive: boolean;
+  siteId: number;
   onCentriChange: (id: number) => void;
   onProgChange: (id: number) => void;
   onVisaChange: (v: string) => void;
+}
+
+function userInitials(prenom: string | null, nom: string | null): string {
+  const p = (prenom ?? '').charAt(0).toUpperCase();
+  const n = (nom ?? '').charAt(0).toUpperCase();
+  return (p + n) || '?';
 }
 
 export default function SessionConfig({
@@ -26,6 +40,7 @@ export default function SessionConfig({
   selectedProg,
   visa,
   sessionActive,
+  siteId,
   onCentriChange,
   onProgChange,
   onVisaChange,
@@ -34,10 +49,23 @@ export default function SessionConfig({
   const backups = centrifugeuses.filter((c) => c.est_backup);
   const programmes = centrifugeuses.find((c) => c.id === selectedCentri)?.programmes ?? [];
   const [progExpanded, setProgExpanded] = useState(true);
+  const [users, setUsers] = useState<CentriUser[]>([]);
 
   useEffect(() => {
     if (!selectedProg) setProgExpanded(true);
   }, [selectedProg]);
+
+  useEffect(() => {
+    fetch('/api/centri/users')
+      .then((r) => r.json())
+      .then((d) => setUsers(d.users ?? []))
+      .catch(() => {});
+  }, [siteId]);
+
+  function handleAvatarClick(user: CentriUser) {
+    if (sessionActive) return;
+    onVisaChange(userInitials(user.prenom, user.nom));
+  }
 
   return (
     <div className="flex flex-col gap-3 p-3">
@@ -149,6 +177,35 @@ export default function SessionConfig({
             maxLength={5}
           />
         </div>
+
+        {/* Avatars utilisateurs pour auto-remplissage */}
+        {users.length > 0 && !sessionActive && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {users.map((u) => {
+              const inits = userInitials(u.prenom, u.nom);
+              const active = visa === inits;
+              return (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => handleAvatarClick(u)}
+                  title={`${u.prenom ?? ''} ${u.nom ?? ''}`.trim() || u.matricule}
+                  className="flex flex-col items-center gap-0.5 group"
+                >
+                  <span
+                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all
+                      ${active
+                        ? 'bg-teal-600 text-white ring-2 ring-teal-400'
+                        : 'bg-gray-200 text-gray-600 hover:bg-teal-100 hover:text-teal-700'
+                      }`}
+                  >
+                    {inits}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

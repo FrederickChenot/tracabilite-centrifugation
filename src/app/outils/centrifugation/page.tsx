@@ -36,6 +36,7 @@ export default function CentrifugationPage() {
   const [loadingReferentiels, setLoadingReferentiels] = useState(true);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [rouvrirError, setRouvrirError] = useState<string | null>(null);
 
   const loadReferentiels = useCallback(async (sid: number) => {
     setLoadingReferentiels(true);
@@ -128,7 +129,13 @@ export default function CentrifugationPage() {
   }
 
   async function handleRouvrir(id: string) {
-    await fetch(`/api/centri/sessions/${id}/rouvrir`, { method: 'PATCH' });
+    const res = await fetch(`/api/centri/sessions/${id}/rouvrir`, { method: 'PATCH' });
+    if (!res.ok) {
+      const data = await res.json();
+      setRouvrirError(data.error ?? 'Erreur lors de la réouverture');
+      setTimeout(() => setRouvrirError(null), 5000);
+      return;
+    }
     await loadHistorique();
   }
 
@@ -198,6 +205,13 @@ export default function CentrifugationPage() {
           </div>
         )}
 
+        {/* Erreur réouverture */}
+        {rouvrirError && (
+          <div className="shrink-0 bg-red-50 border-b border-red-200 px-4 py-2 text-sm text-red-700 font-medium">
+            {rouvrirError}
+          </div>
+        )}
+
         {/* Layout responsive : 1 col mobile, 2 col + historique desktop */}
         <div className="flex-1 min-h-0 overflow-auto md:overflow-hidden">
           <div className="flex flex-col md:flex-row md:h-full gap-0">
@@ -221,6 +235,7 @@ export default function CentrifugationPage() {
                     selectedProg={selectedProg}
                     visa={visa}
                     sessionActive={sessionActive}
+                    siteId={siteId}
                     onCentriChange={(id) => {
                       setSelectedCentri(id);
                       setSelectedProg(null);

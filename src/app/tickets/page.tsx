@@ -31,6 +31,7 @@ type Assigne = {
 
 type Ticket = {
   id: string;
+  numero_ticket: string | null;
   titre: string;
   description: string | null;
   statut: string;
@@ -195,9 +196,12 @@ function TicketCardContent({
       </div>
 
       {/* Titre */}
-      <p className="text-sm font-medium text-gray-800 leading-snug mb-2 line-clamp-2">
+      <p className="text-sm font-medium text-gray-800 leading-snug mb-1 line-clamp-2">
         {ticket.titre}
       </p>
+      {ticket.numero_ticket && (
+        <p className="font-mono text-[10px] text-gray-400 mb-1.5">{ticket.numero_ticket}</p>
+      )}
 
       {/* Site + Assignés */}
       <div className="flex items-center justify-between gap-2 mb-1.5">
