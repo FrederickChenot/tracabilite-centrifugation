@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from '@/components/layout/Sidebar';
 import InactivityGuard from '@/components/InactivityGuard';
 import { Centrifugeuse } from '@/lib/schemas';
@@ -145,7 +145,7 @@ export default function ArchivesCentrifugationPage() {
   const [filterVisa, setFilterVisa] = useState('');
 
   /* Data */
-  const [centrifugeuses, setCentrifugeuses] = useState<Centrifugeuse[]>([]);
+  const [allCentrifugeuses, setAllCentrifugeuses] = useState<Centrifugeuse[]>([]);
   const [sessions, setSessions] = useState<ArchiveSession[]>([]);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(0);
@@ -155,18 +155,19 @@ export default function ArchivesCentrifugationPage() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [generatingPdf, setGeneratingPdf] = useState(false);
 
-  const loadCentrifugeuses = useCallback(async (siteId: string) => {
-    if (!siteId) { setCentrifugeuses([]); return; }
-    const res = await fetch(`/api/admin/centrifugeuses?site_id=${siteId}`);
-    const data = await res.json();
-    setCentrifugeuses(data.centrifugeuses ?? []);
+  useEffect(() => {
+    fetch('/api/admin/centrifugeuses')
+      .then((res) => res.json())
+      .then((data) => setAllCentrifugeuses(data.centrifugeuses ?? []));
   }, []);
 
   useEffect(() => {
-    setCentrifugeuses([]);
     setFilterCentriId('');
-    loadCentrifugeuses(filterSiteId);
-  }, [filterSiteId, loadCentrifugeuses]);
+  }, [filterSiteId]);
+
+  const centrifugeuses = filterSiteId
+    ? allCentrifugeuses.filter((c) => String(c.site_id) === filterSiteId)
+    : allCentrifugeuses;
 
   async function search(p = 0) {
     setLoading(true);
@@ -257,8 +258,7 @@ export default function ArchivesCentrifugationPage() {
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Centrifugeuse</label>
                 <select value={filterCentriId} onChange={(e) => setFilterCentriId(e.target.value)}
-                  disabled={!filterSiteId}
-                  className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:bg-gray-50 disabled:text-gray-400">
+                  className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-teal-500">
                   <option value="">Toutes</option>
                   {centrifugeuses.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
                 </select>

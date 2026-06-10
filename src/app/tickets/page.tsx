@@ -136,10 +136,14 @@ function fmtDate(iso: string) {
   });
 }
 
-function echeanceBadge(echeance: string | null): { label: string; cls: string } | null {
+function echeanceBadge(echeance: string | null | undefined): { label: string; cls: string } | null {
   if (!echeance) return null;
-  const [y, m, d] = echeance.split('-').map(Number);
+  const parts = echeance.split('-').map(Number);
+  if (parts.length !== 3) return null;
+  const [y, m, d] = parts;
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
   const date = new Date(y, m - 1, d);
+  if (isNaN(date.getTime())) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const diffDays = Math.ceil((date.getTime() - today.getTime()) / 86400000);
@@ -307,9 +311,10 @@ function DroppableColumn({
 
       <div
         ref={setNodeRef}
-        className={`flex-1 min-h-[280px] rounded-b-lg border border-t-0 p-2 flex flex-col gap-2 transition-colors duration-150 ${
+        className={`rounded-b-lg border border-t-0 p-2 flex flex-col gap-2 transition-colors duration-150 overflow-y-auto ${
           isOver ? 'bg-teal-50 border-teal-300 ring-1 ring-teal-300' : col.dropCls
         }`}
+        style={{ height: 'calc(100vh - 200px)' }}
       >
         {tickets.map((ticket) => (
           <DraggableCard key={ticket.id} ticket={ticket} />
@@ -451,6 +456,7 @@ export default function TicketsPage() {
   const { data: session } = useSession();
   const user = session?.user as ExtUser | undefined;
   const userEmail = user?.email ?? null;
+  const isAdmin = user?.role === 'admin';
 
   const [siteId, setSiteId]   = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -563,6 +569,11 @@ export default function TicketsPage() {
     setFilterAssigne('');
     setFilterMesTickets(false);
   }
+
+  const visibleColumns = useMemo(
+    () => COLUMNS.filter((col) => col.id !== 'annule' || isAdmin),
+    [isAdmin]
+  );
 
   const activeFilters = [filterSite, filterPriorite, filterAssigne].filter(Boolean).length + (filterMesTickets ? 1 : 0);
 
@@ -750,9 +761,9 @@ export default function TicketsPage() {
             <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden p-4">
               <div
                 className="flex gap-4 h-full"
-                style={{ minWidth: `${COLUMNS.length * 256}px` }}
+                style={{ minWidth: `${visibleColumns.length * 256}px` }}
               >
-                {COLUMNS.map((col) => (
+                {visibleColumns.map((col) => (
                   <DroppableColumn
                     key={col.id}
                     col={col}

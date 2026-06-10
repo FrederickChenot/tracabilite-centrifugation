@@ -564,7 +564,7 @@ export default function ReferentielsTab() {
                           <td />
                           <td className="px-3 py-1.5 flex gap-1">
                             <Btn variant="teal" onClick={() => handleSaveLab(lab.id)} disabled={!editingLabNom.trim()}>✓</Btn>
-                            <Btn variant="ghost" onClick={() => setEditingLabId(null)}>✕</Btn>
+                            <Btn variant="ghost" onClick={() => setEditingLabId(null)}>Annuler</Btn>
                           </td>
                         </>
                       ) : (
@@ -622,7 +622,7 @@ export default function ReferentielsTab() {
               onKeyDown={(e) => { if (e.key === 'Enter') handleAddSite(); if (e.key === 'Escape') { setShowAddSite(false); setNewSiteNom(''); } }}
             />
             <Btn variant="teal" onClick={handleAddSite} disabled={!newSiteNom.trim()}>✓</Btn>
-            <Btn variant="ghost" onClick={() => { setShowAddSite(false); setNewSiteNom(''); }}>✕</Btn>
+            <Btn variant="ghost" onClick={() => { setShowAddSite(false); setNewSiteNom(''); }}>Annuler</Btn>
           </div>
         )}
 
@@ -638,7 +638,7 @@ export default function ReferentielsTab() {
                     onKeyDown={(e) => { if (e.key === 'Enter') handleRenameSite(site.id); if (e.key === 'Escape') setEditingSiteId(null); }}
                   />
                   <Btn variant="teal" onClick={() => handleRenameSite(site.id)}>✓</Btn>
-                  <Btn variant="ghost" onClick={() => setEditingSiteId(null)}>✕</Btn>
+                  <Btn variant="ghost" onClick={() => setEditingSiteId(null)}>Annuler</Btn>
                 </div>
               ) : (
                 <div
@@ -754,7 +754,7 @@ export default function ReferentielsTab() {
                                 <td />
                                 <td className="px-3 py-1.5 flex gap-1" onClick={(e) => e.stopPropagation()}>
                                   <Btn variant="teal" onClick={() => handleSaveCentri(c.id)}>✓</Btn>
-                                  <Btn variant="ghost" onClick={() => setEditingCentriId(null)}>✕</Btn>
+                                  <Btn variant="ghost" onClick={() => setEditingCentriId(null)}>Annuler</Btn>
                                 </td>
                               </>
                             ) : (
@@ -849,7 +849,7 @@ export default function ReferentielsTab() {
                             </td>
                             <td className="px-3 py-1.5 flex gap-1">
                               <Btn variant="teal" onClick={() => handleSaveProg(p.id)}>✓</Btn>
-                              <Btn variant="ghost" onClick={() => setEditingProgId(null)}>✕</Btn>
+                              <Btn variant="ghost" onClick={() => setEditingProgId(null)}>Annuler</Btn>
                             </td>
                           </>
                         ) : (

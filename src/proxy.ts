@@ -14,7 +14,9 @@ export default auth((req) => {
     pathname === '/outils/centrifugation' ||
     pathname.startsWith('/outils/centrifugation/') ||
     pathname === '/outils/transport' ||
-    pathname.startsWith('/outils/transport/')
+    pathname.startsWith('/outils/transport/') ||
+    pathname === '/recherche' ||
+    pathname.startsWith('/recherche/')
   ) {
     if (req.cookies.get('labo_access')?.value !== 'true') {
       return NextResponse.redirect(new URL('/outils/login', req.url));

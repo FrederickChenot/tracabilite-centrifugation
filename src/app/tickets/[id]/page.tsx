@@ -1394,7 +1394,10 @@ export default function TicketDetailPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <button
-                              onClick={() => isImg ? setPreviewImage(p.url) : window.open(p.url, '_blank')}
+                              onClick={() => isImg
+                                ? setPreviewImage(`/api/tickets/${ticketId}/files/${p.id}`)
+                                : window.open(`/api/tickets/${ticketId}/files/${p.id}`, '_blank')
+                              }
                               className="text-sm font-medium text-teal-700 hover:text-teal-900 truncate block text-left w-full"
                               title={p.nom}
                             >

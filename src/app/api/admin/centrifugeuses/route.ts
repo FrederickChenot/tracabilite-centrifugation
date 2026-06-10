@@ -23,15 +23,20 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const site_id = searchParams.get('site_id');
-    if (!site_id) return NextResponse.json({ error: 'site_id requis' }, { status: 400 });
 
     await ensureCentrifugeusesActif();
-    const rows = await sql`
-      SELECT id, site_id, nom, modele, est_backup, actif, COALESCE(ordre, 0) AS ordre
-      FROM centrifugeuses
-      WHERE site_id = ${Number(site_id)}
-      ORDER BY COALESCE(ordre, 0) ASC, est_backup ASC, nom ASC
-    `;
+    const rows = site_id
+      ? await sql`
+          SELECT id, site_id, nom, modele, est_backup, actif, COALESCE(ordre, 0) AS ordre
+          FROM centrifugeuses
+          WHERE site_id = ${Number(site_id)}
+          ORDER BY COALESCE(ordre, 0) ASC, est_backup ASC, nom ASC
+        `
+      : await sql`
+          SELECT id, site_id, nom, modele, est_backup, actif, COALESCE(ordre, 0) AS ordre
+          FROM centrifugeuses
+          ORDER BY site_id ASC, COALESCE(ordre, 0) ASC, est_backup ASC, nom ASC
+        `;
     return NextResponse.json({ centrifugeuses: rows });
   } catch (err) {
     console.error('[GET /api/admin/centrifugeuses]', err);

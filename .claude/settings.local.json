@@ -44,7 +44,8 @@
       "Bash(git *)",
       "Bash(npm list *)",
       "Bash(vercel *)",
-      "Bash(del \"src\\\\middleware.ts\")"
+      "Bash(del \"src\\\\middleware.ts\")",
+      "Bash(findstr \"bcrypt\")"
     ]
   },
   "hooks": {
