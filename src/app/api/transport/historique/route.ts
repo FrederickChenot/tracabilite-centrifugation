@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
         e.site_id,
         e.statut,
         e.visa_expediteur,
+        e.numero_bordereau,
         s.nom AS site_nom,
         d.nom AS dest_nom,
         COUNT(sa.id) FILTER (WHERE sa.temperature = 'ambiant') AS nb_ambiant,

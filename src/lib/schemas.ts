@@ -137,6 +137,9 @@ export interface EnvoiTransport {
   visa_transporteur: string | null;
   nom_receptionnaire: string | null;
   visa_receptionnaire: string | null;
+  matricule_expediteur?: string | null;
+  code_acces?: string | null;
+  numero_bordereau?: string | null;
   site_nom?: string;
   dest_nom?: string;
   sachets?: EnvoiSachet[];

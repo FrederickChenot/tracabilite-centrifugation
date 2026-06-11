@@ -62,6 +62,7 @@ export async function POST(
       const { sendEmailPriseEnCharge } = await import('@/lib/emails')
       await sendEmailPriseEnCharge({
         id: String(envoi.id),
+        numero_bordereau: envoi.numero_bordereau != null ? String(envoi.numero_bordereau) : null,
         dest_nom: ed.dest_nom != null ? String(ed.dest_nom) : undefined,
         nom_transporteur: String(envoi.nom_transporteur),
         visa_transporteur: String(envoi.visa_transporteur),

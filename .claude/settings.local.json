@@ -45,7 +45,9 @@
       "Bash(npm list *)",
       "Bash(vercel *)",
       "Bash(del \"src\\\\middleware.ts\")",
-      "Bash(findstr \"bcrypt\")"
+      "Bash(findstr \"bcrypt\")",
+      "Bash(Out-Null)",
+      "Bash(Write-Host \"done\")"
     ]
   },
   "hooks": {

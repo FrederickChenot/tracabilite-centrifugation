@@ -71,6 +71,7 @@ function row(label: string, value: string) {
 
 export async function sendEmailPriseEnCharge(params: {
   id: string;
+  numero_bordereau?: string | null;
   dest_nom?: string;
   nom_transporteur: string;
   visa_transporteur: string;
@@ -79,7 +80,7 @@ export async function sendEmailPriseEnCharge(params: {
   nb_plus4: number;
   nb_congele: number;
 }) {
-  const num = bonNum(params.id);
+  const num = params.numero_bordereau ?? bonNum(params.id);
   const heure = new Date(params.envoye_at).toLocaleString('fr-FR', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
@@ -115,6 +116,7 @@ export async function sendEmailPriseEnCharge(params: {
 
 export async function sendEmailReception(params: {
   id: string;
+  numero_bordereau?: string | null;
   dest_nom: string;
   nom_receptionnaire: string;
   visa_receptionnaire: string;
@@ -123,7 +125,7 @@ export async function sendEmailReception(params: {
   nb_plus4: number;
   nb_congele: number;
 }) {
-  const num = bonNum(params.id);
+  const num = params.numero_bordereau ?? bonNum(params.id);
   const heure = new Date(params.receptionne_at).toLocaleString('fr-FR', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });

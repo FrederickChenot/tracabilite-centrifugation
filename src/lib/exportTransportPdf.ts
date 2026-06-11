@@ -21,7 +21,7 @@ export async function exportTransportPdf(envoi: EnvoiTransport) {
   const pageW = doc.internal.pageSize.width;
   const pageH = doc.internal.pageSize.height;
   const mL = 14, mR = 14;
-  const num = bonNum(envoi.id);
+  const num = envoi.numero_bordereau ?? bonNum(envoi.id);
 
   // QR code
   const qrUrl = `${window.location.origin}/transport/${envoi.id}`;

@@ -62,6 +62,7 @@ export async function POST(
       const { sendEmailReception } = await import('@/lib/emails')
       await sendEmailReception({
         id: String(envoi.id),
+        numero_bordereau: envoi.numero_bordereau != null ? String(envoi.numero_bordereau) : null,
         dest_nom: String(ed.dest_nom ?? ''),
         nom_receptionnaire: String(envoi.nom_receptionnaire),
         visa_receptionnaire: String(envoi.visa_receptionnaire),

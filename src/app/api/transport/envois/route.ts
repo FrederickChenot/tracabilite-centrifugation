@@ -56,6 +56,7 @@ async function ensureTables() {
   await sql`ALTER TABLE IF EXISTS envois_transport ADD COLUMN IF NOT EXISTS visa_receptionnaire VARCHAR(10)`;
   await sql`ALTER TABLE IF EXISTS envois_transport ADD COLUMN IF NOT EXISTS matricule_expediteur VARCHAR(20)`;
   await sql`ALTER TABLE IF EXISTS envois_transport ADD COLUMN IF NOT EXISTS code_acces VARCHAR(8) UNIQUE`;
+  await sql`ALTER TABLE IF EXISTS envois_transport ADD COLUMN IF NOT EXISTS numero_bordereau VARCHAR(30)`;
 
   /* Fix constraint statut */
   try {
@@ -141,14 +142,28 @@ export async function POST(request: NextRequest) {
       // column may not exist yet on first run — ensureTables handles it
     }
 
+    // Generate numero_bordereau TR-AAAA-MM-JJ-NNNN
+    const today = new Date().toLocaleDateString('fr-CA');
+    const [y, m, d] = today.split('-');
+    let numero_bordereau = `TR-${y}-${m}-${d}-0001`;
+    try {
+      const cnt = await sql`
+        SELECT COUNT(*)::int AS cnt FROM envois_transport
+        WHERE DATE(created_at AT TIME ZONE 'Europe/Paris') = ${today}::date
+      `;
+      const seq = ((cnt[0]?.cnt as number) ?? 0) + 1;
+      numero_bordereau = `TR-${y}-${m}-${d}-${String(seq).padStart(4, '0')}`;
+    } catch { /* fallback already set */ }
+
     const result = await sql`
-      INSERT INTO envois_transport (site_id, dest_id, visa_expediteur, matricule_expediteur, code_acces)
+      INSERT INTO envois_transport (site_id, dest_id, visa_expediteur, matricule_expediteur, code_acces, numero_bordereau)
       VALUES (
         ${site_id},
         ${dest_id},
         ${visa_expediteur.trim().toUpperCase()},
         ${matricule_expediteur?.trim().toUpperCase() ?? null},
-        ${code_acces}
+        ${code_acces},
+        ${numero_bordereau}
       )
       RETURNING *
     `;
