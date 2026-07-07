@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
@@ -27,6 +28,19 @@ export default function Sidebar({ siteId, onSiteChange, mobileOpen, onMobileClos
   const pathname = usePathname();
   const { data: session } = useSession();
   const isAdmin = (session?.user as { role?: string })?.role === 'admin';
+  const [ticketsCount, setTicketsCount] = useState(0);
+
+  useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
+    fetch('/api/tickets/count')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data) setTicketsCount(data.count ?? 0);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [session]);
 
   return (
     <>
@@ -83,6 +97,11 @@ export default function Sidebar({ siteId, onSiteChange, mobileOpen, onMobileClos
               >
                 <span className="text-base">{item.icon}</span>
                 {item.label}
+                {item.href === '/tickets' && ticketsCount > 0 && (
+                  <span className="ml-auto flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold">
+                    {ticketsCount > 99 ? '99+' : ticketsCount}
+                  </span>
+                )}
               </Link>
             );
           })}

@@ -66,7 +66,7 @@ export async function POST(
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const blob = await put(blobPath, buffer, {
-      access: 'public',
+      access: 'private',
       token: blobToken,
       contentType: file.type || 'application/octet-stream',
       addRandomSuffix: false,

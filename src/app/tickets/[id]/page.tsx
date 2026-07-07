@@ -442,7 +442,7 @@ async function exportTicketWord(ticket: Ticket, historique: HistoriqueEntry[], p
   } = docx;
 
   const dateGen = new Date().toLocaleString('fr-FR');
-  const ticketNum = ticket.id.slice(0, 8).toUpperCase();
+  const ticketNum = ticket.numero_ticket ?? ticket.id.slice(0, 8).toUpperCase();
 
   const STATUT_LBL: Record<string, string> = { a_faire: 'À faire', en_cours: 'En cours', termine: 'Terminé', annule: 'Annulé' };
   const PRIO_LBL: Record<string, string>   = { basse: 'Basse', normale: 'Normale', haute: 'Haute', urgente: 'Urgente' };
