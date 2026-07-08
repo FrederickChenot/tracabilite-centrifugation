@@ -27,7 +27,7 @@ export async function PUT(
     return NextResponse.json({ error: 'email, nom et prenom sont requis' }, { status: 400 });
   }
 
-  const VALID_ROLES = ['technicien', 'biologiste', 'secretaire', 'cadre', 'assistante_qualite', 'agent_transverse', 'admin'];
+  const VALID_ROLES = ['technicien', 'biologiste', 'secretaire', 'cadre', 'assistante_qualite', 'agent_transverse', 'responsable_processus_info', 'admin'];
   if (role && !VALID_ROLES.includes(role)) {
     return NextResponse.json({ error: 'Rôle invalide' }, { status: 400 });
   }

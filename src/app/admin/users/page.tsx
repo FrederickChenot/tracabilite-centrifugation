@@ -9,26 +9,28 @@ interface Site {
   actif: boolean;
 }
 
-type Role = 'technicien' | 'biologiste' | 'secretaire' | 'cadre' | 'assistante_qualite' | 'agent_transverse' | 'admin';
+type Role = 'technicien' | 'biologiste' | 'secretaire' | 'cadre' | 'assistante_qualite' | 'agent_transverse' | 'responsable_processus_info' | 'admin';
 
 const ROLE_LABELS: Record<Role, string> = {
-  technicien:         'Technicien',
-  biologiste:         'Biologiste',
-  secretaire:         'Secrétaire',
-  cadre:              'Cadre',
-  assistante_qualite: 'Assist. qualité',
-  agent_transverse:   'Agent transverse',
-  admin:              'Admin',
+  technicien:                 'Technicien',
+  biologiste:                 'Biologiste',
+  secretaire:                 'Secrétaire',
+  cadre:                      'Cadre',
+  assistante_qualite:         'Assist. qualité',
+  agent_transverse:           'Agent transverse',
+  responsable_processus_info: 'Responsable processus informatique',
+  admin:                      'Admin',
 };
 
 const ROLE_CLS: Record<Role, string> = {
-  technicien:         'bg-gray-100 text-gray-600',
-  biologiste:         'bg-purple-100 text-purple-700',
-  secretaire:         'bg-yellow-100 text-yellow-700',
-  cadre:              'bg-orange-100 text-orange-700',
-  assistante_qualite: 'bg-pink-100 text-pink-700',
-  agent_transverse:   'bg-gray-100 text-gray-500',
-  admin:              'bg-blue-100 text-blue-700',
+  technicien:                 'bg-gray-100 text-gray-600',
+  biologiste:                 'bg-purple-100 text-purple-700',
+  secretaire:                 'bg-yellow-100 text-yellow-700',
+  cadre:                      'bg-orange-100 text-orange-700',
+  assistante_qualite:         'bg-pink-100 text-pink-700',
+  agent_transverse:           'bg-gray-100 text-gray-500',
+  responsable_processus_info: 'bg-cyan-100 text-cyan-700',
+  admin:                      'bg-blue-100 text-blue-700',
 };
 
 interface User {
@@ -301,6 +303,7 @@ function Modal({
                 <option value="cadre">Cadre</option>
                 <option value="assistante_qualite">Assistante qualité</option>
                 <option value="agent_transverse">Agent transverse</option>
+                <option value="responsable_processus_info">Responsable processus informatique</option>
               </optgroup>
               <optgroup label="Administration">
                 <option value="admin">Admin</option>

@@ -144,16 +144,19 @@ ON CONFLICT (id) DO NOTHING;
 CREATE TABLE IF NOT EXISTS users (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email         VARCHAR(255) UNIQUE NOT NULL,
+  matricule     VARCHAR(50)  UNIQUE,
   password_hash TEXT NOT NULL,
   nom           VARCHAR(100) NOT NULL,
   prenom        VARCHAR(100) NOT NULL,
-  role          VARCHAR(20)  NOT NULL DEFAULT 'technicien',
+  role          VARCHAR(30)  NOT NULL DEFAULT 'technicien',
   site_id       VARCHAR(50)  REFERENCES sites(id),
   actif         BOOLEAN DEFAULT true,
   derniere_connexion TIMESTAMPTZ,
   created_at    TIMESTAMPTZ DEFAULT NOW(),
-  
-  CONSTRAINT check_role CHECK (role IN ('technicien', 'admin'))
+
+  CONSTRAINT check_role CHECK (role IN
+    ('technicien', 'biologiste', 'secretaire', 'cadre',
+     'assistante_qualite', 'agent_transverse', 'responsable_processus_info', 'admin'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
