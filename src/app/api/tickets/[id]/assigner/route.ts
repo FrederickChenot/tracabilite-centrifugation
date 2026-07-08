@@ -42,7 +42,8 @@ export async function POST(
     if (!userRow.length) {
       return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 401 });
     }
-    if (userRow[0].role !== 'admin') {
+    const ROLES_ASSIGNATION = ['admin', 'biologiste', 'responsable_processus_info'];
+    if (!ROLES_ASSIGNATION.includes(userRow[0].role as string)) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
     const assigne_par = userRow[0].id as number;

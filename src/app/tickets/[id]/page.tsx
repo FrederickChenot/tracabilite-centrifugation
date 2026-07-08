@@ -624,6 +624,7 @@ export default function TicketDetailPage() {
   const { data: session } = useSession();
   const currentUser = session?.user as ExtUser | undefined;
   const isAdmin = currentUser?.role === 'admin';
+  const peutAssigner = isAdmin || currentUser?.role === 'biologiste' || currentUser?.role === 'responsable_processus_info';
   const currentUserName = `${currentUser?.prenom ?? ''} ${currentUser?.nom ?? ''}`.trim() || (currentUser?.email ?? '');
 
   const [siteId, setSiteId]       = useState(1);
@@ -710,13 +711,13 @@ export default function TicketDetailPage() {
   }, [ticketId, router]);
 
   const loadUsers = useCallback(async () => {
-    if (!isAdmin) return;
+    if (!peutAssigner) return;
     const res = await fetch('/api/admin/users');
     if (res.ok) {
       const data = await res.json();
       setUsers((data.users ?? []).filter((u: User) => u.actif));
     }
-  }, [isAdmin]);
+  }, [peutAssigner]);
 
   useEffect(() => {
     loadTicket();
@@ -1712,7 +1713,7 @@ export default function TicketDetailPage() {
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Assignés</h3>
 
-                {!isAdmin && (
+                {!peutAssigner && (
                   ticket.assignes.length === 0 ? (
                     <p className="text-sm text-gray-400 italic">Aucun assigné</p>
                   ) : (
@@ -1731,7 +1732,7 @@ export default function TicketDetailPage() {
                   )
                 )}
 
-                {isAdmin && users.length > 0 && (
+                {peutAssigner && users.length > 0 && (
                   <>
                     <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100 mb-3">
                       {users.map((u) => {
@@ -1768,7 +1769,7 @@ export default function TicketDetailPage() {
                   </>
                 )}
 
-                {isAdmin && users.length === 0 && (
+                {peutAssigner && users.length === 0 && (
                   <p className="text-sm text-gray-400 italic">Chargement...</p>
                 )}
               </div>
