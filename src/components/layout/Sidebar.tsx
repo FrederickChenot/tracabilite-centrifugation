@@ -33,14 +33,18 @@ export default function Sidebar({ siteId, onSiteChange, mobileOpen, onMobileClos
   useEffect(() => {
     if (!session) return;
     let cancelled = false;
-    fetch('/api/tickets/count')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled && data) setTicketsCount(data.count ?? 0);
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [session]);
+    const fetchCount = () => {
+      fetch('/api/tickets/count')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!cancelled && data) setTicketsCount(data.count ?? 0);
+        })
+        .catch(() => {});
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [session, pathname]);
 
   return (
     <>
