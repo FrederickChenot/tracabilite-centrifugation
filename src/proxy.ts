@@ -6,7 +6,15 @@ export default auth((req) => {
 
   // Redirige les utilisateurs déjà connectés qui tentent d'accéder à /login
   if (pathname === '/login' && req.auth) {
-    return NextResponse.redirect(new URL('/outils/centrifugation', req.url));
+    const authRole = (req.auth.user as { role?: string })?.role;
+    const authMustChange = (req.auth.user as { must_change_password?: boolean })?.must_change_password;
+    if (authMustChange) {
+      return NextResponse.redirect(new URL('/profil', req.url));
+    }
+    if (authRole === 'admin') {
+      return NextResponse.redirect(new URL('/admin', req.url));
+    }
+    return NextResponse.redirect(new URL('/tickets', req.url));
   }
 
   // Routes outils — protégées par cookie labo_access
@@ -59,7 +67,7 @@ export default auth((req) => {
     (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) &&
     role !== 'admin'
   ) {
-    return NextResponse.redirect(new URL('/outils/centrifugation', req.url));
+    return NextResponse.redirect(new URL('/tickets', req.url));
   }
 
   return NextResponse.next();
