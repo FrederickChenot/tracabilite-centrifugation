@@ -47,7 +47,15 @@
       "Bash(del \"src\\\\middleware.ts\")",
       "Bash(findstr \"bcrypt\")",
       "Bash(Out-Null)",
-      "Bash(Write-Host \"done\")"
+      "Bash(Write-Host \"done\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\nRedirect URL: %{redirect_url}\\\\n\" https://biolabtrack.fr/login)",
+      "Bash(curl -s -D - -o /dev/null https://biolabtrack.fr/login)",
+      "Bash(curl -s -D - -o /dev/null https://biolabtrack.fr/outils/login)",
+      "Bash(curl -s -D - -o /dev/null -L https://www.biolabtrack.fr/login)",
+      "Bash(curl -s -o /dev/null -w \"Final URL: %{url_effective}\\\\nHTTP: %{http_code}\\\\n\" -L https://biolabtrack.fr/login)",
+      "Bash(curl -s -o /dev/null -w \"Final URL: %{url_effective}\\\\nHTTP: %{http_code}\\\\n\" -L https://biolabtrack.fr/outils/login)",
+      "Bash(curl -s https://www.biolabtrack.fr/login)",
+      "Bash(npx eslint *)"
     ]
   },
   "hooks": {

@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 function EyeIcon({ open }: { open: boolean }) {
@@ -46,7 +46,15 @@ function LoginForm() {
       if (res?.error) {
         setError('Identifiants incorrects');
       } else {
-        router.push('/outils/centrifugation');
+        const session = await getSession();
+        const user = session?.user as { role?: string; must_change_password?: boolean } | undefined;
+        if (user?.must_change_password) {
+          router.push('/profil');
+        } else if (user?.role === 'admin') {
+          router.push('/admin');
+        } else {
+          router.push('/tickets');
+        }
         router.refresh();
       }
     } finally {
