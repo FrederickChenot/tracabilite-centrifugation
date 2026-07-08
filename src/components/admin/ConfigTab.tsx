@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import Toast, { useToast } from './Toast';
 
 interface ConfigRow { cle: string; valeur: string; description: string }
@@ -21,17 +22,6 @@ interface User {
   actif: boolean;
   created_at: string;
 }
-interface NewUserForm {
-  email: string;
-  password: string;
-  nom: string;
-  prenom: string;
-  site_id: string;
-  role: 'technicien' | 'admin';
-}
-
-const EMPTY_FORM: NewUserForm = { email: '', password: '', nom: '', prenom: '', site_id: '', role: 'technicien' };
-
 interface EditUserForm {
   nom: string;
   prenom: string;
@@ -281,9 +271,6 @@ export default function ConfigTab() {
   /* ── Utilisateurs ── */
   const [users, setUsers] = useState<User[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newUser, setNewUser] = useState<NewUserForm>(EMPTY_FORM);
-  const [addingUser, setAddingUser] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const loadConfig = useCallback(async () => {
@@ -361,36 +348,6 @@ export default function ConfigTab() {
       else showToast('Erreur lors de l\'enregistrement', 'error');
     } finally {
       setSavingEmail(null);
-    }
-  }
-
-  async function addUser() {
-    if (!newUser.email || !newUser.password) return;
-    setAddingUser(true);
-    try {
-      const res = await fetch('/api/admin/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: newUser.email,
-          password: newUser.password,
-          nom: newUser.nom || null,
-          prenom: newUser.prenom || null,
-          site_id: newUser.site_id ? parseInt(newUser.site_id, 10) : null,
-          role: newUser.role,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        showToast('Utilisateur créé');
-        setNewUser(EMPTY_FORM);
-        setShowAddForm(false);
-        await loadSitesAndUsers();
-      } else {
-        showToast(data.error ?? 'Erreur', 'error');
-      }
-    } finally {
-      setAddingUser(false);
     }
   }
 
@@ -559,90 +516,15 @@ export default function ConfigTab() {
 
         {/* ── Gestion des utilisateurs ── */}
         <section>
-          <h2 className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4">Gestion des utilisateurs</h2>
-
-          {/* Formulaire d'ajout (partagé) */}
-          {showAddForm && (
-            <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 mb-6">
-              <h3 className="text-sm font-semibold text-teal-800 mb-3">Nouvel utilisateur</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Prénom</label>
-                  <input
-                    type="text"
-                    value={newUser.prenom}
-                    onChange={(e) => setNewUser((p) => ({ ...p, prenom: e.target.value }))}
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Nom</label>
-                  <input
-                    type="text"
-                    value={newUser.nom}
-                    onChange={(e) => setNewUser((p) => ({ ...p, nom: e.target.value }))}
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Email *</label>
-                  <input
-                    type="email"
-                    value={newUser.email}
-                    onChange={(e) => setNewUser((p) => ({ ...p, email: e.target.value }))}
-                    autoFocus
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Mot de passe *</label>
-                  <input
-                    type="password"
-                    value={newUser.password}
-                    onChange={(e) => setNewUser((p) => ({ ...p, password: e.target.value }))}
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Site</label>
-                  <select
-                    value={newUser.site_id}
-                    onChange={(e) => setNewUser((p) => ({ ...p, site_id: e.target.value }))}
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  >
-                    <option value="">Tous les sites</option>
-                    {activeSites.map((s) => <option key={s.id} value={s.id}>{s.nom}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Rôle</label>
-                  <select
-                    value={newUser.role}
-                    onChange={(e) => setNewUser((p) => ({ ...p, role: e.target.value as 'technicien' | 'admin' }))}
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  >
-                    <option value="technicien">Technicien</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex gap-2 mt-3 pt-3 border-t border-teal-100">
-                <button
-                  onClick={addUser}
-                  disabled={addingUser || !newUser.email || !newUser.password}
-                  className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50"
-                >
-                  {addingUser ? 'Création...' : 'Créer l\'utilisateur'}
-                </button>
-                <button
-                  onClick={() => { setShowAddForm(false); setNewUser(EMPTY_FORM); }}
-                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors"
-                >
-                  Annuler
-                </button>
-              </div>
-            </div>
-          )}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xs font-bold text-gray-600 uppercase tracking-wider">Gestion des utilisateurs</h2>
+            <Link
+              href="/admin/users"
+              className="px-3 py-1.5 bg-teal-600 text-white rounded-lg text-xs font-semibold hover:bg-teal-700 transition-colors"
+            >
+              Gérer les utilisateurs →
+            </Link>
+          </div>
 
           {usersLoading ? (
             <div className="p-8 text-center text-sm text-gray-400">Chargement...</div>
@@ -653,18 +535,7 @@ export default function ConfigTab() {
                 const siteUsers = users.filter((u) => u.site_id === site.id);
                 return (
                   <div key={site.id}>
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-semibold text-gray-700">{site.nom}</h3>
-                      <button
-                        onClick={() => {
-                          setNewUser({ ...EMPTY_FORM, site_id: String(site.id) });
-                          setShowAddForm(true);
-                        }}
-                        className="px-3 py-1 bg-teal-600 text-white rounded-lg text-xs font-semibold hover:bg-teal-700 transition-colors"
-                      >
-                        + Ajouter
-                      </button>
-                    </div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">{site.nom}</h3>
                     <UserTable users={siteUsers} onEdit={setEditingUser} onToggle={toggleUser} onReset={resetPassword} />
                   </div>
                 );
@@ -676,18 +547,7 @@ export default function ConfigTab() {
                 const noSiteUsers = users.filter((u) => !u.site_id || !activeSiteIds.has(u.site_id));
                 return (
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-semibold text-gray-700">Administrateurs / Sans site</h3>
-                      <button
-                        onClick={() => {
-                          setNewUser({ ...EMPTY_FORM, role: 'admin' });
-                          setShowAddForm(true);
-                        }}
-                        className="px-3 py-1 bg-teal-600 text-white rounded-lg text-xs font-semibold hover:bg-teal-700 transition-colors"
-                      >
-                        + Ajouter
-                      </button>
-                    </div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Administrateurs / Sans site</h3>
                     <UserTable users={noSiteUsers} onEdit={setEditingUser} onToggle={toggleUser} onReset={resetPassword} />
                   </div>
                 );
