@@ -5,9 +5,12 @@ import sql from '@/lib/db';
 import { hash } from 'bcryptjs';
 import { sendEmailBienvenue } from '@/lib/emails';
 
+const ROLES_LECTURE = ['admin', 'biologiste', 'responsable_processus_info'];
+
 export async function GET() {
   const session = await auth();
-  if (!session || (session.user as { role?: string })?.role !== 'admin') {
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  if (!session || !ROLES_LECTURE.includes(role as string)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
