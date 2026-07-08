@@ -38,9 +38,12 @@ export async function POST(
       );
     }
 
-    const userRow = await sql`SELECT id FROM users WHERE email = ${session.user.email} LIMIT 1`;
+    const userRow = await sql`SELECT id, role FROM users WHERE email = ${session.user.email} LIMIT 1`;
     if (!userRow.length) {
       return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 401 });
+    }
+    if (userRow[0].role !== 'admin') {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
     const assigne_par = userRow[0].id as number;
 
