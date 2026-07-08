@@ -55,7 +55,8 @@
       "Bash(curl -s -o /dev/null -w \"Final URL: %{url_effective}\\\\nHTTP: %{http_code}\\\\n\" -L https://biolabtrack.fr/login)",
       "Bash(curl -s -o /dev/null -w \"Final URL: %{url_effective}\\\\nHTTP: %{http_code}\\\\n\" -L https://biolabtrack.fr/outils/login)",
       "Bash(curl -s https://www.biolabtrack.fr/login)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(awk '{print $NF}')"
     ]
   },
   "hooks": {
