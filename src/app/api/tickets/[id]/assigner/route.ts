@@ -15,7 +15,7 @@ function getResend(): Resend | null {
   return new Resend(apiKey);
 }
 
-const FROM = 'BioLabTrack <onboarding@resend.dev>';
+const FROM = 'BioLabTrack <noreply@biolabtrack.fr>';
 
 export async function POST(
   request: NextRequest,
